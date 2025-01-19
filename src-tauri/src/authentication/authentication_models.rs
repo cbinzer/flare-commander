@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
-pub struct Envelope {
+pub struct Envelope<T> {
     pub success: bool,
-    pub result: Option<TokenVerification>,
+    pub result: Option<T>,
     pub messages: Vec<ResponseInfo>,
     pub errors: Vec<ResponseInfo>,
 }
@@ -30,12 +30,6 @@ pub enum TokenVerificationResult {
     Invalid,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ResponseInfo {
-    pub code: u32,
-    pub message: String,
-}
-
 impl From<TokenStatus> for TokenVerificationResult {
     fn from(status: TokenStatus) -> TokenVerificationResult {
         match status {
@@ -44,6 +38,12 @@ impl From<TokenStatus> for TokenVerificationResult {
             TokenStatus::Expired => TokenVerificationResult::Expired,
         }
     }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ResponseInfo {
+    pub code: u32,
+    pub message: String,
 }
 
 #[derive(Debug)]
@@ -56,4 +56,10 @@ impl From<reqwest::Error> for AuthenticationError {
     fn from(error: reqwest::Error) -> Self {
         AuthenticationError::RequestError(error)
     }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Account {
+    pub id: String,
+    pub name: String,
 }
