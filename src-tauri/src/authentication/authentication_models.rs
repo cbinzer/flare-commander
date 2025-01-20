@@ -1,4 +1,6 @@
 use serde::{Deserialize, Serialize};
+use std::error::Error;
+use std::fmt;
 
 #[derive(Serialize, Deserialize)]
 pub struct Envelope<T> {
@@ -36,6 +38,14 @@ pub enum AuthenticationError {
     InvalidToken,
     Reqwest(reqwest::Error),
     Unknown(String),
+}
+
+impl Error for AuthenticationError {}
+
+impl fmt::Display for AuthenticationError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "AuthenticationError: {:?}", self)
+    }
 }
 
 impl From<reqwest::Error> for AuthenticationError {
