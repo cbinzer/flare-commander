@@ -31,6 +31,8 @@ pub struct ResponseInfo {
 #[derive(Debug)]
 pub enum AuthenticationError {
     InvalidAccountId(String),
+    ExpiredToken,
+    DisabledToken,
     InvalidToken,
     Reqwest(reqwest::Error),
     Unknown(String),

@@ -1,5 +1,5 @@
 use crate::authentication::authentication_models::{
-    Account, AuthenticationError, Envelope, ResponseInfo, Token,
+    Account, AuthenticationError, Envelope, ResponseInfo, Token, TokenStatus,
 };
 use std::sync::Arc;
 
@@ -16,7 +16,20 @@ impl AuthenticationService {
         }
     }
 
-    pub async fn verify_token(&self, token: &str) -> Result<Token, AuthenticationError> {
+    pub async fn login(
+        &self,
+        account_id: &str,
+        token: &str,
+    ) -> Result<Account, AuthenticationError> {
+        let api_token = self.verify_token(token).await?;
+        match api_token.status {
+            TokenStatus::Active => self.verify_account_id(account_id, token).await,
+            TokenStatus::Disabled => Err(AuthenticationError::DisabledToken),
+            TokenStatus::Expired => Err(AuthenticationError::ExpiredToken),
+        }
+    }
+
+    async fn verify_token(&self, token: &str) -> Result<Token, AuthenticationError> {
         let token_envelope: Envelope<Token> = self
             .http_client
             .get(format!("{}/client/v4/user/tokens/verify", self.api_url))
@@ -32,7 +45,7 @@ impl AuthenticationService {
         }
     }
 
-    pub async fn verify_account_id(
+    async fn verify_account_id(
         &self,
         account_id: &str,
         token: &str,
@@ -372,6 +385,157 @@ mod test {
 
             let error = account_result.unwrap_err();
             assert!(matches!(error, AuthenticationError::InvalidAccountId(_)));
+
+            Ok(())
+        }
+    }
+
+    mod login {
+        use crate::authentication::authentication_models::{
+            Account, AuthenticationError, Envelope, Token, TokenStatus,
+        };
+        use crate::authentication::authentication_service::AuthenticationService;
+        use std::sync::Arc;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        #[tokio::test]
+        async fn should_login() -> Result<(), AuthenticationError> {
+            let mock_server = MockServer::start().await;
+            let response_template_account = ResponseTemplate::new(200).set_body_json(Envelope {
+                success: true,
+                result: Some(Account {
+                    id: "12345".to_string(),
+                    name: "My Account".to_string(),
+                }),
+                messages: vec![],
+                errors: vec![],
+            });
+            Mock::given(method("GET"))
+                .and(path("/client/v4/accounts/12345"))
+                .respond_with(response_template_account)
+                .mount(&mock_server)
+                .await;
+
+            let response_template_token = ResponseTemplate::new(200).set_body_json(Envelope {
+                success: true,
+                result: Some(Token {
+                    id: "12345".to_string(),
+                    status: TokenStatus::Active,
+                }),
+                messages: vec![],
+                errors: vec![],
+            });
+            Mock::given(method("GET"))
+                .and(path("/client/v4/user/tokens/verify"))
+                .respond_with(response_template_token)
+                .mount(&mock_server)
+                .await;
+
+            let http_client = Arc::new(reqwest::Client::new());
+            let authentication_service =
+                AuthenticationService::new(mock_server.uri().as_str(), http_client);
+
+            let account = authentication_service.login("12345", "my_token").await?;
+            assert_eq!(
+                account,
+                Account {
+                    id: "12345".to_string(),
+                    name: "My Account".to_string(),
+                }
+            );
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_respond_with_disabled_token_error() -> Result<(), AuthenticationError> {
+            let mock_server = MockServer::start().await;
+            let response_template_account = ResponseTemplate::new(200).set_body_json(Envelope {
+                success: true,
+                result: Some(Account {
+                    id: "12345".to_string(),
+                    name: "My Account".to_string(),
+                }),
+                messages: vec![],
+                errors: vec![],
+            });
+            Mock::given(method("GET"))
+                .and(path("/client/v4/accounts/12345"))
+                .respond_with(response_template_account)
+                .mount(&mock_server)
+                .await;
+
+            let response_template_token = ResponseTemplate::new(200).set_body_json(Envelope {
+                success: true,
+                result: Some(Token {
+                    id: "12345".to_string(),
+                    status: TokenStatus::Disabled,
+                }),
+                messages: vec![],
+                errors: vec![],
+            });
+            Mock::given(method("GET"))
+                .and(path("/client/v4/user/tokens/verify"))
+                .respond_with(response_template_token)
+                .mount(&mock_server)
+                .await;
+
+            let http_client = Arc::new(reqwest::Client::new());
+            let authentication_service =
+                AuthenticationService::new(mock_server.uri().as_str(), http_client);
+
+            let login_result = authentication_service.login("12345", "my_token").await;
+            assert!(login_result.is_err());
+
+            let error = login_result.unwrap_err();
+            assert!(matches!(error, AuthenticationError::DisabledToken));
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_respond_with_expired_token_error() -> Result<(), AuthenticationError> {
+            let mock_server = MockServer::start().await;
+            let response_template_account = ResponseTemplate::new(200).set_body_json(Envelope {
+                success: true,
+                result: Some(Account {
+                    id: "12345".to_string(),
+                    name: "My Account".to_string(),
+                }),
+                messages: vec![],
+                errors: vec![],
+            });
+            Mock::given(method("GET"))
+                .and(path("/client/v4/accounts/12345"))
+                .respond_with(response_template_account)
+                .mount(&mock_server)
+                .await;
+
+            let response_template_token = ResponseTemplate::new(200).set_body_json(Envelope {
+                success: true,
+                result: Some(Token {
+                    id: "12345".to_string(),
+                    status: TokenStatus::Expired,
+                }),
+                messages: vec![],
+                errors: vec![],
+            });
+            Mock::given(method("GET"))
+                .and(path("/client/v4/user/tokens/verify"))
+                .respond_with(response_template_token)
+                .mount(&mock_server)
+                .await;
+
+            let http_client = Arc::new(reqwest::Client::new());
+            let authentication_service =
+                AuthenticationService::new(mock_server.uri().as_str(), http_client);
+
+            let login_result = authentication_service.login("12345", "my_token").await;
+            assert!(login_result.is_err());
+
+            let error = login_result.unwrap_err();
+            assert!(matches!(error, AuthenticationError::ExpiredToken));
 
             Ok(())
         }
