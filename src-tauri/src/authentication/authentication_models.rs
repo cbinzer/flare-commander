@@ -30,6 +30,7 @@ pub struct ResponseInfo {
 
 #[derive(Debug)]
 pub enum AuthenticationError {
+    InvalidAccountId(String),
     InvalidToken,
     Reqwest(reqwest::Error),
     Unknown(String),
@@ -41,7 +42,7 @@ impl From<reqwest::Error> for AuthenticationError {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Account {
     pub id: String,
     pub name: String,

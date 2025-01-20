@@ -36,7 +36,7 @@ impl AuthenticationService {
         &self,
         account_id: &str,
         token: &str,
-    ) -> Result<bool, AuthenticationError> {
+    ) -> Result<Account, AuthenticationError> {
         let account_envelope: Envelope<Account> = self
             .http_client
             .get(format!("{}/client/v4/accounts/{account_id}", self.api_url))
@@ -46,7 +46,10 @@ impl AuthenticationService {
             .json()
             .await?;
 
-        Ok(account_envelope.result.is_some())
+        match account_envelope.result {
+            None => Err(self.map_account_errors(account_envelope.errors)),
+            Some(account) => Ok(account),
+        }
     }
 
     fn map_token_verification_errors(&self, errors: Vec<ResponseInfo>) -> AuthenticationError {
@@ -58,6 +61,19 @@ impl AuthenticationService {
         match error.code {
             1000 => AuthenticationError::InvalidToken,
             6003 => AuthenticationError::InvalidToken,
+            _ => AuthenticationError::Unknown(error.message.clone()),
+        }
+    }
+
+    fn map_account_errors(&self, errors: Vec<ResponseInfo>) -> AuthenticationError {
+        if errors.is_empty() {
+            return AuthenticationError::Unknown("No errors in the response.".to_string());
+        }
+
+        let error = &errors[0];
+        match error.code {
+            7003 => AuthenticationError::InvalidAccountId(error.message.clone()),
+            9109 => AuthenticationError::InvalidAccountId(error.message.clone()),
             _ => AuthenticationError::Unknown(error.message.clone()),
         }
     }
@@ -276,27 +292,33 @@ mod test {
             let http_client = Arc::new(reqwest::Client::new());
             let authentication_service =
                 AuthenticationService::new(mock_server.uri().as_str(), http_client);
-            let verification_result = authentication_service
+            let account = authentication_service
                 .verify_account_id("12345", "my_token")
                 .await?;
 
-            assert!(verification_result);
+            assert_eq!(
+                account,
+                Account {
+                    id: "12345".to_string(),
+                    name: "My Account".to_string(),
+                }
+            );
 
             Ok(())
         }
 
         #[tokio::test]
-        async fn should_verify_a_non_existing_account_id_as_false(
+        async fn should_verify_a_non_existing_account_id_as_invalid(
         ) -> Result<(), AuthenticationError> {
             let mock_server = MockServer::start().await;
             let response_template = ResponseTemplate::new(404).set_body_json(Envelope::<Account> {
                 success: false,
                 result: None,
-                messages: vec![ResponseInfo {
+                errors: vec![ResponseInfo {
                     code: 7003,
                     message: "Could not route to /client/v4/accounts/12345, perhaps your object identifier is invalid?".to_string(),
                 }],
-                errors: vec![],
+                messages: vec![],
             });
             Mock::given(method("GET"))
                 .and(path("/client/v4/accounts/12345"))
@@ -307,26 +329,31 @@ mod test {
             let http_client = Arc::new(reqwest::Client::new());
             let authentication_service =
                 AuthenticationService::new(mock_server.uri().as_str(), http_client);
-            let verification_result = authentication_service
-                .verify_account_id("12345", "my_token")
-                .await?;
 
-            assert!(!verification_result);
+            let account_result = authentication_service
+                .verify_account_id("12345", "my_token")
+                .await;
+            assert!(account_result.is_err());
+
+            let error = account_result.unwrap_err();
+            println!("{:?}", error);
+            assert!(matches!(error, AuthenticationError::InvalidAccountId(_)));
 
             Ok(())
         }
 
         #[tokio::test]
-        async fn should_verify_an_invalid_account_id_as_false() -> Result<(), AuthenticationError> {
+        async fn should_verify_an_invalid_account_id_as_invalid() -> Result<(), AuthenticationError>
+        {
             let mock_server = MockServer::start().await;
             let response_template = ResponseTemplate::new(403).set_body_json(Envelope::<Account> {
                 success: false,
                 result: None,
-                messages: vec![ResponseInfo {
+                errors: vec![ResponseInfo {
                     code: 9109,
                     message: "Invalid account identifier".to_string(),
                 }],
-                errors: vec![],
+                messages: vec![],
             });
             Mock::given(method("GET"))
                 .and(path("/client/v4/accounts/12345"))
@@ -337,11 +364,14 @@ mod test {
             let http_client = Arc::new(reqwest::Client::new());
             let authentication_service =
                 AuthenticationService::new(mock_server.uri().as_str(), http_client);
-            let verification_result = authentication_service
-                .verify_account_id("12345", "my_token")
-                .await?;
 
-            assert!(!verification_result);
+            let account_result = authentication_service
+                .verify_account_id("12345", "my_token")
+                .await;
+            assert!(account_result.is_err());
+
+            let error = account_result.unwrap_err();
+            assert!(matches!(error, AuthenticationError::InvalidAccountId(_)));
 
             Ok(())
         }
