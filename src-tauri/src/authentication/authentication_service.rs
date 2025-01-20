@@ -1,6 +1,5 @@
 use crate::authentication::authentication_models::{
-    Account, AuthenticationError, Envelope, ResponseInfo, TokenVerification,
-    TokenVerificationResult,
+    Account, AuthenticationError, Envelope, ResponseInfo, Token,
 };
 use std::sync::Arc;
 
@@ -17,11 +16,8 @@ impl AuthenticationService {
         }
     }
 
-    pub async fn verify_token(
-        &self,
-        token: &str,
-    ) -> Result<TokenVerificationResult, AuthenticationError> {
-        let verification_envelope: Envelope<TokenVerification> = self
+    pub async fn verify_token(&self, token: &str) -> Result<Token, AuthenticationError> {
+        let token_envelope: Envelope<Token> = self
             .http_client
             .get(format!("{}/client/v4/user/tokens/verify", self.api_url))
             .bearer_auth(token)
@@ -30,9 +26,9 @@ impl AuthenticationService {
             .json()
             .await?;
 
-        match verification_envelope.result {
-            None => self.handle_token_verification_errors(verification_envelope.errors),
-            Some(verification) => Ok(verification.status.into()),
+        match token_envelope.result {
+            None => Err(self.map_token_verification_errors(token_envelope.errors)),
+            Some(token) => Ok(token),
         }
     }
 
@@ -53,21 +49,16 @@ impl AuthenticationService {
         Ok(account_envelope.result.is_some())
     }
 
-    fn handle_token_verification_errors(
-        &self,
-        errors: Vec<ResponseInfo>,
-    ) -> Result<TokenVerificationResult, AuthenticationError> {
+    fn map_token_verification_errors(&self, errors: Vec<ResponseInfo>) -> AuthenticationError {
         if errors.is_empty() {
-            return Err(AuthenticationError::Unknown(
-                "No errors in the response.".to_string(),
-            ));
+            return AuthenticationError::Unknown("No errors in the response.".to_string());
         }
 
         let error = &errors[0];
         match error.code {
-            1000 => Ok(TokenVerificationResult::Invalid),
-            6003 => Ok(TokenVerificationResult::Invalid),
-            _ => Err(AuthenticationError::Unknown(error.message.clone())),
+            1000 => AuthenticationError::InvalidToken,
+            6003 => AuthenticationError::InvalidToken,
+            _ => AuthenticationError::Unknown(error.message.clone()),
         }
     }
 }
@@ -76,8 +67,7 @@ impl AuthenticationService {
 mod test {
     mod verify_token {
         use crate::authentication::authentication_models::{
-            AuthenticationError, Envelope, ResponseInfo, TokenStatus, TokenVerification,
-            TokenVerificationResult,
+            AuthenticationError, Envelope, ResponseInfo, Token, TokenStatus,
         };
         use crate::authentication::authentication_service::AuthenticationService;
         use std::sync::Arc;
@@ -89,7 +79,7 @@ mod test {
             let mock_server = MockServer::start().await;
             let response_template = ResponseTemplate::new(200).set_body_json(Envelope {
                 success: true,
-                result: Some(TokenVerification {
+                result: Some(Token {
                     id: "12345".to_string(),
                     status: TokenStatus::Active,
                 }),
@@ -105,9 +95,15 @@ mod test {
             let http_client = Arc::new(reqwest::Client::new());
             let authentication_service =
                 AuthenticationService::new(mock_server.uri().as_str(), http_client);
-            let verification_result = authentication_service.verify_token("my_token").await?;
+            let token = authentication_service.verify_token("my_token").await?;
 
-            assert_eq!(verification_result, TokenVerificationResult::Active);
+            assert_eq!(
+                token,
+                Token {
+                    id: "12345".to_string(),
+                    status: TokenStatus::Active,
+                }
+            );
 
             Ok(())
         }
@@ -116,16 +112,15 @@ mod test {
         async fn should_verify_a_wrong_formated_token_as_invalid() -> Result<(), AuthenticationError>
         {
             let mock_server = MockServer::start().await;
-            let response_template =
-                ResponseTemplate::new(400).set_body_json(Envelope::<TokenVerification> {
-                    success: false,
-                    result: None,
-                    messages: vec![],
-                    errors: vec![ResponseInfo {
-                        code: 6003,
-                        message: "Invalid request headers".to_string(),
-                    }],
-                });
+            let response_template = ResponseTemplate::new(400).set_body_json(Envelope::<Token> {
+                success: false,
+                result: None,
+                messages: vec![],
+                errors: vec![ResponseInfo {
+                    code: 6003,
+                    message: "Invalid request headers".to_string(),
+                }],
+            });
             Mock::given(method("GET"))
                 .and(path("/client/v4/user/tokens/verify"))
                 .respond_with(response_template)
@@ -135,9 +130,12 @@ mod test {
             let http_client = Arc::new(reqwest::Client::new());
             let authentication_service =
                 AuthenticationService::new(mock_server.uri().as_str(), http_client);
-            let verification_result = authentication_service.verify_token("my_token").await?;
 
-            assert_eq!(verification_result, TokenVerificationResult::Invalid);
+            let token_result = authentication_service.verify_token("my_token").await;
+            assert!(token_result.is_err());
+
+            let error = token_result.unwrap_err();
+            assert!(matches!(error, AuthenticationError::InvalidToken));
 
             Ok(())
         }
@@ -145,16 +143,15 @@ mod test {
         #[tokio::test]
         async fn should_verify_a_invalid_token_as_invalid() -> Result<(), AuthenticationError> {
             let mock_server = MockServer::start().await;
-            let response_template =
-                ResponseTemplate::new(401).set_body_json(Envelope::<TokenVerification> {
-                    success: false,
-                    result: None,
-                    messages: vec![],
-                    errors: vec![ResponseInfo {
-                        code: 1000,
-                        message: "Invalid API token".to_string(),
-                    }],
-                });
+            let response_template = ResponseTemplate::new(401).set_body_json(Envelope::<Token> {
+                success: false,
+                result: None,
+                messages: vec![],
+                errors: vec![ResponseInfo {
+                    code: 1000,
+                    message: "Invalid API token".to_string(),
+                }],
+            });
             Mock::given(method("GET"))
                 .and(path("/client/v4/user/tokens/verify"))
                 .respond_with(response_template)
@@ -164,9 +161,12 @@ mod test {
             let http_client = Arc::new(reqwest::Client::new());
             let authentication_service =
                 AuthenticationService::new(mock_server.uri().as_str(), http_client);
-            let verification_result = authentication_service.verify_token("my_token").await?;
 
-            assert_eq!(verification_result, TokenVerificationResult::Invalid);
+            let token_result = authentication_service.verify_token("my_token").await;
+            assert!(token_result.is_err());
+
+            let error = token_result.unwrap_err();
+            assert!(matches!(error, AuthenticationError::InvalidToken));
 
             Ok(())
         }
@@ -175,13 +175,12 @@ mod test {
         async fn should_respond_with_an_unknown_error_if_no_errors_are_available(
         ) -> Result<(), AuthenticationError> {
             let mock_server = MockServer::start().await;
-            let response_template =
-                ResponseTemplate::new(500).set_body_json(Envelope::<TokenVerification> {
-                    success: false,
-                    result: None,
-                    messages: vec![],
-                    errors: vec![],
-                });
+            let response_template = ResponseTemplate::new(500).set_body_json(Envelope::<Token> {
+                success: false,
+                result: None,
+                messages: vec![],
+                errors: vec![],
+            });
             Mock::given(method("GET"))
                 .and(path("/client/v4/user/tokens/verify"))
                 .respond_with(response_template)
@@ -212,16 +211,15 @@ mod test {
         ) -> Result<(), AuthenticationError> {
             let unknown_error_message = "Unknown error.";
             let mock_server = MockServer::start().await;
-            let response_template =
-                ResponseTemplate::new(400).set_body_json(Envelope::<TokenVerification> {
-                    success: false,
-                    result: None,
-                    messages: vec![],
-                    errors: vec![ResponseInfo {
-                        code: 1111,
-                        message: unknown_error_message.to_string(),
-                    }],
-                });
+            let response_template = ResponseTemplate::new(400).set_body_json(Envelope::<Token> {
+                success: false,
+                result: None,
+                messages: vec![],
+                errors: vec![ResponseInfo {
+                    code: 1111,
+                    message: unknown_error_message.to_string(),
+                }],
+            });
             Mock::given(method("GET"))
                 .and(path("/client/v4/user/tokens/verify"))
                 .respond_with(response_template)

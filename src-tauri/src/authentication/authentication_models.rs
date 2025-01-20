@@ -8,8 +8,8 @@ pub struct Envelope<T> {
     pub errors: Vec<ResponseInfo>,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct TokenVerification {
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct Token {
     pub id: String,
     pub status: TokenStatus,
 }
@@ -22,24 +22,6 @@ pub enum TokenStatus {
     Expired,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub enum TokenVerificationResult {
-    Active,
-    Disabled,
-    Expired,
-    Invalid,
-}
-
-impl From<TokenStatus> for TokenVerificationResult {
-    fn from(status: TokenStatus) -> TokenVerificationResult {
-        match status {
-            TokenStatus::Active => TokenVerificationResult::Active,
-            TokenStatus::Disabled => TokenVerificationResult::Disabled,
-            TokenStatus::Expired => TokenVerificationResult::Expired,
-        }
-    }
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ResponseInfo {
     pub code: u32,
@@ -48,13 +30,14 @@ pub struct ResponseInfo {
 
 #[derive(Debug)]
 pub enum AuthenticationError {
-    RequestError(reqwest::Error),
+    InvalidToken,
+    Reqwest(reqwest::Error),
     Unknown(String),
 }
 
 impl From<reqwest::Error> for AuthenticationError {
     fn from(error: reqwest::Error) -> Self {
-        AuthenticationError::RequestError(error)
+        AuthenticationError::Reqwest(error)
     }
 }
 
