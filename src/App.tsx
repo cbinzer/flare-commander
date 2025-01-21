@@ -1,7 +1,12 @@
 import './App.css';
+import LoginPage from '@/login/login-page.tsx';
 
 function App() {
-  return <h1 className="text-3xl font-bold underline">Hello world!</h1>;
+  return (
+    <>
+      <LoginPage />
+    </>
+  );
 }
 
 export default App;
