@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "flare-commander",
+  "productName": "FlareCommander",
   "version": "0.1.0",
   "identifier": "app.flarecommander",
   "build": {
@@ -12,9 +12,9 @@
   "app": {
     "windows": [
       {
-        "title": "flare-commander",
-        "width": 800,
-        "height": 600
+        "title": "FlareCommander",
+        "width": 1200,
+        "height": 800
       }
     ],
     "security": {

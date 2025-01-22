@@ -1,5 +1,5 @@
 import { FunctionComponent } from 'react';
-import { LoginForm } from '@/login/login-form.tsx';
+import { LoginForm } from '@/authentication/login-form.tsx';
 
 const LoginPage: FunctionComponent = () => {
   return (
