@@ -1,10 +1,10 @@
 import './App.css';
-import LoginPage from '@/authentication/login-page.tsx';
+import MainPage from '@/main/main-page.tsx';
 
 function App() {
   return (
     <>
-      <LoginPage />
+      <MainPage />
     </>
   );
 }
