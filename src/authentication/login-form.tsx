@@ -9,12 +9,20 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ComponentPropsWithoutRef } from 'react';
+import { ComponentPropsWithoutRef, FormEvent } from 'react';
+import { useAuth } from '@/authentication/use-auth.ts';
 
 export function LoginForm({
   className,
   ...props
 }: ComponentPropsWithoutRef<'div'>) {
+  const { login } = useAuth();
+
+  const doLogin = async (event: FormEvent) => {
+    event.preventDefault();
+    await login();
+  };
+
   return (
     <div className={cn('flex flex-col gap-6', className)} {...props}>
       <Card>
@@ -26,7 +34,7 @@ export function LoginForm({
         </CardHeader>
 
         <CardContent>
-          <form>
+          <form onSubmit={doLogin}>
             <div className="flex flex-col gap-6">
               <div className="grid gap-2">
                 <div className="flex items-center">

@@ -12,7 +12,6 @@ import {
   SidebarHeader,
   SidebarInset,
   SidebarProvider,
-  SidebarRail,
 } from '@/components/ui/sidebar';
 import { KvSidebarGroup } from '@/kv/kv-sidebar-group.tsx';
 
@@ -25,7 +24,6 @@ export default function MainPage() {
           <KvSidebarGroup />
         </SidebarContent>
         <SidebarFooter></SidebarFooter>
-        <SidebarRail />
       </Sidebar>
 
       <SidebarInset>
