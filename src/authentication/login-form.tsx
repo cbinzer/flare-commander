@@ -11,6 +11,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ComponentPropsWithoutRef, FormEvent } from 'react';
 import { useAuth } from '@/authentication/use-auth.ts';
+import {
+  AuthenticationError,
+  DisabledTokenError,
+  ExpiredTokenError,
+  InvalidAccountIdError,
+  InvalidTokenError,
+} from '@/authentication/auth-errors.ts';
 
 export function LoginForm({
   className,
@@ -20,7 +27,24 @@ export function LoginForm({
 
   const doLogin = async (event: FormEvent) => {
     event.preventDefault();
-    await login();
+
+    try {
+      await login('fake-account-id', 'fake-token');
+    } catch (error) {
+      const authError = error as AuthenticationError;
+      console.error(authError.message);
+      if (authError instanceof InvalidTokenError) {
+        return;
+      } else if (authError instanceof ExpiredTokenError) {
+        return;
+      } else if (authError instanceof DisabledTokenError) {
+        return;
+      } else if (authError instanceof InvalidAccountIdError) {
+        return;
+      } else {
+        return;
+      }
+    }
   };
 
   return (

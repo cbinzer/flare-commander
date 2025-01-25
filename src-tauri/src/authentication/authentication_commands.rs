@@ -21,23 +21,40 @@ pub struct CommandError {
 #[derive(Debug, Serialize, Deserialize)]
 pub enum CommandErrorKind {
     Authentication,
+    InvalidToken,
+    DisabledToken,
+    ExpiredToken,
+    InvalidAccountId,
+    Unknown,
 }
 
 impl From<AuthenticationError> for CommandError {
     fn from(error: AuthenticationError) -> Self {
-        let message = match error {
-            AuthenticationError::InvalidAccountId(_) => "Account ID is invalid",
-            AuthenticationError::ExpiredToken => "Token is expired",
-            AuthenticationError::DisabledToken => "Token is disabled",
-            AuthenticationError::InvalidToken => "Token is invalid",
-            AuthenticationError::Reqwest(_) => "An network error occurred",
-            AuthenticationError::Unknown(_) => "An unknown error occurred",
-        }
-        .to_string();
-
-        CommandError {
-            kind: CommandErrorKind::Authentication,
-            message,
+        match error {
+            AuthenticationError::InvalidAccountId(_) => CommandError {
+                kind: CommandErrorKind::InvalidAccountId,
+                message: "Account ID is invalid".to_string(),
+            },
+            AuthenticationError::ExpiredToken => CommandError {
+                kind: CommandErrorKind::ExpiredToken,
+                message: "Token is expired".to_string(),
+            },
+            AuthenticationError::DisabledToken => CommandError {
+                kind: CommandErrorKind::DisabledToken,
+                message: "Token is disabled".to_string(),
+            },
+            AuthenticationError::InvalidToken => CommandError {
+                kind: CommandErrorKind::InvalidToken,
+                message: "Token is invalid".to_string(),
+            },
+            AuthenticationError::Reqwest(_) => CommandError {
+                kind: CommandErrorKind::Unknown,
+                message: "An network error occurred".to_string(),
+            },
+            AuthenticationError::Unknown(_) => CommandError {
+                kind: CommandErrorKind::Unknown,
+                message: "An unknown error occurred".to_string(),
+            },
         }
     }
 }
