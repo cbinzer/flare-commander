@@ -1,14 +1,7 @@
 import { createContext, FunctionComponent, ReactNode, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { invoke } from '@tauri-apps/api/core';
-import {
-  DisabledTokenError,
-  ExpiredTokenError,
-  InvalidAccountIdError,
-  InvalidTokenError,
-  UnknownAuthenticationError,
-} from '@/authentication/auth-errors.ts';
-import { APIError } from '@/common/common-errors.ts';
+import { AuthenticationError } from '@/authentication/auth-models.ts';
 
 interface AuthContextValue {
   token: string | undefined;
@@ -32,7 +25,8 @@ const AuthProvider: FunctionComponent<AuthProviderProps> = ({ children }) => {
 
   const login = async (accountId: string, token: string) => {
     // const token = await fakeAuth();
-    await authenticate(accountId, token);
+    const account = await authenticate(accountId, token);
+    console.log(account);
     setToken('fake-token');
     navigate('/');
   };
@@ -47,23 +41,12 @@ const AuthProvider: FunctionComponent<AuthProviderProps> = ({ children }) => {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-async function authenticate(accountId: string, token: string) {
+export async function authenticate(accountId: string, token: string) {
   try {
-    await invoke('login', { accountId, token });
-  } catch (error) {
-    const apiError = error as APIError;
-    switch (apiError.kind) {
-      case 'InvalidToken':
-        throw new InvalidTokenError();
-      case 'ExpiredToken':
-        throw new ExpiredTokenError();
-      case 'DisabledToken':
-        throw new DisabledTokenError();
-      case 'InvalidAccountId':
-        throw new InvalidAccountIdError();
-      case 'Unknown':
-        throw new UnknownAuthenticationError(apiError.message);
-    }
+    return await invoke('login', { accountId, token });
+  } catch (e) {
+    const error = e as AuthenticationError;
+    throw new AuthenticationError(error.message, error.kind);
   }
 }
 

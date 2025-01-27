@@ -9,40 +9,48 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ComponentPropsWithoutRef, FormEvent } from 'react';
+import { ComponentPropsWithoutRef, FormEvent, useState } from 'react';
 import { useAuth } from '@/authentication/use-auth.ts';
-import {
-  AuthenticationError,
-  DisabledTokenError,
-  ExpiredTokenError,
-  InvalidAccountIdError,
-  InvalidTokenError,
-} from '@/authentication/auth-errors.ts';
+import { AuthenticationError } from '@/authentication/auth-provider.tsx';
 
 export function LoginForm({
   className,
   ...props
 }: ComponentPropsWithoutRef<'div'>) {
   const { login } = useAuth();
+  const [accountIdErrorMessage, setAccountIdErrorMessage] = useState<
+    string | null
+  >(null);
+  const [tokenErrorMessage, setTokenErrorMessage] = useState<string | null>(
+    null,
+  );
 
   const doLogin = async (event: FormEvent) => {
     event.preventDefault();
 
+    setAccountIdErrorMessage(null);
+    setTokenErrorMessage(null);
+
+    const formData = new FormData(event.target as HTMLFormElement);
+    const { accountId, apiToken } = Object.fromEntries(formData.entries()) as {
+      accountId: string;
+      apiToken: string;
+    };
+
     try {
-      await login('fake-account-id', 'fake-token');
+      await login(accountId, apiToken);
     } catch (error) {
       const authError = error as AuthenticationError;
-      console.error(authError.message);
-      if (authError instanceof InvalidTokenError) {
-        return;
-      } else if (authError instanceof ExpiredTokenError) {
-        return;
-      } else if (authError instanceof DisabledTokenError) {
-        return;
-      } else if (authError instanceof InvalidAccountIdError) {
-        return;
-      } else {
-        return;
+      switch (authError.kind) {
+        case 'InvalidAccountId':
+          setAccountIdErrorMessage(authError.message);
+          break;
+        case 'Unknown':
+          break;
+        default:
+          console.log(authError.message);
+          setTokenErrorMessage(authError.message);
+          break;
       }
     }
   };
@@ -71,7 +79,20 @@ export function LoginForm({
                     Find your Account ID
                   </a>
                 </div>
-                <Input id="account-id" type="text" required />
+                <Input
+                  id="account-id"
+                  name="accountId"
+                  type="text"
+                  required={true}
+                />
+                <p
+                  className={cn(
+                    'text-[0.8rem] font-medium text-destructive',
+                    accountIdErrorMessage ? '' : 'hidden',
+                  )}
+                >
+                  {accountIdErrorMessage}
+                </p>
               </div>
 
               <div className="grid gap-2">
@@ -85,7 +106,20 @@ export function LoginForm({
                     Create an API token
                   </a>
                 </div>
-                <Input id="api-token" type="password" required />
+                <Input
+                  id="api-token"
+                  name="apiToken"
+                  type="password"
+                  required={true}
+                />
+                <p
+                  className={cn(
+                    'text-[0.8rem] font-medium text-destructive',
+                    tokenErrorMessage ? '' : 'hidden',
+                  )}
+                >
+                  {tokenErrorMessage}
+                </p>
               </div>
               <Button type="submit" className="w-full">
                 Login
