@@ -3,8 +3,8 @@ import { Navigate } from 'react-router';
 import { useAuth } from '@/authentication/use-auth.ts';
 
 const ProtectedPage: FunctionComponent<ProtectedPageProps> = ({ children }) => {
-  const { token } = useAuth();
-  if (!token) {
+  const { account } = useAuth();
+  if (!account) {
     return <Navigate to="/login" replace={true} />;
   }
 

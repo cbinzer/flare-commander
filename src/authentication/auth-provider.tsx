@@ -1,19 +1,20 @@
-import { createContext, FunctionComponent, ReactNode, useState } from 'react';
+import { createContext, FunctionComponent, ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { invoke } from '@tauri-apps/api/core';
 import {
   AccountWithToken,
   AuthenticationError,
 } from '@/authentication/auth-models.ts';
+import { useLocalStorage } from '@/common/common-hooks.ts';
 
 interface AuthContextValue {
-  token: string | undefined;
+  account: AccountWithToken | null;
   login: (accountId: string, token: string) => Promise<void>;
   logout: () => void;
 }
 
 export const AuthContext = createContext<AuthContextValue>({
-  token: undefined,
+  account: null,
   login: async () => {},
   logout: () => {},
 });
@@ -24,18 +25,17 @@ interface AuthProviderProps {
 
 const AuthProvider: FunctionComponent<AuthProviderProps> = ({ children }) => {
   const navigate = useNavigate();
-  const [token, setToken] = useState<string>();
+  const [account, setAccount] = useLocalStorage<AccountWithToken>('account');
 
   const login = async (accountId: string, token: string) => {
-    const account = await authenticate(accountId, token);
-    console.log(account);
-    setToken('fake-token');
+    const accountWithToken = await authenticate(accountId, token);
+    setAccount(accountWithToken);
     navigate('/');
   };
-  const logout = async () => setToken(undefined);
+  const logout = async () => setAccount(null);
 
   const value: AuthContextValue = {
-    token,
+    account,
     login,
     logout,
   };
