@@ -1,7 +1,10 @@
 import { createContext, FunctionComponent, ReactNode, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { invoke } from '@tauri-apps/api/core';
-import { AuthenticationError } from '@/authentication/auth-models.ts';
+import {
+  AccountWithToken,
+  AuthenticationError,
+} from '@/authentication/auth-models.ts';
 
 interface AuthContextValue {
   token: string | undefined;
@@ -24,7 +27,6 @@ const AuthProvider: FunctionComponent<AuthProviderProps> = ({ children }) => {
   const [token, setToken] = useState<string>();
 
   const login = async (accountId: string, token: string) => {
-    // const token = await fakeAuth();
     const account = await authenticate(accountId, token);
     console.log(account);
     setToken('fake-token');
@@ -41,9 +43,12 @@ const AuthProvider: FunctionComponent<AuthProviderProps> = ({ children }) => {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-export async function authenticate(accountId: string, token: string) {
+export async function authenticate(
+  accountId: string,
+  token: string,
+): Promise<AccountWithToken> {
   try {
-    return await invoke('login', { accountId, token });
+    return await invoke<AccountWithToken>('login', { accountId, token });
   } catch (e) {
     const error = e as AuthenticationError;
     throw new AuthenticationError(error.message, error.kind);

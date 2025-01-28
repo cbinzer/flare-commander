@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Envelope<T> {
     pub success: bool,
     pub result: Option<T>,
@@ -10,18 +11,48 @@ pub struct Envelope<T> {
     pub errors: Vec<ResponseInfo>,
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Token {
     pub id: String,
+    pub value: Option<String>,
     pub status: TokenStatus,
+    pub policies: Option<Vec<TokenPolicy>>,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum TokenStatus {
     Active,
     Disabled,
     Expired,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+pub struct TokenPolicy {
+    pub id: String,
+    pub effect: TokenPolicyEffect,
+    pub permission_groups: Vec<PermissionGroup>,
+    pub resources: HashMap<String, String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+pub struct PermissionGroup {
+    pub id: String,
+    pub meta: Option<PermissionGroupMeta>,
+    pub name: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+pub struct PermissionGroupMeta {
+    pub key: Option<String>,
+    pub value: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+#[serde(rename_all = "lowercase")]
+pub enum TokenPolicyEffect {
+    Allow,
+    Deny,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -58,4 +89,11 @@ impl From<reqwest::Error> for AuthenticationError {
 pub struct Account {
     pub id: String,
     pub name: String,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct AccountWithToken {
+    pub id: String,
+    pub name: String,
+    pub token: Token,
 }

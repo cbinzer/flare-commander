@@ -1,5 +1,5 @@
 use crate::authentication::authentication_models::{
-    Account, AuthenticationError, Envelope, ResponseInfo, Token, TokenStatus,
+    Account, AccountWithToken, AuthenticationError, Envelope, ResponseInfo, Token, TokenStatus,
 };
 use std::sync::Arc;
 
@@ -20,10 +20,22 @@ impl AuthenticationService {
         &self,
         account_id: &str,
         token: &str,
-    ) -> Result<Account, AuthenticationError> {
-        let api_token = self.verify_token(token).await?;
-        match api_token.status {
-            TokenStatus::Active => self.verify_account_id(account_id, token).await,
+    ) -> Result<AccountWithToken, AuthenticationError> {
+        let verified_token = self.verify_token(token).await?;
+        match verified_token.status {
+            TokenStatus::Active => {
+                let account = self.verify_account_id(account_id, token).await?;
+                // let api_token = self.get_token_by_id(&verified_token.id, token).await?;
+
+                Ok(AccountWithToken {
+                    id: account.id,
+                    name: account.name,
+                    token: Token {
+                        value: Some(token.to_string()),
+                        ..verified_token
+                    },
+                })
+            }
             TokenStatus::Disabled => Err(AuthenticationError::DisabledToken),
             TokenStatus::Expired => Err(AuthenticationError::ExpiredToken),
         }
@@ -40,10 +52,31 @@ impl AuthenticationService {
             .await?;
 
         match token_envelope.result {
-            None => Err(self.map_token_verification_errors(token_envelope.errors)),
+            None => Err(self.map_token_errors(token_envelope.errors)),
             Some(token) => Ok(token),
         }
     }
+
+    // async fn get_token_by_id(
+    //     &self,
+    //     token_id: &str,
+    //     token: &str,
+    // ) -> Result<Token, AuthenticationError> {
+    //     let token_envelope: Envelope<Token> = self
+    //         .http_client
+    //         .get(format!("{}/client/v4/user/tokens/{token_id}", self.api_url))
+    //         .bearer_auth(token)
+    //         .send()
+    //         .await?
+    //         .json()
+    //         .await?;
+    //
+    //     println!("{:?}", &token_envelope);
+    //     match token_envelope.result {
+    //         None => Err(self.map_token_errors(token_envelope.errors)),
+    //         Some(token) => Ok(token),
+    //     }
+    // }
 
     async fn verify_account_id(
         &self,
@@ -65,7 +98,7 @@ impl AuthenticationService {
         }
     }
 
-    fn map_token_verification_errors(&self, errors: Vec<ResponseInfo>) -> AuthenticationError {
+    fn map_token_errors(&self, errors: Vec<ResponseInfo>) -> AuthenticationError {
         if errors.is_empty() {
             return AuthenticationError::Unknown("No errors in the response.".to_string());
         }
@@ -110,7 +143,9 @@ mod test {
                 success: true,
                 result: Some(Token {
                     id: "12345".to_string(),
+                    value: None,
                     status: TokenStatus::Active,
+                    policies: None,
                 }),
                 messages: vec![],
                 errors: vec![],
@@ -130,7 +165,9 @@ mod test {
                 token,
                 Token {
                     id: "12345".to_string(),
+                    value: None,
                     status: TokenStatus::Active,
+                    policies: None,
                 }
             );
 
@@ -392,7 +429,7 @@ mod test {
 
     mod login {
         use crate::authentication::authentication_models::{
-            Account, AuthenticationError, Envelope, Token, TokenStatus,
+            Account, AccountWithToken, AuthenticationError, Envelope, Token, TokenStatus,
         };
         use crate::authentication::authentication_service::AuthenticationService;
         use std::sync::Arc;
@@ -417,17 +454,27 @@ mod test {
                 .mount(&mock_server)
                 .await;
 
+            let token = Token {
+                id: "12345".to_string(),
+                value: None,
+                status: TokenStatus::Active,
+                policies: None,
+            };
             let response_template_token = ResponseTemplate::new(200).set_body_json(Envelope {
                 success: true,
-                result: Some(Token {
-                    id: "12345".to_string(),
-                    status: TokenStatus::Active,
-                }),
+                result: Some(token.clone()),
                 messages: vec![],
                 errors: vec![],
             });
             Mock::given(method("GET"))
                 .and(path("/client/v4/user/tokens/verify"))
+                .respond_with(response_template_token.clone())
+                .mount(&mock_server)
+                .await;
+            Mock::given(method("GET"))
+                .and(path(
+                    format!("/client/v4/user/tokens/{}", token.id).as_str(),
+                ))
                 .respond_with(response_template_token)
                 .mount(&mock_server)
                 .await;
@@ -439,9 +486,10 @@ mod test {
             let account = authentication_service.login("12345", "my_token").await?;
             assert_eq!(
                 account,
-                Account {
+                AccountWithToken {
                     id: "12345".to_string(),
                     name: "My Account".to_string(),
+                    token
                 }
             );
 
@@ -471,6 +519,8 @@ mod test {
                 result: Some(Token {
                     id: "12345".to_string(),
                     status: TokenStatus::Disabled,
+                    policies: None,
+                    value: None,
                 }),
                 messages: vec![],
                 errors: vec![],
@@ -516,7 +566,9 @@ mod test {
                 success: true,
                 result: Some(Token {
                     id: "12345".to_string(),
+                    value: None,
                     status: TokenStatus::Expired,
+                    policies: None,
                 }),
                 messages: vec![],
                 errors: vec![],
