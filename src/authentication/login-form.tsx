@@ -11,7 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ComponentPropsWithoutRef, FormEvent, useState } from 'react';
 import { useAuth } from '@/authentication/use-auth.ts';
-import { AuthenticationError } from '@/authentication/auth-provider.tsx';
+import { LoadingSpinner } from '@/components/ui/loading-spinner.tsx';
+import { AuthenticationError } from '@/authentication/auth-models.ts';
 
 export function LoginForm({
   className,
@@ -24,8 +25,10 @@ export function LoginForm({
   const [tokenErrorMessage, setTokenErrorMessage] = useState<string | null>(
     null,
   );
+  const [loading, setLoading] = useState(false);
 
   const doLogin = async (event: FormEvent) => {
+    setLoading(true);
     event.preventDefault();
 
     setAccountIdErrorMessage(null);
@@ -53,6 +56,8 @@ export function LoginForm({
           break;
       }
     }
+
+    setLoading(false);
   };
 
   return (
@@ -121,8 +126,8 @@ export function LoginForm({
                   {tokenErrorMessage}
                 </p>
               </div>
-              <Button type="submit" className="w-full">
-                Login
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? <LoadingSpinner /> : null} Login
               </Button>
             </div>
             <div className="mt-4 text-center text-sm">
