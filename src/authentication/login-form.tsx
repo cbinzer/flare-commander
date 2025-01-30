@@ -13,6 +13,8 @@ import { ComponentPropsWithoutRef, FormEvent, useState } from 'react';
 import { useAuth } from '@/authentication/use-auth.ts';
 import { LoadingSpinner } from '@/components/ui/loading-spinner.tsx';
 import { AuthenticationError } from '@/authentication/auth-models.ts';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert.tsx';
+import { AlertCircle } from 'lucide-react';
 
 export function LoginForm({
   className,
@@ -25,6 +27,9 @@ export function LoginForm({
   const [tokenErrorMessage, setTokenErrorMessage] = useState<string | null>(
     null,
   );
+  const [unknownErrorMessage, setUnknownErrorMessage] = useState<string | null>(
+    null,
+  );
   const [loading, setLoading] = useState(false);
 
   const doLogin = async (event: FormEvent) => {
@@ -33,6 +38,7 @@ export function LoginForm({
 
     setAccountIdErrorMessage(null);
     setTokenErrorMessage(null);
+    setUnknownErrorMessage(null);
 
     const formData = new FormData(event.target as HTMLFormElement);
     const { accountId, apiToken } = Object.fromEntries(formData.entries()) as {
@@ -49,10 +55,12 @@ export function LoginForm({
           setAccountIdErrorMessage(authError.message);
           break;
         case 'Unknown':
+          setUnknownErrorMessage(authError.message);
+          console.error(authError);
           break;
         default:
-          console.log(authError.message);
           setTokenErrorMessage(authError.message);
+          console.error(authError);
           break;
       }
     }
@@ -64,6 +72,14 @@ export function LoginForm({
     <div className={cn('flex flex-col gap-6', className)} {...props}>
       <Card>
         <CardHeader>
+          {unknownErrorMessage ? (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{unknownErrorMessage}</AlertDescription>
+            </Alert>
+          ) : null}
+
           <CardTitle className="text-2xl">Login</CardTitle>
           <CardDescription>
             Enter your Account ID below to login
