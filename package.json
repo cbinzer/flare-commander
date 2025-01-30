@@ -10,7 +10,7 @@
     "tauri": "tauri"
   },
   "dependencies": {
-    "@hookform/resolvers": "^3.10.0",
+    "@hookform/resolvers": "3.10.0",
     "@radix-ui/react-collapsible": "1.1.2",
     "@radix-ui/react-dialog": "1.1.5",
     "@radix-ui/react-label": "^2.1.1",
@@ -39,6 +39,6 @@
     "prettier": "3.4.2",
     "tailwindcss": "3.4.17",
     "typescript": "5.6.3",
-    "vite": "6.0.7"
+    "vite": "6.0.11"
   }
 }
