@@ -1,8 +1,10 @@
 use crate::authentication::authentication_service::AuthenticationService;
+use crate::kv::kv_service::KvService;
 use std::sync::Arc;
 
 pub struct AppState {
     pub auth_service: AuthenticationService,
+    pub kv_service: KvService,
 }
 
 impl Default for AppState {
@@ -11,7 +13,8 @@ impl Default for AppState {
         let http_client = Arc::new(reqwest::Client::new());
 
         Self {
-            auth_service: AuthenticationService::new(api_url, http_client),
+            auth_service: AuthenticationService::new(api_url, http_client.clone()),
+            kv_service: KvService::new(api_url, http_client),
         }
     }
 }

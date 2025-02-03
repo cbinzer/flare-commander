@@ -8,18 +8,18 @@ pub async fn login(
     account_id: &str,
     token: &str,
     state: State<'_, AppState>,
-) -> Result<AccountWithToken, CommandError> {
+) -> Result<AccountWithToken, AuthenticationCommandError> {
     Ok(state.auth_service.login(account_id, token).await?)
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct CommandError {
-    kind: CommandErrorKind,
+pub struct AuthenticationCommandError {
+    kind: AuthenticationCommandErrorKind,
     message: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum CommandErrorKind {
+pub enum AuthenticationCommandErrorKind {
     Authentication,
     InvalidToken,
     DisabledToken,
@@ -28,31 +28,31 @@ pub enum CommandErrorKind {
     Unknown,
 }
 
-impl From<AuthenticationError> for CommandError {
+impl From<AuthenticationError> for AuthenticationCommandError {
     fn from(error: AuthenticationError) -> Self {
         match error {
-            AuthenticationError::InvalidAccountId(_) => CommandError {
-                kind: CommandErrorKind::InvalidAccountId,
+            AuthenticationError::InvalidAccountId(_) => AuthenticationCommandError {
+                kind: AuthenticationCommandErrorKind::InvalidAccountId,
                 message: "Account ID is invalid".to_string(),
             },
-            AuthenticationError::ExpiredToken => CommandError {
-                kind: CommandErrorKind::ExpiredToken,
+            AuthenticationError::ExpiredToken => AuthenticationCommandError {
+                kind: AuthenticationCommandErrorKind::ExpiredToken,
                 message: "Token is expired".to_string(),
             },
-            AuthenticationError::DisabledToken => CommandError {
-                kind: CommandErrorKind::DisabledToken,
+            AuthenticationError::DisabledToken => AuthenticationCommandError {
+                kind: AuthenticationCommandErrorKind::DisabledToken,
                 message: "Token is disabled".to_string(),
             },
-            AuthenticationError::InvalidToken => CommandError {
-                kind: CommandErrorKind::InvalidToken,
+            AuthenticationError::InvalidToken => AuthenticationCommandError {
+                kind: AuthenticationCommandErrorKind::InvalidToken,
                 message: "Token is invalid".to_string(),
             },
-            AuthenticationError::Reqwest(_) => CommandError {
-                kind: CommandErrorKind::Unknown,
+            AuthenticationError::Reqwest(_) => AuthenticationCommandError {
+                kind: AuthenticationCommandErrorKind::Unknown,
                 message: "An network error occurred".to_string(),
             },
-            AuthenticationError::Unknown(_) => CommandError {
-                kind: CommandErrorKind::Unknown,
+            AuthenticationError::Unknown(_) => AuthenticationCommandError {
+                kind: AuthenticationCommandErrorKind::Unknown,
                 message: "An unknown error occurred".to_string(),
             },
         }
