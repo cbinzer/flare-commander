@@ -4,6 +4,7 @@ use tauri::Manager;
 
 mod app_state;
 mod authentication;
+mod kv;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {

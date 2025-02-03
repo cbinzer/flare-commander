@@ -55,7 +55,7 @@ pub enum TokenPolicyEffect {
     Deny,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ResponseInfo {
     pub code: u32,
     pub message: String,
