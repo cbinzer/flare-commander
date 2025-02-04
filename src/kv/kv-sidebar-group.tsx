@@ -15,8 +15,22 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
+import { useNamespaces } from '@/kv/kv-hooks.ts';
+import { Skeleton } from '@/components/ui/skeleton.tsx';
+import { FunctionComponent } from 'react';
+import { KvNamespace } from '@/kv/kv-models.ts';
 
 export function KvSidebarGroup() {
+  const { loading, namespaces, getNamespaces, setNamespaces } = useNamespaces();
+
+  const loadNamespacesOnOpen = async (open: boolean) => {
+    if (open) {
+      await getNamespaces();
+    } else {
+      setNamespaces(null);
+    }
+  };
+
   return (
     <SidebarGroup>
       <SidebarMenu>
@@ -25,6 +39,7 @@ export function KvSidebarGroup() {
           asChild
           defaultOpen={false}
           className="group/collapsible"
+          onOpenChange={loadNamespacesOnOpen}
         >
           <SidebarMenuItem>
             <CollapsibleTrigger asChild>
@@ -34,16 +49,13 @@ export function KvSidebarGroup() {
                 <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
               </SidebarMenuButton>
             </CollapsibleTrigger>
+
             <CollapsibleContent>
-              <SidebarMenuSub>
-                <SidebarMenuSubItem key="namespace1">
-                  <SidebarMenuSubButton asChild>
-                    <a href="#">
-                      <span>Namespace 1</span>
-                    </a>
-                  </SidebarMenuSubButton>
-                </SidebarMenuSubItem>
-              </SidebarMenuSub>
+              {loading || !namespaces ? (
+                <KvSidebarMenuSkeleton />
+              ) : (
+                <KvSidebarMenu namespaces={namespaces} />
+              )}
             </CollapsibleContent>
           </SidebarMenuItem>
         </Collapsible>
@@ -51,3 +63,49 @@ export function KvSidebarGroup() {
     </SidebarGroup>
   );
 }
+
+const KvSidebarMenu: FunctionComponent<{ namespaces: KvNamespace[] }> = ({
+  namespaces = [],
+}) => {
+  return (
+    <SidebarMenuSub>
+      {namespaces.map((namespace) => (
+        <SidebarMenuSubItem key={namespace.id}>
+          <SidebarMenuSubButton asChild>
+            <a href="#">
+              <span>{namespace.title}</span>
+            </a>
+          </SidebarMenuSubButton>
+        </SidebarMenuSubItem>
+      ))}
+    </SidebarMenuSub>
+  );
+};
+
+const KvSidebarMenuSkeleton: FunctionComponent = () => {
+  return (
+    <SidebarMenuSub>
+      <SidebarMenuSubItem key="skeleton-1">
+        <SidebarMenuSubButton asChild>
+          <a href="#">
+            <Skeleton className="h-4 w-[120px]" />
+          </a>
+        </SidebarMenuSubButton>
+      </SidebarMenuSubItem>
+      <SidebarMenuSubItem key="skeleton-2">
+        <SidebarMenuSubButton asChild>
+          <a href="#">
+            <Skeleton className="h-4 w-[150px]" />
+          </a>
+        </SidebarMenuSubButton>
+      </SidebarMenuSubItem>
+      <SidebarMenuSubItem key="skeleton-3">
+        <SidebarMenuSubButton asChild>
+          <a href="#">
+            <Skeleton className="h-4 w-[130px]" />
+          </a>
+        </SidebarMenuSubButton>
+      </SidebarMenuSubItem>
+    </SidebarMenuSub>
+  );
+};
