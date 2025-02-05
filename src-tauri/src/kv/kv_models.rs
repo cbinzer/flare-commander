@@ -1,4 +1,5 @@
 use crate::authentication::authentication_models::{AuthenticationError, ResponseInfo};
+use cloudflare::framework::response::{ApiError, ApiFailure};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fmt;
@@ -28,6 +29,37 @@ impl fmt::Display for KvError {
 impl From<reqwest::Error> for KvError {
     fn from(error: reqwest::Error) -> Self {
         KvError::Reqwest(error)
+    }
+}
+
+impl From<cloudflare::framework::Error> for KvError {
+    fn from(error: cloudflare::framework::Error) -> Self {
+        let reqwest_error = match error {
+            cloudflare::framework::Error::ReqwestError(reqwest_error) => reqwest_error,
+        };
+        KvError::Reqwest(reqwest_error)
+    }
+}
+
+impl From<ApiFailure> for KvError {
+    fn from(error: ApiFailure) -> Self {
+        match error {
+            ApiFailure::Error(_, api_errors) => map_api_errors(api_errors.errors),
+            ApiFailure::Invalid(reqwest_error) => KvError::Reqwest(reqwest_error),
+        }
+    }
+}
+
+fn map_api_errors(errors: Vec<ApiError>) -> KvError {
+    if errors.is_empty() {
+        return KvError::Unknown("No errors in the response.".to_string());
+    }
+
+    let error = &errors[0];
+    match error.code {
+        10000 => KvError::Authentication(AuthenticationError::InvalidToken),
+        10001 => KvError::Authentication(AuthenticationError::InvalidToken),
+        _ => KvError::Unknown(error.message.clone()),
     }
 }
 

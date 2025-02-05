@@ -1,5 +1,9 @@
 use crate::authentication::authentication_models::{AuthenticationError, ResponseInfo};
 use crate::kv::kv_models::{KvError, KvNamespace, PagePaginationArray};
+use cloudflare::endpoints::workerskv::list_namespaces::{ListNamespaces, ListNamespacesParams};
+use cloudflare::endpoints::workerskv::WorkersKvNamespace;
+use cloudflare::framework::auth::Credentials;
+use cloudflare::framework::{Environment, HttpApiClientConfig};
 use reqwest::Client;
 use std::sync::Arc;
 
@@ -13,6 +17,33 @@ impl KvService {
         Self {
             api_url: api_url.to_string(),
             http_client,
+        }
+    }
+
+    pub async fn get_namespaces_v2(
+        &self,
+        account_id: &str,
+        token: &str,
+    ) -> Result<Vec<WorkersKvNamespace>, KvError> {
+        let credentials = Credentials::UserAuthToken {
+            token: token.to_string(),
+        };
+        let http_client = cloudflare::framework::async_api::Client::new(
+            credentials,
+            HttpApiClientConfig::default(),
+            Environment::Production,
+        )?;
+        let list_namespaces_endpoint = ListNamespaces {
+            account_identifier: account_id,
+            params: ListNamespacesParams {
+                page: None,
+                per_page: Some(100),
+            },
+        };
+        let res = http_client.request(&list_namespaces_endpoint).await;
+        match res {
+            Ok(api_success) => Ok(api_success.result),
+            Err(api_failure) => Err(api_failure.into()),
         }
     }
 
