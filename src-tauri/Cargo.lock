@@ -500,9 +500,30 @@ checksum = "7e36cc9d416881d2e24f9a963be5fb1cd90966419ac844274161d10488b3e825"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
+ "js-sys",
  "num-traits",
  "serde",
+ "wasm-bindgen",
  "windows-targets 0.52.6",
+]
+
+[[package]]
+name = "cloudflare"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f4700f1fee4c800474e44943b726a89426cc6e78c8d63ccb73173c90614751ef"
+dependencies = [
+ "chrono",
+ "http",
+ "percent-encoding",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "serde_urlencoded",
+ "serde_with",
+ "thiserror 2.0.11",
+ "url",
+ "uuid",
 ]
 
 [[package]]
@@ -1015,6 +1036,7 @@ dependencies = [
 name = "flare-commander"
 version = "0.1.0"
 dependencies = [
+ "cloudflare",
  "reqwest",
  "serde",
  "serde_json",
