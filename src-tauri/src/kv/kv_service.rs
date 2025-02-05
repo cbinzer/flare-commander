@@ -90,7 +90,6 @@ mod test {
             let response_template = ResponseTemplate::new(200).set_body_json(PagePaginationArray {
                 success: true,
                 result: Some(expected_namespaces.clone()),
-                messages: vec![],
                 errors: vec![],
                 result_info: Some(PaginationInfo {
                     total_count: Some(3),
@@ -127,7 +126,6 @@ mod test {
                 ResponseTemplate::new(400).set_body_json(PagePaginationArray::<Vec<KvNamespace>> {
                     success: false,
                     result: None,
-                    messages: vec![],
                     errors: vec![ResponseInfo {
                         code: 1111,
                         message: unknown_error_message.to_string(),
@@ -169,7 +167,6 @@ mod test {
                 ResponseTemplate::new(400).set_body_json(PagePaginationArray::<Vec<KvNamespace>> {
                     success: false,
                     result: None,
-                    messages: vec![],
                     errors: vec![],
                     result_info: None,
                 });
@@ -209,7 +206,6 @@ mod test {
                 ResponseTemplate::new(400).set_body_json(PagePaginationArray::<Vec<KvNamespace>> {
                     success: false,
                     result: None,
-                    messages: vec![],
                     errors: vec![ResponseInfo {
                         code: 10001,
                         message: error_message.to_string(),
