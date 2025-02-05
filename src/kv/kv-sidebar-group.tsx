@@ -19,15 +19,22 @@ import { useNamespaces } from '@/kv/kv-hooks.ts';
 import { Skeleton } from '@/components/ui/skeleton.tsx';
 import { FunctionComponent } from 'react';
 import { KvNamespace } from '@/kv/kv-models.ts';
+import { useError } from '@/common/common-hooks.ts';
 
 export function KvSidebarGroup() {
   const { loading, namespaces, getNamespaces, setNamespaces } = useNamespaces();
+  const { handleError } = useError();
 
   const loadNamespacesOnOpen = async (open: boolean) => {
-    if (open) {
-      await getNamespaces();
-    } else {
+    if (!open) {
       setNamespaces(null);
+      return;
+    }
+
+    try {
+      await getNamespaces();
+    } catch (error) {
+      handleError(error as Error);
     }
   };
 

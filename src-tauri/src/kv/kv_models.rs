@@ -35,7 +35,6 @@ impl From<reqwest::Error> for KvError {
 pub struct PagePaginationArray<T> {
     pub success: bool,
     pub result: Option<T>,
-    pub messages: Vec<ResponseInfo>,
     pub errors: Vec<ResponseInfo>,
     pub result_info: Option<PaginationInfo>,
 }

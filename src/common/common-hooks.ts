@@ -1,4 +1,6 @@
 import { Dispatch, SetStateAction, useEffect, useState } from 'react';
+import { useToast } from '@/hooks/use-toast.ts';
+import { useAuth } from '@/authentication/use-auth.ts';
 
 export function useLocalStorage<T>(
   storageKey: string,
@@ -24,4 +26,27 @@ function getItemFromLocalStorage<T>(key: string): T | null {
   }
 
   return null;
+}
+
+export function useError() {
+  const { toast } = useToast();
+  const { logout } = useAuth();
+
+  const handleError = (error: Error) => {
+    console.error(error);
+    if ('kind' in error && error.kind === 'Authentication') {
+      logout();
+      return;
+    }
+
+    toast({
+      variant: 'destructive',
+      title: 'Something went wrong.',
+      description: error.message,
+    });
+  };
+
+  return {
+    handleError,
+  };
 }

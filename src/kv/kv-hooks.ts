@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/authentication/use-auth.ts';
 import { invoke } from '@tauri-apps/api/core';
-import { KvNamespace } from '@/kv/kv-models.ts';
+import { KvError, KvNamespace } from '@/kv/kv-models.ts';
 
 export function useNamespaces() {
   const { account } = useAuth();
@@ -11,13 +11,18 @@ export function useNamespaces() {
   const getNamespaces = async () => {
     setLoading(true);
 
-    const namespaces = await invoke<KvNamespace[]>('get_namespaces', {
-      accountId: account?.id,
-      token: account?.token.value,
-    });
-    setNamespaces(namespaces);
-
-    setLoading(false);
+    try {
+      const namespaces = await invoke<KvNamespace[]>('get_namespaces', {
+        accountId: account?.id,
+        token: account?.token.value,
+      });
+      setNamespaces(namespaces);
+    } catch (e) {
+      const kvError = e as KvError;
+      throw new KvError(kvError.message, kvError.kind);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return {
