@@ -7,14 +7,9 @@ use tauri::State;
 
 #[tauri::command]
 pub async fn get_namespaces(
-    account_id: &str,
-    token: &str,
+    credentials: Credentials,
     state: State<'_, AppState>,
 ) -> Result<Vec<WorkersKvNamespace>, KvCommandError> {
-    let credentials = Credentials::UserAuthToken {
-        account_id: account_id.to_string(),
-        token: token.to_string(),
-    };
     Ok(state.kv_service.get_namespaces(&credentials).await?)
 }
 

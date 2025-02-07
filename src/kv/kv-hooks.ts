@@ -13,12 +13,16 @@ export function useNamespaces() {
 
     try {
       const namespaces = await invoke<KvNamespace[]>('get_namespaces', {
-        accountId: account?.id,
-        token: account?.token.value,
+        credentials: {
+          type: 'UserAuthToken',
+          account_id: account?.id,
+          token: account?.token.value,
+        },
       });
       setNamespaces(namespaces);
     } catch (e) {
       const kvError = e as KvError;
+      console.error(kvError);
       throw new KvError(kvError.message, kvError.kind);
     } finally {
       setLoading(false);

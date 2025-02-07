@@ -2,6 +2,7 @@ use cloudflare::framework::auth::Credentials as CloudflareCredentials;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
+#[serde(tag = "type")]
 pub enum Credentials {
     UserAuthKey {
         account_id: String,

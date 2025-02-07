@@ -2,7 +2,6 @@ use crate::common::common_models::Credentials;
 use crate::kv::kv_models::KvError;
 use cloudflare::endpoints::workerskv::list_namespaces::{ListNamespaces, ListNamespacesParams};
 use cloudflare::endpoints::workerskv::WorkersKvNamespace;
-use cloudflare::framework::endpoint::spec::EndpointSpec;
 use cloudflare::framework::{Environment, HttpApiClientConfig};
 use url::Url;
 
