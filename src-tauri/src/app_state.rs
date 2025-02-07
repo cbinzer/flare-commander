@@ -14,7 +14,7 @@ impl Default for AppState {
 
         Self {
             auth_service: AuthenticationService::new(api_url, http_client.clone()),
-            kv_service: KvService::new(api_url, http_client),
+            kv_service: KvService::new(None),
         }
     }
 }

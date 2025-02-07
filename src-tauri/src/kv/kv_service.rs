@@ -1,86 +1,60 @@
-use crate::authentication::authentication_models::{AuthenticationError, ResponseInfo};
-use crate::kv::kv_models::{KvError, KvNamespace, PagePaginationArray};
+use crate::common::common_models::Credentials;
+use crate::kv::kv_models::KvError;
 use cloudflare::endpoints::workerskv::list_namespaces::{ListNamespaces, ListNamespacesParams};
 use cloudflare::endpoints::workerskv::WorkersKvNamespace;
-use cloudflare::framework::auth::Credentials;
+use cloudflare::framework::endpoint::spec::EndpointSpec;
 use cloudflare::framework::{Environment, HttpApiClientConfig};
-use reqwest::Client;
-use std::sync::Arc;
+use url::Url;
 
 pub struct KvService {
-    api_url: String,
-    http_client: Arc<Client>,
+    api_url: Option<Url>,
 }
 
 impl KvService {
-    pub fn new(api_url: &str, http_client: Arc<Client>) -> Self {
-        Self {
-            api_url: api_url.to_string(),
-            http_client,
-        }
+    pub fn new(api_url: Option<Url>) -> Self {
+        Self { api_url }
     }
 
-    pub async fn get_namespaces_v2(
+    pub async fn get_namespaces(
         &self,
-        account_id: &str,
-        token: &str,
+        credentials: &Credentials,
     ) -> Result<Vec<WorkersKvNamespace>, KvError> {
-        let credentials = Credentials::UserAuthToken {
-            token: token.to_string(),
-        };
-        let http_client = cloudflare::framework::async_api::Client::new(
-            credentials,
-            HttpApiClientConfig::default(),
-            Environment::Production,
-        )?;
-        let list_namespaces_endpoint = ListNamespaces {
-            account_identifier: account_id,
-            params: ListNamespacesParams {
-                page: None,
-                per_page: Some(100),
-            },
-        };
-        let res = http_client.request(&list_namespaces_endpoint).await;
-        match res {
+        let http_client = self.create_http_client(credentials)?;
+        let list_namespaces_endpoint =
+            Self::create_list_namespaces_endpoint(credentials.account_id());
+        let response = http_client.request(&list_namespaces_endpoint).await;
+
+        match response {
             Ok(api_success) => Ok(api_success.result),
             Err(api_failure) => Err(api_failure.into()),
         }
     }
 
-    pub async fn get_namespaces(
+    fn create_http_client(
         &self,
-        account_id: &str,
-        token: &str,
-    ) -> Result<Vec<KvNamespace>, KvError> {
-        let namespaces_result: PagePaginationArray<Vec<KvNamespace>> = self
-            .http_client
-            .get(format!(
-                "{}/client/v4/accounts/{}/storage/kv/namespaces",
-                self.api_url, account_id
-            ))
-            .bearer_auth(token)
-            .query(&[("per_page", "100")])
-            .send()
-            .await?
-            .json()
-            .await?;
+        credentials: &Credentials,
+    ) -> Result<cloudflare::framework::async_api::Client, KvError> {
+        Ok(cloudflare::framework::async_api::Client::new(
+            credentials.into(),
+            HttpApiClientConfig::default(),
+            self.get_env(),
+        )?)
+    }
 
-        match namespaces_result.result {
-            None => Err(self.map_errors(namespaces_result.errors)),
-            Some(namespaces) => Ok(namespaces),
+    fn get_env(&self) -> Environment {
+        match &self.api_url {
+            Some(api_url) => Environment::Custom(api_url.clone()),
+            None => Environment::Production,
         }
     }
 
-    fn map_errors(&self, errors: Vec<ResponseInfo>) -> KvError {
-        if errors.is_empty() {
-            return KvError::Unknown("No errors in the response.".to_string());
-        }
-
-        let error = &errors[0];
-        match error.code {
-            10000 => KvError::Authentication(AuthenticationError::InvalidToken),
-            10001 => KvError::Authentication(AuthenticationError::InvalidToken),
-            _ => KvError::Unknown(error.message.clone()),
+    fn create_list_namespaces_endpoint(account_id: &str) -> ListNamespaces {
+        ListNamespaces {
+            account_identifier: account_id,
+            params: ListNamespacesParams {
+                page: None,
+                per_page: Some(100),
+            },
         }
     }
 }
@@ -89,33 +63,32 @@ impl KvService {
 mod test {
     mod get_namespaces {
         use crate::authentication::authentication_models::{AuthenticationError, ResponseInfo};
+        use crate::common::common_models::Credentials;
         use crate::kv::kv_models::KvError::Authentication;
         use crate::kv::kv_models::{KvError, KvNamespace, PagePaginationArray, PaginationInfo};
         use crate::kv::kv_service::KvService;
-        use std::sync::Arc;
+        use cloudflare::endpoints::workerskv::WorkersKvNamespace;
+        use url::Url;
         use wiremock::matchers::{method, path};
         use wiremock::{Mock, MockServer, ResponseTemplate};
 
         #[tokio::test]
         async fn should_get_namespaces() -> Result<(), KvError> {
             let expected_namespaces = vec![
-                KvNamespace {
+                WorkersKvNamespace {
                     id: "namespace_id_1".to_string(),
                     title: "namespace_title_1".to_string(),
-                    supports_url_encoding: None,
                 },
-                KvNamespace {
+                WorkersKvNamespace {
                     id: "namespace_id_2".to_string(),
                     title: "namespace_title_2".to_string(),
-                    supports_url_encoding: Some(true),
                 },
-                KvNamespace {
+                WorkersKvNamespace {
                     id: "namespace_id_3".to_string(),
                     title: "namespace_title_3".to_string(),
-                    supports_url_encoding: Some(false),
                 },
             ];
-            let account_id = "account_id";
+            let account_id = "account_id".to_string();
 
             let mock_server = MockServer::start().await;
             let response_template = ResponseTemplate::new(200).set_body_json(PagePaginationArray {
@@ -137,9 +110,15 @@ mod test {
                 .mount(&mock_server)
                 .await;
 
-            let kv_service =
-                KvService::new(mock_server.uri().as_str(), Arc::new(reqwest::Client::new()));
-            let namespaces = kv_service.get_namespaces(account_id, "token").await?;
+            let base_api_url = format!("{}/client/v4/", mock_server.uri());
+            let api_url = Url::parse(base_api_url.as_str()).unwrap();
+            let kv_service = KvService::new(Some(api_url));
+            let namespaces = kv_service
+                .get_namespaces(&Credentials::UserAuthToken {
+                    account_id,
+                    token: "token".to_string(),
+                })
+                .await?;
 
             assert_eq!(namespaces.len(), 3);
             assert_eq!(namespaces, expected_namespaces);
@@ -150,7 +129,7 @@ mod test {
         #[tokio::test]
         async fn should_respond_with_an_unknown_error_if_an_unknown_error_occurred(
         ) -> Result<(), AuthenticationError> {
-            let account_id = "account_id";
+            let account_id = "account_id".to_string();
             let unknown_error_message = "Unknown error.";
             let mock_server = MockServer::start().await;
             let response_template =
@@ -171,9 +150,15 @@ mod test {
                 .mount(&mock_server)
                 .await;
 
-            let kv_service =
-                KvService::new(mock_server.uri().as_str(), Arc::new(reqwest::Client::new()));
-            let namespaces_result = kv_service.get_namespaces(account_id, "token").await;
+            let base_api_url = format!("{}/client/v4/", mock_server.uri());
+            let api_url = Url::parse(base_api_url.as_str()).unwrap();
+            let kv_service = KvService::new(Some(api_url));
+            let namespaces_result = kv_service
+                .get_namespaces(&Credentials::UserAuthToken {
+                    account_id,
+                    token: "token".to_string(),
+                })
+                .await;
 
             assert!(namespaces_result.is_err());
 
@@ -192,7 +177,7 @@ mod test {
         #[tokio::test]
         async fn should_respond_with_an_unknown_error_if_no_errors_are_available(
         ) -> Result<(), AuthenticationError> {
-            let account_id = "account_id";
+            let account_id = "account_id".to_string();
             let mock_server = MockServer::start().await;
             let response_template =
                 ResponseTemplate::new(400).set_body_json(PagePaginationArray::<Vec<KvNamespace>> {
@@ -209,9 +194,15 @@ mod test {
                 .mount(&mock_server)
                 .await;
 
-            let kv_service =
-                KvService::new(mock_server.uri().as_str(), Arc::new(reqwest::Client::new()));
-            let namespaces_result = kv_service.get_namespaces(account_id, "token").await;
+            let base_api_url = format!("{}/client/v4/", mock_server.uri());
+            let api_url = Url::parse(base_api_url.as_str()).unwrap();
+            let kv_service = KvService::new(Some(api_url));
+            let namespaces_result = kv_service
+                .get_namespaces(&Credentials::UserAuthToken {
+                    account_id,
+                    token: "token".to_string(),
+                })
+                .await;
 
             assert!(namespaces_result.is_err());
 
@@ -230,7 +221,7 @@ mod test {
         #[tokio::test]
         async fn should_respond_with_an_authentication_error_if_the_request_could_not_be_authenticated(
         ) -> Result<(), AuthenticationError> {
-            let account_id = "account_id";
+            let account_id = "account_id".to_string();
             let error_message = "Unable to authenticate request";
             let mock_server = MockServer::start().await;
             let response_template =
@@ -251,9 +242,15 @@ mod test {
                 .mount(&mock_server)
                 .await;
 
-            let kv_service =
-                KvService::new(mock_server.uri().as_str(), Arc::new(reqwest::Client::new()));
-            let namespaces_result = kv_service.get_namespaces(account_id, "token").await;
+            let base_api_url = format!("{}/client/v4/", mock_server.uri());
+            let api_url = Url::parse(base_api_url.as_str()).unwrap();
+            let kv_service = KvService::new(Some(api_url));
+            let namespaces_result = kv_service
+                .get_namespaces(&Credentials::UserAuthToken {
+                    account_id,
+                    token: "token".to_string(),
+                })
+                .await;
 
             assert!(namespaces_result.is_err());
 

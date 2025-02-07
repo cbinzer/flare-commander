@@ -456,7 +456,7 @@ mod test {
 
             let token = Token {
                 id: "12345".to_string(),
-                value: None,
+                value: Some("my_token".to_string()),
                 status: TokenStatus::Active,
                 policies: None,
             };

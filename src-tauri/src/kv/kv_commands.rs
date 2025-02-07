@@ -1,4 +1,5 @@
 use crate::app_state::AppState;
+use crate::common::common_models::Credentials;
 use crate::kv::kv_models::KvError;
 use cloudflare::endpoints::workerskv::WorkersKvNamespace;
 use serde::{Deserialize, Serialize};
@@ -10,20 +11,12 @@ pub async fn get_namespaces(
     token: &str,
     state: State<'_, AppState>,
 ) -> Result<Vec<WorkersKvNamespace>, KvCommandError> {
-    Ok(state
-        .kv_service
-        .get_namespaces_v2(account_id, token)
-        .await?)
+    let credentials = Credentials::UserAuthToken {
+        account_id: account_id.to_string(),
+        token: token.to_string(),
+    };
+    Ok(state.kv_service.get_namespaces(&credentials).await?)
 }
-
-// #[tauri::command]
-// pub async fn get_namespaces(
-//     account_id: &str,
-//     token: &str,
-//     state: State<'_, AppState>,
-// ) -> Result<Vec<KvNamespace>, KvCommandError> {
-//     Ok(state.kv_service.get_namespaces(account_id, token).await?)
-// }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct KvCommandError {
