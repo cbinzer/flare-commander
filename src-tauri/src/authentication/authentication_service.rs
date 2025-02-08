@@ -68,8 +68,6 @@ impl AuthenticationService {
             return Ok(Token {
                 id: token.id,
                 status: token.status.try_into()?,
-                value: None,
-                policies: None,
             });
         }
 
@@ -143,9 +141,7 @@ mod test {
                 token,
                 Token {
                     id: "12345".to_string(),
-                    value: None,
                     status: TokenStatus::Active,
-                    policies: None,
                 }
             );
 

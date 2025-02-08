@@ -1,24 +1,13 @@
 use crate::common::common_models::Credentials;
 use cloudflare::framework::response::{ApiError, ApiFailure};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Envelope<T> {
-    pub success: bool,
-    pub result: Option<T>,
-    pub messages: Vec<ResponseInfo>,
-    pub errors: Vec<ResponseInfo>,
-}
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
 pub struct Token {
     pub id: String,
-    pub value: Option<String>,
     pub status: TokenStatus,
-    pub policies: Option<Vec<TokenPolicy>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
@@ -43,34 +32,6 @@ impl TryFrom<String> for TokenStatus {
             ))),
         }
     }
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
-pub struct TokenPolicy {
-    pub id: String,
-    pub effect: TokenPolicyEffect,
-    pub permission_groups: Vec<PermissionGroup>,
-    pub resources: HashMap<String, String>,
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
-pub struct PermissionGroup {
-    pub id: String,
-    pub meta: Option<PermissionGroupMeta>,
-    pub name: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
-pub struct PermissionGroupMeta {
-    pub key: Option<String>,
-    pub value: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
-#[serde(rename_all = "lowercase")]
-pub enum TokenPolicyEffect {
-    Allow,
-    Deny,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -105,9 +66,7 @@ impl From<reqwest::Error> for AuthenticationError {
 
 impl From<cloudflare::framework::Error> for AuthenticationError {
     fn from(error: cloudflare::framework::Error) -> Self {
-        let reqwest_error = match error {
-            cloudflare::framework::Error::ReqwestError(reqwest_error) => reqwest_error,
-        };
+        let cloudflare::framework::Error::ReqwestError(reqwest_error) = error;
         AuthenticationError::Reqwest(reqwest_error)
     }
 }
