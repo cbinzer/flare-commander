@@ -2,14 +2,15 @@ import { createContext, FunctionComponent, ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { invoke } from '@tauri-apps/api/core';
 import {
-  AccountWithToken,
+  AccountWithCredentials,
   AuthenticationError,
+  Credentials,
 } from '@/authentication/auth-models.ts';
 import { useLocalStorage } from '@/common/common-hooks.ts';
 
 interface AuthContextValue {
-  account: AccountWithToken | null;
-  login: (accountId: string, token: string) => Promise<void>;
+  account: AccountWithCredentials | null;
+  login: (credentials: Credentials) => Promise<void>;
   logout: () => void;
 }
 
@@ -25,11 +26,12 @@ interface AuthProviderProps {
 
 const AuthProvider: FunctionComponent<AuthProviderProps> = ({ children }) => {
   const navigate = useNavigate();
-  const [account, setAccount] = useLocalStorage<AccountWithToken>('account');
+  const [account, setAccount] =
+    useLocalStorage<AccountWithCredentials>('account');
 
-  const login = async (accountId: string, token: string) => {
-    const accountWithToken = await authenticate(accountId, token);
-    setAccount(accountWithToken);
+  const login = async (credentials: Credentials) => {
+    const accountWithCredentials = await authenticate(credentials);
+    setAccount(accountWithCredentials);
     navigate('/');
   };
   const logout = async () => setAccount(null);
@@ -44,11 +46,10 @@ const AuthProvider: FunctionComponent<AuthProviderProps> = ({ children }) => {
 };
 
 export async function authenticate(
-  accountId: string,
-  token: string,
-): Promise<AccountWithToken> {
+  credentials: Credentials,
+): Promise<AccountWithCredentials> {
   try {
-    return await invoke<AccountWithToken>('login', { accountId, token });
+    return await invoke<AccountWithCredentials>('login', { credentials });
   } catch (e) {
     const error = e as AuthenticationError;
     throw new AuthenticationError(error.message, error.kind);

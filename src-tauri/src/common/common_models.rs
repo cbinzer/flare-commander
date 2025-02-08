@@ -1,7 +1,7 @@
 use cloudflare::framework::auth::Credentials as CloudflareCredentials;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(tag = "type")]
 pub enum Credentials {
     UserAuthKey {
@@ -66,6 +66,13 @@ impl Credentials {
             Credentials::UserAuthKey { account_id, .. } => account_id,
             Credentials::UserAuthToken { account_id, .. } => account_id,
             Credentials::Service { account_id, .. } => account_id,
+        }
+    }
+
+    pub(crate) fn token(&self) -> Option<&str> {
+        match self {
+            Credentials::UserAuthToken { token, .. } => Some(token),
+            _ => None,
         }
     }
 }

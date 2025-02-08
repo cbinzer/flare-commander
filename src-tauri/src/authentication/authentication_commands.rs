@@ -1,15 +1,15 @@
 use crate::app_state::AppState;
-use crate::authentication::authentication_models::{AccountWithToken, AuthenticationError};
+use crate::authentication::authentication_models::{AccountWithCredentials, AuthenticationError};
+use crate::common::common_models::Credentials;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
 #[tauri::command]
 pub async fn login(
-    account_id: &str,
-    token: &str,
+    credentials: Credentials,
     state: State<'_, AppState>,
-) -> Result<AccountWithToken, AuthenticationCommandError> {
-    Ok(state.auth_service.login(account_id, token).await?)
+) -> Result<AccountWithCredentials, AuthenticationCommandError> {
+    Ok(state.auth_service.login(&credentials).await?)
 }
 
 #[derive(Debug, Serialize, Deserialize)]

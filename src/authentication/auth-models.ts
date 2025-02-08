@@ -15,10 +15,73 @@ export class AuthenticationError extends Error {
   }
 }
 
-export interface AccountWithToken {
+export interface AccountWithCredentials {
   id: string;
   name: string;
-  token: Token;
+  credentials: AccountCredentials;
+}
+
+export type Credentials =
+  | UserAuthKeyCredentials
+  | UserAuthTokenCredentials
+  | ServiceCredentials;
+
+export interface CredentialsBase {
+  type: CredentialsType;
+  account_id: string;
+}
+
+export enum CredentialsType {
+  UserAuthKey = 'UserAuthKey',
+  UserAuthToken = 'UserAuthToken',
+  Service = 'Service',
+}
+
+export interface UserAuthKeyCredentials extends CredentialsBase {
+  type: CredentialsType.UserAuthKey;
+  email: string;
+  key: string;
+}
+
+export interface UserAuthTokenCredentials extends CredentialsBase {
+  type: CredentialsType.UserAuthToken;
+  token: string;
+}
+
+export interface ServiceCredentials extends CredentialsBase {
+  type: CredentialsType.Service;
+  key: string;
+}
+
+export type AccountCredentials =
+  | AccountUserAuthKeyCredentials
+  | AccountUserAuthTokenCredentials
+  | AccountServiceCredentials;
+
+export interface AccountUserAuthKeyCredentials {
+  type: CredentialsType.UserAuthKey;
+  email: string;
+  key: string;
+}
+
+export interface AccountUserAuthTokenCredentials {
+  type: CredentialsType.UserAuthToken;
+  token: string;
+}
+
+export interface AccountServiceCredentials {
+  type: CredentialsType.Service;
+  key: string;
+}
+
+export interface Account {
+  id: string;
+  name: string;
+}
+
+export interface Account {
+  id: string;
+  name: string;
 }
 
 export interface Token {

@@ -12,7 +12,11 @@ import { Label } from '@/components/ui/label';
 import { ComponentPropsWithoutRef, FormEvent, useState } from 'react';
 import { useAuth } from '@/authentication/use-auth.ts';
 import { LoadingSpinner } from '@/components/ui/loading-spinner.tsx';
-import { AuthenticationError } from '@/authentication/auth-models.ts';
+import {
+  AuthenticationError,
+  CredentialsType,
+  UserAuthTokenCredentials,
+} from '@/authentication/auth-models.ts';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert.tsx';
 import { AlertCircle } from 'lucide-react';
 
@@ -47,7 +51,12 @@ export function LoginForm({
     };
 
     try {
-      await login(accountId, apiToken);
+      const credentials: UserAuthTokenCredentials = {
+        type: CredentialsType.UserAuthToken,
+        account_id: accountId,
+        token: apiToken,
+      };
+      await login(credentials);
     } catch (error) {
       const authError = error as AuthenticationError;
       switch (authError.kind) {

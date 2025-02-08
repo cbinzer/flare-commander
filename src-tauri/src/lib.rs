@@ -5,8 +5,12 @@ use tauri::Manager;
 
 mod app_state;
 mod authentication;
+mod cloudflare;
 mod common;
 mod kv;
+
+#[cfg(test)]
+mod test;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
