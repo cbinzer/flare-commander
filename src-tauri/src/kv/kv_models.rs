@@ -1,4 +1,5 @@
 use crate::authentication::authentication_models::{AuthenticationError, ResponseInfo};
+use chrono::{DateTime, Utc};
 use cloudflare::framework::response::{ApiError, ApiFailure};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
@@ -63,6 +64,7 @@ fn map_api_errors(errors: Vec<ApiError>) -> KvError {
     }
 }
 
+// TODO: Remove
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PagePaginationArray<T> {
     pub success: bool,
@@ -77,4 +79,17 @@ pub struct PaginationInfo {
     pub count: Option<u32>,
     pub page: Option<u32>,
     pub per_page: Option<u32>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct KvKeyValueList {
+    pub data: Vec<KvKeyValue>,
+    pub cursor: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct KvKeyValue {
+    pub key: String,
+    pub value: String,
+    pub expiration: Option<DateTime<Utc>>,
 }

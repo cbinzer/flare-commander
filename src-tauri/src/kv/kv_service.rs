@@ -1,10 +1,14 @@
 use crate::common::common_models::Credentials;
 use crate::common::common_utils::get_cloudflare_env;
-use crate::kv::kv_models::KvError;
+use crate::kv::kv_models::{KvError, KvKeyValue, KvKeyValueList};
+use cloudflare::endpoints::workerskv::list_namespace_keys::{
+    ListNamespaceKeys, ListNamespaceKeysParams,
+};
 use cloudflare::endpoints::workerskv::list_namespaces::{ListNamespaces, ListNamespacesParams};
 use cloudflare::endpoints::workerskv::WorkersKvNamespace;
 use cloudflare::framework::async_api::Client;
 use cloudflare::framework::HttpApiClientConfig;
+use serde_json::Value;
 use url::Url;
 
 pub struct KvService {
@@ -29,6 +33,45 @@ impl KvService {
             Ok(api_success) => Ok(api_success.result),
             Err(api_failure) => Err(api_failure.into()),
         }
+    }
+
+    pub async fn get_key_values(
+        &self,
+        namespace: &str,
+        credentials: &Credentials,
+    ) -> Result<KvKeyValueList, KvError> {
+        let http_client = self.create_http_client(credentials)?;
+        let keys_endpoint = ListNamespaceKeys {
+            account_identifier: credentials.account_id(),
+            namespace_identifier: namespace,
+            params: ListNamespaceKeysParams {
+                limit: None,
+                cursor: None,
+                prefix: None,
+            },
+        };
+
+        let response = http_client.request(&keys_endpoint).await?;
+        let cursor = match response.result_info {
+            None => None,
+            Some(json) => match json.get("cursor") {
+                Some(Value::String(value)) => Some(value.to_string()),
+                _ => None,
+            },
+        };
+
+        Ok(KvKeyValueList {
+            cursor,
+            data: response
+                .result
+                .iter()
+                .map(|value| KvKeyValue {
+                    key: value.name.to_string(),
+                    value: value.name.to_string(),
+                    expiration: value.expiration,
+                })
+                .collect(),
+        })
     }
 
     fn create_http_client(&self, credentials: &Credentials) -> Result<Client, KvError> {
@@ -250,6 +293,80 @@ mod test {
                 authentication_error,
                 AuthenticationError::InvalidToken
             ));
+
+            Ok(())
+        }
+    }
+
+    mod get_key_values {
+        use crate::common::common_models::Credentials;
+        use crate::kv::kv_models::{KvError, KvKeyValue, KvKeyValueList};
+        use crate::kv::kv_service::test::create_kv_service;
+        use crate::test::test_models::ApiSuccess;
+        use cloudflare::endpoints::workerskv::Key;
+        use serde_json::json;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        #[tokio::test]
+        async fn should_get_key_values() -> Result<(), KvError> {
+            let expected_key_value_list = KvKeyValueList {
+                cursor: Some("12345".to_string()),
+                data: vec![
+                    KvKeyValue {
+                        key: "key1".to_string(),
+                        value: "key1".to_string(),
+                        expiration: None,
+                    },
+                    KvKeyValue {
+                        key: "key2".to_string(),
+                        value: "key2".to_string(),
+                        expiration: None,
+                    },
+                    KvKeyValue {
+                        key: "key3".to_string(),
+                        value: "key3".to_string(),
+                        expiration: None,
+                    },
+                ],
+            };
+            let credentials = Credentials::UserAuthToken {
+                account_id: "my_account_id".to_string(),
+                token: "my_token".to_string(),
+            };
+            let namespace = "my_namespace";
+
+            let mock_server = MockServer::start().await;
+            let response_template =
+                ResponseTemplate::new(200).set_body_json(ApiSuccess::<Vec<Key>> {
+                    result: expected_key_value_list
+                        .data
+                        .clone()
+                        .into_iter()
+                        .map(|item| Key {
+                            name: item.key,
+                            expiration: item.expiration,
+                        })
+                        .collect(),
+                    errors: vec![],
+                    result_info: Some(json!({
+                        "cursor": "12345",
+                    })),
+                });
+            Mock::given(method("GET"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/keys",
+                    credentials.account_id(),
+                    namespace
+                )))
+                .respond_with(response_template)
+                .mount(&mock_server)
+                .await;
+
+            let kv_service = create_kv_service(mock_server.uri());
+            let key_value_list = kv_service.get_key_values(&namespace, &credentials).await?;
+
+            assert_eq!(key_value_list, expected_key_value_list);
 
             Ok(())
         }

@@ -110,6 +110,7 @@ mod test {
                         status: "active".to_string(),
                     },
                     errors: vec![],
+                    result_info: None,
                 });
             Mock::given(method("GET"))
                 .and(path("/client/v4/user/tokens/verify"))
@@ -151,6 +152,7 @@ mod test {
                         message: "Invalid request headers".to_string(),
                         other: Default::default(),
                     }],
+                    result_info: None,
                 });
             Mock::given(method("GET"))
                 .and(path("/client/v4/user/tokens/verify"))
@@ -188,6 +190,7 @@ mod test {
                         message: "Invalid API token".to_string(),
                         other: Default::default(),
                     }],
+                    result_info: None,
                 });
             Mock::given(method("GET"))
                 .and(path("/client/v4/user/tokens/verify"))
@@ -222,6 +225,7 @@ mod test {
                         status: "".to_string(),
                     },
                     errors: vec![],
+                    result_info: None,
                 });
             Mock::given(method("GET"))
                 .and(path("/client/v4/user/tokens/verify"))
@@ -268,6 +272,7 @@ mod test {
                         message: unknown_error_message.to_string(),
                         other: Default::default(),
                     }],
+                    result_info: None,
                 });
             Mock::given(method("GET"))
                 .and(path("/client/v4/user/tokens/verify"))
@@ -322,6 +327,7 @@ mod test {
                         name: "My Account".to_string(),
                     },
                     errors: vec![],
+                    result_info: None,
                 });
             Mock::given(method("GET"))
                 .and(path(format!(
@@ -365,6 +371,7 @@ mod test {
                     message: "Could not route to /client/v4/accounts/12345, perhaps your object identifier is invalid?".to_string(),
                     other: Default::default(),
                 }],
+                result_info: None
             });
             Mock::given(method("GET"))
                 .and(path(format!(
@@ -410,6 +417,7 @@ mod test {
                         message: "Invalid account identifier".to_string(),
                         other: Default::default(),
                     }],
+                    result_info: None,
                 });
             Mock::given(method("GET"))
                 .and(path(format!(
@@ -461,6 +469,7 @@ mod test {
                         name: "My Account".to_string(),
                     },
                     errors: vec![],
+                    result_info: None,
                 });
             Mock::given(method("GET"))
                 .and(path(format!(
@@ -479,6 +488,7 @@ mod test {
                 ResponseTemplate::new(200).set_body_json(ApiSuccess::<UserTokenStatus> {
                     result: token.clone(),
                     errors: vec![],
+                    result_info: None,
                 });
             Mock::given(method("GET"))
                 .and(path("/client/v4/user/tokens/verify"))
@@ -516,6 +526,7 @@ mod test {
                         name: "My Account".to_string(),
                     },
                     errors: vec![],
+                    result_info: None,
                 });
             Mock::given(method("GET"))
                 .and(path(format!(
@@ -533,6 +544,7 @@ mod test {
                         status: "disabled".to_string(),
                     },
                     errors: vec![],
+                    result_info: None,
                 });
             Mock::given(method("GET"))
                 .and(path("/client/v4/user/tokens/verify"))
@@ -562,6 +574,7 @@ mod test {
                         name: "My Account".to_string(),
                     },
                     errors: vec![],
+                    result_info: None,
                 });
             Mock::given(method("GET"))
                 .and(path("/client/v4/accounts/12345"))
@@ -576,6 +589,7 @@ mod test {
                         status: "expired".to_string(),
                     },
                     errors: vec![],
+                    result_info: None,
                 });
             Mock::given(method("GET"))
                 .and(path("/client/v4/user/tokens/verify"))
