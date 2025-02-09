@@ -67,9 +67,7 @@ mod test {
         use crate::kv::kv_models::KvError::Authentication;
         use crate::kv::kv_models::{KvError, KvNamespace, PagePaginationArray, PaginationInfo};
         use crate::kv::kv_service::test::create_kv_service;
-        use crate::kv::kv_service::KvService;
         use cloudflare::endpoints::workerskv::WorkersKvNamespace;
-        use url::Url;
         use wiremock::matchers::{method, path};
         use wiremock::{Mock, MockServer, ResponseTemplate};
 
