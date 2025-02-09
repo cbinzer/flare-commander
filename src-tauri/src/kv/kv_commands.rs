@@ -2,6 +2,7 @@ use crate::app_state::AppState;
 use crate::common::common_models::Credentials;
 use crate::kv::kv_models::KvError;
 use cloudflare::endpoints::workerskv::WorkersKvNamespace;
+use log::error;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
@@ -28,18 +29,33 @@ pub enum KvCommandErrorKind {
 impl From<KvError> for KvCommandError {
     fn from(error: KvError) -> Self {
         match error {
-            KvError::Authentication(_) => KvCommandError {
-                kind: KvCommandErrorKind::Authentication,
-                message: "Authentication error".to_string(),
-            },
-            KvError::Reqwest(_) => KvCommandError {
-                kind: KvCommandErrorKind::Unknown,
-                message: "An network error occurred".to_string(),
-            },
-            KvError::Unknown(_) => KvCommandError {
-                kind: KvCommandErrorKind::Unknown,
-                message: "An unknown error occurred".to_string(),
-            },
+            KvError::Authentication(auth_err) => {
+                error!(
+                    "An authentication error occurred on interacting with kv: {}",
+                    auth_err
+                );
+                KvCommandError {
+                    kind: KvCommandErrorKind::Authentication,
+                    message: "Authentication error".to_string(),
+                }
+            }
+            KvError::Reqwest(reqwest_err) => {
+                error!(
+                    "A reqwest error occurred on interacting with kv: {}",
+                    reqwest_err
+                );
+                KvCommandError {
+                    kind: KvCommandErrorKind::Unknown,
+                    message: "An network error occurred".to_string(),
+                }
+            }
+            KvError::Unknown(unknown_err) => {
+                error!("An unknown kv error occurred: {}", unknown_err);
+                KvCommandError {
+                    kind: KvCommandErrorKind::Unknown,
+                    message: "An unknown error occurred".to_string(),
+                }
+            }
         }
     }
 }

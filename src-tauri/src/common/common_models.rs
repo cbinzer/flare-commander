@@ -68,11 +68,4 @@ impl Credentials {
             Credentials::Service { account_id, .. } => account_id,
         }
     }
-
-    pub(crate) fn token(&self) -> Option<&str> {
-        match self {
-            Credentials::UserAuthToken { token, .. } => Some(token),
-            _ => None,
-        }
-    }
 }

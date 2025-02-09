@@ -3,9 +3,10 @@ use crate::authentication::authentication_models::{
 };
 use crate::cloudflare::account_details::AccountDetails;
 use crate::common::common_models::Credentials;
+use crate::common::common_utils::get_cloudflare_env;
 use cloudflare::endpoints::user::GetUserTokenStatus;
 use cloudflare::framework::async_api::Client;
-use cloudflare::framework::{Environment, HttpApiClientConfig};
+use cloudflare::framework::HttpApiClientConfig;
 use url::Url;
 
 pub struct AuthenticationService {
@@ -42,16 +43,8 @@ impl AuthenticationService {
         Ok(Client::new(
             credentials.into(),
             HttpApiClientConfig::default(),
-            self.get_env(),
+            get_cloudflare_env(&self.api_url),
         )?)
-    }
-
-    // TODO: Move to a common place
-    fn get_env(&self) -> Environment {
-        match &self.api_url {
-            Some(api_url) => Environment::Custom(api_url.clone()),
-            None => Environment::Production,
-        }
     }
 
     async fn verify_token(&self, http_client: &Client) -> Result<Token, AuthenticationError> {

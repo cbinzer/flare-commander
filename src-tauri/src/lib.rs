@@ -20,6 +20,7 @@ pub fn run() {
             Ok(())
         })
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_log::Builder::new().build())
         .invoke_handler(tauri::generate_handler![login, get_namespaces])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

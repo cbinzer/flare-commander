@@ -1,9 +1,10 @@
 use crate::common::common_models::Credentials;
+use crate::common::common_utils::get_cloudflare_env;
 use crate::kv::kv_models::KvError;
 use cloudflare::endpoints::workerskv::list_namespaces::{ListNamespaces, ListNamespacesParams};
 use cloudflare::endpoints::workerskv::WorkersKvNamespace;
 use cloudflare::framework::async_api::Client;
-use cloudflare::framework::{Environment, HttpApiClientConfig};
+use cloudflare::framework::HttpApiClientConfig;
 use url::Url;
 
 pub struct KvService {
@@ -34,15 +35,8 @@ impl KvService {
         Ok(Client::new(
             credentials.into(),
             HttpApiClientConfig::default(),
-            self.get_env(),
+            get_cloudflare_env(&self.api_url),
         )?)
-    }
-
-    fn get_env(&self) -> Environment {
-        match &self.api_url {
-            Some(api_url) => Environment::Custom(api_url.clone()),
-            None => Environment::Production,
-        }
     }
 
     fn create_list_namespaces_endpoint(account_id: &str) -> ListNamespaces {

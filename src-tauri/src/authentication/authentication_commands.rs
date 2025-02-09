@@ -1,6 +1,7 @@
 use crate::app_state::AppState;
 use crate::authentication::authentication_models::{AccountWithCredentials, AuthenticationError};
 use crate::common::common_models::Credentials;
+use log::error;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
@@ -31,10 +32,13 @@ pub enum AuthenticationCommandErrorKind {
 impl From<AuthenticationError> for AuthenticationCommandError {
     fn from(error: AuthenticationError) -> Self {
         match error {
-            AuthenticationError::InvalidAccountId(_) => AuthenticationCommandError {
-                kind: AuthenticationCommandErrorKind::InvalidAccountId,
-                message: "Account ID is invalid".to_string(),
-            },
+            AuthenticationError::InvalidAccountId(account_id_err) => {
+                error!("Invalid account id error occurred: {}", account_id_err);
+                AuthenticationCommandError {
+                    kind: AuthenticationCommandErrorKind::InvalidAccountId,
+                    message: "Account ID is invalid".to_string(),
+                }
+            }
             AuthenticationError::ExpiredToken => AuthenticationCommandError {
                 kind: AuthenticationCommandErrorKind::ExpiredToken,
                 message: "Token is expired".to_string(),
@@ -47,14 +51,20 @@ impl From<AuthenticationError> for AuthenticationCommandError {
                 kind: AuthenticationCommandErrorKind::InvalidToken,
                 message: "Token is invalid".to_string(),
             },
-            AuthenticationError::Reqwest(_) => AuthenticationCommandError {
-                kind: AuthenticationCommandErrorKind::Unknown,
-                message: "An network error occurred".to_string(),
-            },
-            AuthenticationError::Unknown(_) => AuthenticationCommandError {
-                kind: AuthenticationCommandErrorKind::Unknown,
-                message: "An unknown error occurred".to_string(),
-            },
+            AuthenticationError::Reqwest(reqwest_err) => {
+                error!("A reqwest error occurred: {}", reqwest_err);
+                AuthenticationCommandError {
+                    kind: AuthenticationCommandErrorKind::Unknown,
+                    message: "An network error occurred".to_string(),
+                }
+            }
+            AuthenticationError::Unknown(unknown_err) => {
+                error!("An unknown error occurred: {}", unknown_err);
+                AuthenticationCommandError {
+                    kind: AuthenticationCommandErrorKind::Unknown,
+                    message: "An unknown error occurred".to_string(),
+                }
+            }
         }
     }
 }
