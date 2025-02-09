@@ -4,6 +4,7 @@ use crate::authentication::authentication_models::{
 use crate::cloudflare::account_details::AccountDetails;
 use crate::common::common_models::Credentials;
 use cloudflare::endpoints::user::GetUserTokenStatus;
+use cloudflare::framework::async_api::Client;
 use cloudflare::framework::{Environment, HttpApiClientConfig};
 use url::Url;
 
@@ -37,11 +38,8 @@ impl AuthenticationService {
         }
     }
 
-    fn create_http_client(
-        &self,
-        credentials: &Credentials,
-    ) -> Result<cloudflare::framework::async_api::Client, AuthenticationError> {
-        Ok(cloudflare::framework::async_api::Client::new(
+    fn create_http_client(&self, credentials: &Credentials) -> Result<Client, AuthenticationError> {
+        Ok(Client::new(
             credentials.into(),
             HttpApiClientConfig::default(),
             self.get_env(),
@@ -56,10 +54,7 @@ impl AuthenticationService {
         }
     }
 
-    async fn verify_token(
-        &self,
-        http_client: &cloudflare::framework::async_api::Client,
-    ) -> Result<Token, AuthenticationError> {
+    async fn verify_token(&self, http_client: &Client) -> Result<Token, AuthenticationError> {
         let verify_token_endpoint = GetUserTokenStatus {};
         let api_result = http_client.request(&verify_token_endpoint).await?;
 
@@ -77,7 +72,7 @@ impl AuthenticationService {
     async fn verify_account_id(
         &self,
         credentials: &Credentials,
-        http_client: &cloudflare::framework::async_api::Client,
+        http_client: &Client,
     ) -> Result<Account, AuthenticationError> {
         let account_details_endpoint = AccountDetails {
             account_identifier: credentials.account_id(),
@@ -97,16 +92,18 @@ impl AuthenticationService {
 
 #[cfg(test)]
 mod test {
+    use crate::authentication::authentication_service::AuthenticationService;
+    use url::Url;
+
     mod verify_token {
         use crate::authentication::authentication_models::{
             AuthenticationError, Token, TokenStatus,
         };
-        use crate::authentication::authentication_service::AuthenticationService;
+        use crate::authentication::authentication_service::test::create_authentication_service;
         use crate::common::common_models::Credentials;
         use crate::test::test_models::ApiSuccess;
         use cloudflare::endpoints::user::UserTokenStatus;
         use cloudflare::framework::response::ApiError;
-        use url::Url;
         use wiremock::matchers::{method, path};
         use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -127,9 +124,7 @@ mod test {
                 .mount(&mock_server)
                 .await;
 
-            let base_api_url = format!("{}/client/v4/", mock_server.uri());
-            let api_url = Url::parse(base_api_url.as_str()).unwrap();
-            let authentication_service = AuthenticationService::new(Some(api_url));
+            let authentication_service = create_authentication_service(mock_server.uri());
             let credentials = Credentials::UserAuthToken {
                 account_id: "my_account_id".to_string(),
                 token: "my_token".to_string(),
@@ -170,9 +165,7 @@ mod test {
                 .mount(&mock_server)
                 .await;
 
-            let base_api_url = format!("{}/client/v4/", mock_server.uri());
-            let api_url = Url::parse(base_api_url.as_str()).unwrap();
-            let authentication_service = AuthenticationService::new(Some(api_url));
+            let authentication_service = create_authentication_service(mock_server.uri());
             let credentials = Credentials::UserAuthToken {
                 account_id: "my_account_id".to_string(),
                 token: "my_token".to_string(),
@@ -209,9 +202,7 @@ mod test {
                 .mount(&mock_server)
                 .await;
 
-            let base_api_url = format!("{}/client/v4/", mock_server.uri());
-            let api_url = Url::parse(base_api_url.as_str()).unwrap();
-            let authentication_service = AuthenticationService::new(Some(api_url));
+            let authentication_service = create_authentication_service(mock_server.uri());
             let credentials = Credentials::UserAuthToken {
                 account_id: "my_account_id".to_string(),
                 token: "my_token".to_string(),
@@ -245,9 +236,7 @@ mod test {
                 .mount(&mock_server)
                 .await;
 
-            let base_api_url = format!("{}/client/v4/", mock_server.uri());
-            let api_url = Url::parse(base_api_url.as_str()).unwrap();
-            let authentication_service = AuthenticationService::new(Some(api_url));
+            let authentication_service = create_authentication_service(mock_server.uri());
             let credentials = Credentials::UserAuthToken {
                 account_id: "my_account_id".to_string(),
                 token: "my_token".to_string(),
@@ -293,9 +282,7 @@ mod test {
                 .mount(&mock_server)
                 .await;
 
-            let base_api_url = format!("{}/client/v4/", mock_server.uri());
-            let api_url = Url::parse(base_api_url.as_str()).unwrap();
-            let authentication_service = AuthenticationService::new(Some(api_url));
+            let authentication_service = create_authentication_service(mock_server.uri());
             let credentials = Credentials::UserAuthToken {
                 account_id: "my_account_id".to_string(),
                 token: "my_token".to_string(),
@@ -321,11 +308,10 @@ mod test {
 
     mod verify_account_id {
         use crate::authentication::authentication_models::{Account, AuthenticationError};
-        use crate::authentication::authentication_service::AuthenticationService;
+        use crate::authentication::authentication_service::test::create_authentication_service;
         use crate::common::common_models::Credentials;
         use crate::test::test_models::ApiSuccess;
         use cloudflare::framework::response::ApiError;
-        use url::Url;
         use wiremock::matchers::{method, path};
         use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -353,9 +339,7 @@ mod test {
                 .mount(&mock_server)
                 .await;
 
-            let base_api_url = format!("{}/client/v4/", mock_server.uri());
-            let api_url = Url::parse(base_api_url.as_str()).unwrap();
-            let authentication_service = AuthenticationService::new(Some(api_url));
+            let authentication_service = create_authentication_service(mock_server.uri());
             let http_client = authentication_service.create_http_client(&credentials)?;
 
             let account = authentication_service
@@ -398,9 +382,7 @@ mod test {
                 .mount(&mock_server)
                 .await;
 
-            let base_api_url = format!("{}/client/v4/", mock_server.uri());
-            let api_url = Url::parse(base_api_url.as_str()).unwrap();
-            let authentication_service = AuthenticationService::new(Some(api_url));
+            let authentication_service = create_authentication_service(mock_server.uri());
             let http_client = authentication_service.create_http_client(&credentials)?;
 
             let account_result = authentication_service
@@ -445,9 +427,7 @@ mod test {
                 .mount(&mock_server)
                 .await;
 
-            let base_api_url = format!("{}/client/v4/", mock_server.uri());
-            let api_url = Url::parse(base_api_url.as_str()).unwrap();
-            let authentication_service = AuthenticationService::new(Some(api_url));
+            let authentication_service = create_authentication_service(mock_server.uri());
             let http_client = authentication_service.create_http_client(&credentials)?;
 
             let account_result = authentication_service
@@ -466,11 +446,10 @@ mod test {
         use crate::authentication::authentication_models::{
             Account, AccountWithCredentials, AuthenticationError,
         };
-        use crate::authentication::authentication_service::AuthenticationService;
+        use crate::authentication::authentication_service::test::create_authentication_service;
         use crate::common::common_models::Credentials;
         use crate::test::test_models::ApiSuccess;
         use cloudflare::endpoints::user::UserTokenStatus;
-        use url::Url;
         use wiremock::matchers::{method, path};
         use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -514,10 +493,7 @@ mod test {
                 .mount(&mock_server)
                 .await;
 
-            let base_api_url = format!("{}/client/v4/", mock_server.uri());
-            let api_url = Url::parse(base_api_url.as_str()).unwrap();
-            let authentication_service = AuthenticationService::new(Some(api_url));
-
+            let authentication_service = create_authentication_service(mock_server.uri());
             let account = authentication_service.login(&credentials).await?;
             assert_eq!(
                 account,
@@ -569,10 +545,7 @@ mod test {
                 .mount(&mock_server)
                 .await;
 
-            let base_api_url = format!("{}/client/v4/", mock_server.uri());
-            let api_url = Url::parse(base_api_url.as_str()).unwrap();
-            let authentication_service = AuthenticationService::new(Some(api_url));
-
+            let authentication_service = create_authentication_service(mock_server.uri());
             let login_result = authentication_service.login(&credentials).await;
             assert!(login_result.is_err());
 
@@ -613,9 +586,7 @@ mod test {
                 .mount(&mock_server)
                 .await;
 
-            let base_api_url = format!("{}/client/v4/", mock_server.uri());
-            let api_url = Url::parse(base_api_url.as_str()).unwrap();
-            let authentication_service = AuthenticationService::new(Some(api_url));
+            let authentication_service = create_authentication_service(mock_server.uri());
             let credentials = Credentials::UserAuthToken {
                 account_id: "my_account_id".to_string(),
                 token: "my_token".to_string(),
@@ -629,5 +600,11 @@ mod test {
 
             Ok(())
         }
+    }
+
+    fn create_authentication_service(mock_server_url: String) -> AuthenticationService {
+        let base_api_url = format!("{}/client/v4/", mock_server_url);
+        let api_url = Url::parse(base_api_url.as_str()).unwrap();
+        AuthenticationService::new(Some(api_url))
     }
 }
