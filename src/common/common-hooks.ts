@@ -30,12 +30,12 @@ function getItemFromLocalStorage<T>(key: string): T | null {
 
 export function useError() {
   const { toast } = useToast();
-  const { logout } = useAuth();
+  const { resetCredentials } = useAuth();
 
   const handleError = (error: Error) => {
     console.error(error);
     if ('kind' in error && error.kind === 'Authentication') {
-      logout();
+      resetCredentials();
       return;
     }
 

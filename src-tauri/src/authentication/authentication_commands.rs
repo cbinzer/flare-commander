@@ -6,11 +6,11 @@ use serde::{Deserialize, Serialize};
 use tauri::State;
 
 #[tauri::command]
-pub async fn login(
+pub async fn verify_credentials(
     credentials: Credentials,
     state: State<'_, AppState>,
 ) -> Result<AccountWithCredentials, AuthenticationCommandError> {
-    Ok(state.auth_service.login(&credentials).await?)
+    Ok(state.auth_service.verify_credentials(&credentials).await?)
 }
 
 #[derive(Debug, Serialize, Deserialize)]

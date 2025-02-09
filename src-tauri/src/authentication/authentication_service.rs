@@ -18,7 +18,7 @@ impl AuthenticationService {
         Self { api_url }
     }
 
-    pub async fn login(
+    pub async fn verify_credentials(
         &self,
         credentials: &Credentials,
     ) -> Result<AccountWithCredentials, AuthenticationError> {
@@ -435,7 +435,7 @@ mod test {
         }
     }
 
-    mod login {
+    mod verify_credentials {
         use crate::authentication::authentication_models::{
             Account, AccountWithCredentials, AuthenticationError,
         };
@@ -447,7 +447,7 @@ mod test {
         use wiremock::{Mock, MockServer, ResponseTemplate};
 
         #[tokio::test]
-        async fn should_login() -> Result<(), AuthenticationError> {
+        async fn should_verify_credentials() -> Result<(), AuthenticationError> {
             let credentials = Credentials::UserAuthToken {
                 account_id: "my_account_id".to_string(),
                 token: "my_token".to_string(),
@@ -487,7 +487,9 @@ mod test {
                 .await;
 
             let authentication_service = create_authentication_service(mock_server.uri());
-            let account = authentication_service.login(&credentials).await?;
+            let account = authentication_service
+                .verify_credentials(&credentials)
+                .await?;
             assert_eq!(
                 account,
                 AccountWithCredentials {
@@ -539,10 +541,12 @@ mod test {
                 .await;
 
             let authentication_service = create_authentication_service(mock_server.uri());
-            let login_result = authentication_service.login(&credentials).await;
-            assert!(login_result.is_err());
+            let verification_result = authentication_service
+                .verify_credentials(&credentials)
+                .await;
+            assert!(verification_result.is_err());
 
-            let error = login_result.unwrap_err();
+            let error = verification_result.unwrap_err();
             assert!(matches!(error, AuthenticationError::DisabledToken));
 
             Ok(())
@@ -585,10 +589,12 @@ mod test {
                 token: "my_token".to_string(),
             };
 
-            let login_result = authentication_service.login(&credentials).await;
-            assert!(login_result.is_err());
+            let verification_result = authentication_service
+                .verify_credentials(&credentials)
+                .await;
+            assert!(verification_result.is_err());
 
-            let error = login_result.unwrap_err();
+            let error = verification_result.unwrap_err();
             assert!(matches!(error, AuthenticationError::ExpiredToken));
 
             Ok(())

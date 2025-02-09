@@ -24,7 +24,7 @@ export function LoginForm({
   className,
   ...props
 }: ComponentPropsWithoutRef<'div'>) {
-  const { login } = useAuth();
+  const { verifyCredentials } = useAuth();
   const [accountIdErrorMessage, setAccountIdErrorMessage] = useState<
     string | null
   >(null);
@@ -56,7 +56,7 @@ export function LoginForm({
         account_id: accountId,
         token: apiToken,
       };
-      await login(credentials);
+      await verifyCredentials(credentials);
     } catch (error) {
       const authError = error as AuthenticationError;
       switch (authError.kind) {

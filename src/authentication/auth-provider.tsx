@@ -10,14 +10,14 @@ import { useLocalStorage } from '@/common/common-hooks.ts';
 
 interface AuthContextValue {
   account: AccountWithCredentials | null;
-  login: (credentials: Credentials) => Promise<void>;
-  logout: () => void;
+  verifyCredentials: (credentials: Credentials) => Promise<void>;
+  resetCredentials: () => void;
 }
 
 export const AuthContext = createContext<AuthContextValue>({
   account: null,
-  login: async () => {},
-  logout: () => {},
+  verifyCredentials: async () => {},
+  resetCredentials: () => {},
 });
 
 interface AuthProviderProps {
@@ -29,8 +29,8 @@ const AuthProvider: FunctionComponent<AuthProviderProps> = ({ children }) => {
   const [account, setAccount] =
     useLocalStorage<AccountWithCredentials>('account');
 
-  const login = async (credentials: Credentials) => {
-    const accountWithCredentials = await authenticate(credentials);
+  const verifyCredentials = async (credentials: Credentials) => {
+    const accountWithCredentials = await invokeVerifyCredentials(credentials);
     setAccount(accountWithCredentials);
     navigate('/');
   };
@@ -38,18 +38,20 @@ const AuthProvider: FunctionComponent<AuthProviderProps> = ({ children }) => {
 
   const value: AuthContextValue = {
     account,
-    login,
-    logout,
+    verifyCredentials: verifyCredentials,
+    resetCredentials: logout,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-export async function authenticate(
+async function invokeVerifyCredentials(
   credentials: Credentials,
 ): Promise<AccountWithCredentials> {
   try {
-    return await invoke<AccountWithCredentials>('login', { credentials });
+    return await invoke<AccountWithCredentials>('verify_credentials', {
+      credentials,
+    });
   } catch (e) {
     const error = e as AuthenticationError;
     throw new AuthenticationError(error.message, error.kind);
