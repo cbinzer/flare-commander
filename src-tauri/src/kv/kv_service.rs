@@ -2,6 +2,7 @@ use crate::common::common_models::Credentials;
 use crate::kv::kv_models::KvError;
 use cloudflare::endpoints::workerskv::list_namespaces::{ListNamespaces, ListNamespacesParams};
 use cloudflare::endpoints::workerskv::WorkersKvNamespace;
+use cloudflare::framework::async_api::Client;
 use cloudflare::framework::{Environment, HttpApiClientConfig};
 use url::Url;
 
@@ -29,11 +30,8 @@ impl KvService {
         }
     }
 
-    fn create_http_client(
-        &self,
-        credentials: &Credentials,
-    ) -> Result<cloudflare::framework::async_api::Client, KvError> {
-        Ok(cloudflare::framework::async_api::Client::new(
+    fn create_http_client(&self, credentials: &Credentials) -> Result<Client, KvError> {
+        Ok(Client::new(
             credentials.into(),
             HttpApiClientConfig::default(),
             self.get_env(),
@@ -60,11 +58,15 @@ impl KvService {
 
 #[cfg(test)]
 mod test {
+    use crate::kv::kv_service::KvService;
+    use url::Url;
+
     mod get_namespaces {
         use crate::authentication::authentication_models::{AuthenticationError, ResponseInfo};
         use crate::common::common_models::Credentials;
         use crate::kv::kv_models::KvError::Authentication;
         use crate::kv::kv_models::{KvError, KvNamespace, PagePaginationArray, PaginationInfo};
+        use crate::kv::kv_service::test::create_kv_service;
         use crate::kv::kv_service::KvService;
         use cloudflare::endpoints::workerskv::WorkersKvNamespace;
         use url::Url;
@@ -109,9 +111,7 @@ mod test {
                 .mount(&mock_server)
                 .await;
 
-            let base_api_url = format!("{}/client/v4/", mock_server.uri());
-            let api_url = Url::parse(base_api_url.as_str()).unwrap();
-            let kv_service = KvService::new(Some(api_url));
+            let kv_service = create_kv_service(mock_server.uri());
             let namespaces = kv_service
                 .get_namespaces(&Credentials::UserAuthToken {
                     account_id,
@@ -149,9 +149,7 @@ mod test {
                 .mount(&mock_server)
                 .await;
 
-            let base_api_url = format!("{}/client/v4/", mock_server.uri());
-            let api_url = Url::parse(base_api_url.as_str()).unwrap();
-            let kv_service = KvService::new(Some(api_url));
+            let kv_service = create_kv_service(mock_server.uri());
             let namespaces_result = kv_service
                 .get_namespaces(&Credentials::UserAuthToken {
                     account_id,
@@ -193,9 +191,7 @@ mod test {
                 .mount(&mock_server)
                 .await;
 
-            let base_api_url = format!("{}/client/v4/", mock_server.uri());
-            let api_url = Url::parse(base_api_url.as_str()).unwrap();
-            let kv_service = KvService::new(Some(api_url));
+            let kv_service = create_kv_service(mock_server.uri());
             let namespaces_result = kv_service
                 .get_namespaces(&Credentials::UserAuthToken {
                     account_id,
@@ -241,9 +237,7 @@ mod test {
                 .mount(&mock_server)
                 .await;
 
-            let base_api_url = format!("{}/client/v4/", mock_server.uri());
-            let api_url = Url::parse(base_api_url.as_str()).unwrap();
-            let kv_service = KvService::new(Some(api_url));
+            let kv_service = create_kv_service(mock_server.uri());
             let namespaces_result = kv_service
                 .get_namespaces(&Credentials::UserAuthToken {
                     account_id,
@@ -267,5 +261,11 @@ mod test {
 
             Ok(())
         }
+    }
+
+    fn create_kv_service(mock_server_uri: String) -> KvService {
+        let base_api_url = format!("{}/client/v4/", mock_server_uri);
+        let api_url = Url::parse(base_api_url.as_str()).unwrap();
+        KvService::new(Some(api_url))
     }
 }
