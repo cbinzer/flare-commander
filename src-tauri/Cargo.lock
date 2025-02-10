@@ -1159,7 +1159,9 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "cloudflare",
+ "futures",
  "log",
+ "percent-encoding",
  "reqwest",
  "serde",
  "serde_json",
