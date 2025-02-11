@@ -15,6 +15,7 @@ pub struct KvNamespace {
 #[derive(Debug)]
 pub enum KvError {
     NamespaceNotFound,
+    KeyNotFound,
     Authentication(AuthenticationError),
     Reqwest(reqwest::Error),
     Unknown(String),
@@ -50,7 +51,7 @@ impl From<ApiFailure> for KvError {
     }
 }
 
-fn map_api_errors(errors: Vec<ApiError>) -> KvError {
+pub fn map_api_errors(errors: Vec<ApiError>) -> KvError {
     if errors.is_empty() {
         return KvError::Unknown("No errors in the response.".to_string());
     }
@@ -59,6 +60,7 @@ fn map_api_errors(errors: Vec<ApiError>) -> KvError {
     match error.code {
         10000 => KvError::Authentication(AuthenticationError::InvalidToken),
         10001 => KvError::Authentication(AuthenticationError::InvalidToken),
+        10009 => KvError::KeyNotFound,
         10013 => KvError::NamespaceNotFound,
         _ => KvError::Unknown(error.message.clone()),
     }
