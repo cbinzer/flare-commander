@@ -346,6 +346,7 @@ mod test {
         use crate::kv::kv_service::GetKeyValuesParams;
         use crate::test::test_models::ApiSuccess;
         use cloudflare::endpoints::workerskv::Key;
+        use cloudflare::framework::response::ApiError;
         use serde_json::json;
         use wiremock::matchers::{method, path, path_regex};
         use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -425,6 +426,52 @@ mod test {
             let key_value_list = kv_service.get_key_values(params).await?;
 
             assert_eq!(key_value_list, expected_key_value_list);
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_respond_with_namespace_not_found_error_if_a_namespace_not_exist(
+        ) -> Result<(), KvError> {
+            let mock_server = MockServer::start().await;
+            let response_template =
+                ResponseTemplate::new(404).set_body_json(ApiSuccess::<Option<String>> {
+                    result: None,
+                    errors: vec![ApiError {
+                        code: 10013,
+                        message: "list keys: 'namespace not found'".to_string(),
+                        other: Default::default(),
+                    }],
+                    result_info: None,
+                });
+
+            let account_id = "account_id".to_string();
+            let namespace_id = "12345";
+            Mock::given(method("GET"))
+                .and(path(format!(
+                    "/client/v4/accounts/{account_id}/storage/kv/namespaces/{namespace_id}/keys"
+                )))
+                .respond_with(response_template)
+                .mount(&mock_server)
+                .await;
+
+            let kv_service = create_kv_service(mock_server.uri());
+            let credentials = Credentials::UserAuthToken {
+                account_id,
+                token: "my_token".to_string(),
+            };
+            let result = kv_service
+                .get_key_values(GetKeyValuesParams {
+                    credentials: &credentials,
+                    namespace_id,
+                    cursor: None,
+                })
+                .await;
+
+            assert!(result.is_err());
+
+            let error = result.unwrap_err();
+            assert!(matches!(error, KvError::NamespaceNotFound));
 
             Ok(())
         }

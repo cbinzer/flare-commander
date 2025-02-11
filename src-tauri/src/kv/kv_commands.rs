@@ -22,6 +22,7 @@ pub struct KvCommandError {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum KvCommandErrorKind {
+    NamespaceNotFound,
     Authentication,
     Unknown,
 }
@@ -29,6 +30,10 @@ pub enum KvCommandErrorKind {
 impl From<KvError> for KvCommandError {
     fn from(error: KvError) -> Self {
         match error {
+            KvError::NamespaceNotFound => KvCommandError {
+                kind: KvCommandErrorKind::NamespaceNotFound,
+                message: "Namespace not found".to_string(),
+            },
             KvError::Authentication(auth_err) => {
                 error!(
                     "An authentication error occurred on interacting with kv: {}",

@@ -14,6 +14,7 @@ pub struct KvNamespace {
 
 #[derive(Debug)]
 pub enum KvError {
+    NamespaceNotFound,
     Authentication(AuthenticationError),
     Reqwest(reqwest::Error),
     Unknown(String),
@@ -35,9 +36,7 @@ impl From<reqwest::Error> for KvError {
 
 impl From<cloudflare::framework::Error> for KvError {
     fn from(error: cloudflare::framework::Error) -> Self {
-        let reqwest_error = match error {
-            cloudflare::framework::Error::ReqwestError(reqwest_error) => reqwest_error,
-        };
+        let cloudflare::framework::Error::ReqwestError(reqwest_error) = error;
         KvError::Reqwest(reqwest_error)
     }
 }
@@ -60,6 +59,7 @@ fn map_api_errors(errors: Vec<ApiError>) -> KvError {
     match error.code {
         10000 => KvError::Authentication(AuthenticationError::InvalidToken),
         10001 => KvError::Authentication(AuthenticationError::InvalidToken),
+        10013 => KvError::NamespaceNotFound,
         _ => KvError::Unknown(error.message.clone()),
     }
 }
