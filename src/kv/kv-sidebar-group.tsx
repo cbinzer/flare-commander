@@ -20,6 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton.tsx';
 import { FunctionComponent, MouseEvent, useState } from 'react';
 import { KvNamespace } from '@/kv/kv-models.ts';
 import { useError } from '@/common/common-hooks.ts';
+import { useNavigate } from 'react-router';
 
 export function KvSidebarGroup() {
   const { loading, namespaces, getNamespaces, setNamespaces } = useNamespaces();
@@ -74,6 +75,7 @@ export function KvSidebarGroup() {
 const KvSidebarMenu: FunctionComponent<{ namespaces: KvNamespace[] }> = ({
   namespaces = [],
 }) => {
+  const navigate = useNavigate();
   const [activeNamespace, setActiveNamespace] = useState<KvNamespace | null>(
     null,
   );
@@ -84,6 +86,7 @@ const KvSidebarMenu: FunctionComponent<{ namespaces: KvNamespace[] }> = ({
   ) => {
     event.preventDefault();
     setActiveNamespace(namespace);
+    navigate(`namespaces/${namespace.id}`, { state: namespace });
   };
 
   return (

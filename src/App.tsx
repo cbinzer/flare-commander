@@ -5,6 +5,7 @@ import LoginPage from '@/authentication/login-page.tsx';
 import ProtectedPage from '@/authentication/protected-page.tsx';
 import AuthProvider from '@/authentication/auth-provider.tsx';
 import { Toaster } from '@/components/ui/toaster.tsx';
+import KvNamespaceDetails from '@/kv/kv-namespace-details.tsx';
 
 function App() {
   return (
@@ -21,10 +22,8 @@ function App() {
                 <MainPage />
               </ProtectedPage>
             }
-            index={true}
           >
-            {/*<Route index element={<RecentActivity />} />*/}
-            {/*<Route path="project/:id" element={<Project />} />*/}
+            <Route path="namespaces/:id" element={<KvNamespaceDetails />} />
           </Route>
         </Routes>
       </AuthProvider>
