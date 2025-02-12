@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/sidebar';
 import { useNamespaces } from '@/kv/kv-hooks.ts';
 import { Skeleton } from '@/components/ui/skeleton.tsx';
-import { FunctionComponent } from 'react';
+import { FunctionComponent, MouseEvent, useState } from 'react';
 import { KvNamespace } from '@/kv/kv-models.ts';
 import { useError } from '@/common/common-hooks.ts';
 
@@ -74,12 +74,27 @@ export function KvSidebarGroup() {
 const KvSidebarMenu: FunctionComponent<{ namespaces: KvNamespace[] }> = ({
   namespaces = [],
 }) => {
+  const [activeNamespace, setActiveNamespace] = useState<KvNamespace | null>(
+    null,
+  );
+
+  const openKvSection = (
+    event: MouseEvent<HTMLAnchorElement>,
+    namespace: KvNamespace,
+  ) => {
+    event.preventDefault();
+    setActiveNamespace(namespace);
+  };
+
   return (
     <SidebarMenuSub>
       {namespaces.map((namespace) => (
         <SidebarMenuSubItem key={namespace.id}>
-          <SidebarMenuSubButton asChild>
-            <a href="#">
+          <SidebarMenuSubButton
+            asChild
+            isActive={activeNamespace?.id === namespace.id}
+          >
+            <a href="#" onClick={(event) => openKvSection(event, namespace)}>
               <span>{namespace.title}</span>
             </a>
           </SidebarMenuSubButton>
