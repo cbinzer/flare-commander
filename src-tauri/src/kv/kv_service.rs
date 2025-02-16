@@ -1,7 +1,9 @@
 use crate::cloudflare::read_key_value::url_encode_key;
 use crate::common::common_models::Credentials;
 use crate::common::common_utils::get_cloudflare_env;
-use crate::kv::kv_models::{map_api_errors, KvError, KvKeyValue, KvKeyValueList};
+use crate::kv::kv_models::{
+    map_api_errors, GetKeyValueInput, GetKvItemsInput, KvError, KvItem, KvItems,
+};
 use cloudflare::endpoints::workerskv::list_namespace_keys::{
     ListNamespaceKeys, ListNamespaceKeysParams,
 };
@@ -39,17 +41,14 @@ impl KvService {
         }
     }
 
-    pub async fn get_key_values<'a>(
-        &self,
-        params: GetKeyValuesParams<'a>,
-    ) -> Result<KvKeyValueList, KvError> {
-        let api_client = self.create_http_client(params.credentials)?;
+    pub async fn get_kv_items<'a>(&self, input: GetKvItemsInput<'a>) -> Result<KvItems, KvError> {
+        let api_client = self.create_http_client(input.credentials)?;
         let keys_endpoint = ListNamespaceKeys {
-            account_identifier: params.credentials.account_id(),
-            namespace_identifier: params.namespace_id,
+            account_identifier: input.credentials.account_id(),
+            namespace_identifier: input.namespace_id,
             params: ListNamespaceKeysParams {
                 limit: Some(10),
-                cursor: params.cursor,
+                cursor: input.cursor,
                 prefix: None,
             },
         };
@@ -64,17 +63,17 @@ impl KvService {
         };
 
         let http_client = reqwest::Client::new();
-        let data: Vec<KvKeyValue> = try_join_all(response.result.iter().map(|key| async {
+        let items: Vec<KvItem> = try_join_all(response.result.iter().map(|key| async {
             let value = self
-                .get_key_value(
-                    &http_client,
-                    params.credentials,
-                    params.namespace_id,
-                    &key.name,
-                )
+                .get_key_value(&GetKeyValueInput {
+                    http_client: &http_client,
+                    credentials: input.credentials,
+                    namespace_id: input.namespace_id,
+                    key: &key.name,
+                })
                 .await?;
 
-            Ok::<KvKeyValue, KvError>(KvKeyValue {
+            Ok::<KvItem, KvError>(KvItem {
                 key: key.name.to_string(),
                 value,
                 expiration: key.expiration,
@@ -82,7 +81,7 @@ impl KvService {
         }))
         .await?;
 
-        Ok(KvKeyValueList { cursor, data })
+        Ok(KvItems { cursor, items })
     }
 
     fn create_http_client(&self, credentials: &Credentials) -> Result<Client, KvError> {
@@ -103,24 +102,23 @@ impl KvService {
         }
     }
 
-    async fn get_key_value(
-        &self,
-        http_client: &reqwest::Client,
-        credentials: &Credentials,
-        namespace_id: &str,
-        key: &str,
-    ) -> Result<String, KvError> {
+    async fn get_key_value<'a>(&self, input: &GetKeyValueInput<'a>) -> Result<String, KvError> {
         let base_url: Url = (&get_cloudflare_env(&self.api_url)).into();
         let url = format!(
             "{}accounts/{}/storage/kv/namespaces/{}/values/{}",
             base_url,
-            credentials.account_id(),
-            namespace_id,
-            url_encode_key(key),
+            input.credentials.account_id(),
+            input.namespace_id,
+            url_encode_key(input.key),
         );
 
-        let token = credentials.token().unwrap_or_default();
-        let response = http_client.get(&url).bearer_auth(token).send().await?;
+        let token = input.credentials.token().unwrap_or_default();
+        let response = input
+            .http_client
+            .get(&url)
+            .bearer_auth(token)
+            .send()
+            .await?;
 
         match response.status() {
             StatusCode::OK => Ok(response.text().await?),
@@ -130,12 +128,6 @@ impl KvService {
             }
         }
     }
-}
-
-pub struct GetKeyValuesParams<'a> {
-    credentials: &'a Credentials,
-    namespace_id: &'a str,
-    cursor: Option<String>,
 }
 
 #[cfg(test)]
@@ -343,11 +335,11 @@ mod test {
         }
     }
 
-    mod get_key_values {
+    mod get_kv_items {
         use crate::common::common_models::Credentials;
-        use crate::kv::kv_models::{KvError, KvKeyValue, KvKeyValueList};
+        use crate::kv::kv_models::{KvError, KvItem, KvItems};
         use crate::kv::kv_service::test::create_kv_service;
-        use crate::kv::kv_service::GetKeyValuesParams;
+        use crate::kv::kv_service::GetKvItemsInput;
         use crate::test::test_models::ApiSuccess;
         use cloudflare::endpoints::workerskv::Key;
         use cloudflare::framework::response::ApiError;
@@ -356,21 +348,21 @@ mod test {
         use wiremock::{Mock, MockServer, ResponseTemplate};
 
         #[tokio::test]
-        async fn should_get_key_values() -> Result<(), KvError> {
-            let expected_key_value_list = KvKeyValueList {
+        async fn should_get_kv_items() -> Result<(), KvError> {
+            let expected_kv_items = KvItems {
                 cursor: Some("12345".to_string()),
-                data: vec![
-                    KvKeyValue {
+                items: vec![
+                    KvItem {
                         key: "key1".to_string(),
                         value: "value".to_string(),
                         expiration: None,
                     },
-                    KvKeyValue {
+                    KvItem {
                         key: "key2".to_string(),
                         value: "value".to_string(),
                         expiration: None,
                     },
-                    KvKeyValue {
+                    KvItem {
                         key: "key3".to_string(),
                         value: "value".to_string(),
                         expiration: None,
@@ -386,8 +378,8 @@ mod test {
             let mock_server = MockServer::start().await;
             let response_template_keys =
                 ResponseTemplate::new(200).set_body_json(ApiSuccess::<Vec<Key>> {
-                    result: expected_key_value_list
-                        .data
+                    result: expected_kv_items
+                        .items
                         .clone()
                         .into_iter()
                         .map(|item| Key {
@@ -422,14 +414,14 @@ mod test {
                 .await;
 
             let kv_service = create_kv_service(mock_server.uri());
-            let params = GetKeyValuesParams {
+            let params = GetKvItemsInput {
                 credentials: &credentials,
                 namespace_id: namespace,
                 cursor: None,
             };
-            let key_value_list = kv_service.get_key_values(params).await?;
+            let key_value_list = kv_service.get_kv_items(params).await?;
 
-            assert_eq!(key_value_list, expected_key_value_list);
+            assert_eq!(key_value_list, expected_kv_items);
 
             Ok(())
         }
@@ -465,7 +457,7 @@ mod test {
                 token: "my_token".to_string(),
             };
             let result = kv_service
-                .get_key_values(GetKeyValuesParams {
+                .get_kv_items(GetKvItemsInput {
                     credentials: &credentials,
                     namespace_id,
                     cursor: None,
@@ -483,9 +475,9 @@ mod test {
         #[tokio::test]
         async fn should_respond_with_key_not_found_error_if_a_key_not_exist() -> Result<(), KvError>
         {
-            let expected_key_value_list = KvKeyValueList {
+            let expected_key_value_list = KvItems {
                 cursor: Some("12345".to_string()),
-                data: vec![KvKeyValue {
+                items: vec![KvItem {
                     key: "key1".to_string(),
                     value: "value".to_string(),
                     expiration: None,
@@ -501,7 +493,7 @@ mod test {
             let response_template_keys =
                 ResponseTemplate::new(200).set_body_json(ApiSuccess::<Vec<Key>> {
                     result: expected_key_value_list
-                        .data
+                        .items
                         .clone()
                         .into_iter()
                         .map(|item| Key {
@@ -543,13 +535,13 @@ mod test {
                 .await;
 
             let kv_service = create_kv_service(mock_server.uri());
-            let params = GetKeyValuesParams {
+            let params = GetKvItemsInput {
                 credentials: &credentials,
                 namespace_id: namespace,
                 cursor: None,
             };
 
-            let result = kv_service.get_key_values(params).await;
+            let result = kv_service.get_kv_items(params).await;
             assert!(result.is_err());
 
             let error = result.unwrap_err();

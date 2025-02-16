@@ -1,4 +1,5 @@
 use crate::authentication::authentication_models::{AuthenticationError, ResponseInfo};
+use crate::common::common_models::Credentials;
 use chrono::{DateTime, Utc};
 use cloudflare::framework::response::{ApiError, ApiFailure};
 use serde::{Deserialize, Serialize};
@@ -84,14 +85,27 @@ pub struct PaginationInfo {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct KvKeyValueList {
-    pub data: Vec<KvKeyValue>,
+pub struct KvItems {
+    pub items: Vec<KvItem>,
     pub cursor: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-pub struct KvKeyValue {
+pub struct KvItem {
     pub key: String,
     pub value: String,
     pub expiration: Option<DateTime<Utc>>,
+}
+
+pub struct GetKvItemsInput<'a> {
+    pub credentials: &'a Credentials,
+    pub namespace_id: &'a str,
+    pub cursor: Option<String>,
+}
+
+pub struct GetKeyValueInput<'a> {
+    pub http_client: &'a reqwest::Client,
+    pub credentials: &'a Credentials,
+    pub namespace_id: &'a str,
+    pub key: &'a str,
 }
