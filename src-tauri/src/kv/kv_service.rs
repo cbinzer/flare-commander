@@ -19,11 +19,17 @@ use url::Url;
 
 pub struct KvService {
     api_url: Option<Url>,
+    http_client: reqwest::Client,
 }
 
 impl KvService {
     pub fn new(api_url: Option<Url>) -> Self {
-        Self { api_url }
+        let http_client = reqwest::Client::new();
+
+        Self {
+            api_url,
+            http_client,
+        }
     }
 
     pub async fn get_namespaces(
@@ -41,10 +47,14 @@ impl KvService {
         }
     }
 
-    pub async fn get_kv_items<'a>(&self, input: GetKvItemsInput<'a>) -> Result<KvItems, KvError> {
-        let api_client = self.create_http_client(input.credentials)?;
+    pub async fn get_kv_items<'a>(
+        &self,
+        credentials: &Credentials,
+        input: GetKvItemsInput<'a>,
+    ) -> Result<KvItems, KvError> {
+        let api_client = self.create_http_client(credentials)?;
         let keys_endpoint = ListNamespaceKeys {
-            account_identifier: input.credentials.account_id(),
+            account_identifier: credentials.account_id(),
             namespace_identifier: input.namespace_id,
             params: ListNamespaceKeysParams {
                 limit: Some(10),
@@ -62,15 +72,15 @@ impl KvService {
             },
         };
 
-        let http_client = reqwest::Client::new();
         let items: Vec<KvItem> = try_join_all(response.result.iter().map(|key| async {
             let value = self
-                .get_key_value(&GetKeyValueInput {
-                    http_client: &http_client,
-                    credentials: input.credentials,
-                    namespace_id: input.namespace_id,
-                    key: &key.name,
-                })
+                .get_key_value(
+                    credentials,
+                    &GetKeyValueInput {
+                        namespace_id: input.namespace_id,
+                        key: &key.name,
+                    },
+                )
                 .await?;
 
             Ok::<KvItem, KvError>(KvItem {
@@ -102,23 +112,22 @@ impl KvService {
         }
     }
 
-    async fn get_key_value<'a>(&self, input: &GetKeyValueInput<'a>) -> Result<String, KvError> {
+    async fn get_key_value<'a>(
+        &self,
+        credentials: &Credentials,
+        input: &GetKeyValueInput<'a>,
+    ) -> Result<String, KvError> {
         let base_url: Url = (&get_cloudflare_env(&self.api_url)).into();
         let url = format!(
             "{}accounts/{}/storage/kv/namespaces/{}/values/{}",
             base_url,
-            input.credentials.account_id(),
+            credentials.account_id(),
             input.namespace_id,
             url_encode_key(input.key),
         );
 
-        let token = input.credentials.token().unwrap_or_default();
-        let response = input
-            .http_client
-            .get(&url)
-            .bearer_auth(token)
-            .send()
-            .await?;
+        let token = credentials.token().unwrap_or_default();
+        let response = self.http_client.get(&url).bearer_auth(token).send().await?;
 
         match response.status() {
             StatusCode::OK => Ok(response.text().await?),
@@ -414,12 +423,11 @@ mod test {
                 .await;
 
             let kv_service = create_kv_service(mock_server.uri());
-            let params = GetKvItemsInput {
-                credentials: &credentials,
+            let input = GetKvItemsInput {
                 namespace_id: namespace,
                 cursor: None,
             };
-            let key_value_list = kv_service.get_kv_items(params).await?;
+            let key_value_list = kv_service.get_kv_items(&credentials, input).await?;
 
             assert_eq!(key_value_list, expected_kv_items);
 
@@ -457,11 +465,13 @@ mod test {
                 token: "my_token".to_string(),
             };
             let result = kv_service
-                .get_kv_items(GetKvItemsInput {
-                    credentials: &credentials,
-                    namespace_id,
-                    cursor: None,
-                })
+                .get_kv_items(
+                    &credentials,
+                    GetKvItemsInput {
+                        namespace_id,
+                        cursor: None,
+                    },
+                )
                 .await;
 
             assert!(result.is_err());
@@ -536,12 +546,11 @@ mod test {
 
             let kv_service = create_kv_service(mock_server.uri());
             let params = GetKvItemsInput {
-                credentials: &credentials,
                 namespace_id: namespace,
                 cursor: None,
             };
 
-            let result = kv_service.get_kv_items(params).await;
+            let result = kv_service.get_kv_items(&credentials, params).await;
             assert!(result.is_err());
 
             let error = result.unwrap_err();

@@ -98,14 +98,11 @@ pub struct KvItem {
 }
 
 pub struct GetKvItemsInput<'a> {
-    pub credentials: &'a Credentials,
     pub namespace_id: &'a str,
     pub cursor: Option<String>,
 }
 
 pub struct GetKeyValueInput<'a> {
-    pub http_client: &'a reqwest::Client,
-    pub credentials: &'a Credentials,
     pub namespace_id: &'a str,
     pub key: &'a str,
 }

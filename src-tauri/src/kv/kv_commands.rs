@@ -1,6 +1,6 @@
 use crate::app_state::AppState;
 use crate::common::common_models::Credentials;
-use crate::kv::kv_models::KvError;
+use crate::kv::kv_models::{KvError, KvItems};
 use cloudflare::endpoints::workerskv::WorkersKvNamespace;
 use log::error;
 use serde::{Deserialize, Serialize};
@@ -13,6 +13,13 @@ pub async fn get_namespaces(
 ) -> Result<Vec<WorkersKvNamespace>, KvCommandError> {
     Ok(state.kv_service.get_namespaces(&credentials).await?)
 }
+
+// #[tauri::command]
+// pub async fn get_kv_items(
+//     credentials: Credentials,
+//     state: State<'_, AppState>,
+// ) -> Result<KvItems, KvCommandError> {
+// }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct KvCommandError {
