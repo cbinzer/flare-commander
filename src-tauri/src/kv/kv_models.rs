@@ -1,5 +1,4 @@
 use crate::authentication::authentication_models::{AuthenticationError, ResponseInfo};
-use crate::common::common_models::Credentials;
 use chrono::{DateTime, Utc};
 use cloudflare::framework::response::{ApiError, ApiFailure};
 use serde::{Deserialize, Serialize};
@@ -97,6 +96,7 @@ pub struct KvItem {
     pub expiration: Option<DateTime<Utc>>,
 }
 
+#[derive(Debug, Deserialize)]
 pub struct GetKvItemsInput<'a> {
     pub namespace_id: &'a str,
     pub cursor: Option<String>,

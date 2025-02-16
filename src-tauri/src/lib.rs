@@ -1,6 +1,6 @@
 use crate::app_state::AppState;
 use crate::authentication::authentication_commands::verify_credentials;
-use crate::kv::kv_commands::get_namespaces;
+use crate::kv::kv_commands::{get_kv_items, get_namespaces};
 use tauri::Manager;
 
 mod app_state;
@@ -21,7 +21,11 @@ pub fn run() {
         })
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_log::Builder::new().build())
-        .invoke_handler(tauri::generate_handler![verify_credentials, get_namespaces])
+        .invoke_handler(tauri::generate_handler![
+            verify_credentials,
+            get_namespaces,
+            get_kv_items
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
