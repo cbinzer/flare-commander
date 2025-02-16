@@ -3,6 +3,17 @@ export interface KvNamespace {
   title: string;
 }
 
+export interface KvItems {
+  items: KvItem[];
+  cursor?: string;
+}
+
+export interface KvItem {
+  key: string;
+  value: string;
+  expiration?: Date;
+}
+
 export type KvErrorKind = 'Authentication' | 'Unknown';
 
 export class KvError extends Error {

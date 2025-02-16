@@ -11,6 +11,7 @@ import { KvNamespace } from '@/kv/kv-models.ts';
 import { ColumnDef } from '@tanstack/react-table';
 import { DataTable } from '@/components/ui/data-table.tsx';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useKvItems } from '@/kv/kv-hooks.ts';
 
 export const columns: ColumnDef<{ key: string; value: string }>[] = [
   {
@@ -58,6 +59,8 @@ const KvNamespaceDetails: FunctionComponent = () => {
     return;
   }
 
+  const { data } = useKvItems(namespace.id);
+
   return (
     <>
       <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
@@ -79,17 +82,7 @@ const KvNamespaceDetails: FunctionComponent = () => {
           {namespace.title}
         </h2>
 
-        <DataTable
-          columns={columns}
-          data={[
-            { key: 'key1', value: 'value1' },
-            { key: 'key2', value: 'value2' },
-            {
-              key: 'key3',
-              value: 'value3',
-            },
-          ]}
-        />
+        <DataTable columns={columns} data={data?.items ?? []} />
       </div>
     </>
   );
