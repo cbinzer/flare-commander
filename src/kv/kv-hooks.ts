@@ -6,7 +6,7 @@ import {
   CredentialsType,
   UserAuthTokenCredentials,
 } from '@/authentication/auth-models.ts';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 
 export function useNamespaces() {
   const { account } = useAuth();
@@ -46,18 +46,27 @@ export function useNamespaces() {
 export function useKvItems(namespaceId: string) {
   const { account } = useAuth();
 
-  const getKvItems = async (): Promise<KvItems> => {
+  const getKvItems = async ({
+    pageParam,
+  }: {
+    pageParam?: string;
+  }): Promise<KvItems> => {
     try {
       const credentials: UserAuthTokenCredentials = {
         type: CredentialsType.UserAuthToken,
         account_id: account?.id ?? '',
         token: (account?.credentials as UserAuthTokenCredentials).token,
       };
+      const input: { namespace_id: string; cursor?: string } = {
+        namespace_id: namespaceId,
+      };
+      if (pageParam) {
+        input.cursor = pageParam;
+      }
+
       const kvItems = await invoke<KvItems>('get_kv_items', {
         credentials,
-        input: {
-          namespace_id: namespaceId,
-        },
+        input,
       });
 
       return {
@@ -74,8 +83,10 @@ export function useKvItems(namespaceId: string) {
     }
   };
 
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ['kv-items', namespaceId],
     queryFn: getKvItems,
+    initialPageParam: undefined,
+    getNextPageParam: (lastPage) => lastPage.cursor,
   });
 }
