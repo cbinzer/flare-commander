@@ -1,4 +1,4 @@
-import { FunctionComponent, useState } from 'react';
+import { FunctionComponent, useEffect, useState } from 'react';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -12,7 +12,6 @@ import { ColumnDef } from '@tanstack/react-table';
 import { DataTable } from '@/components/ui/data-table.tsx';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useKvItems } from '@/kv/kv-hooks.ts';
-import { Button } from '@/components/ui/button.tsx';
 
 export const columns: ColumnDef<{ key: string; value: string }>[] = [
   {
@@ -51,17 +50,23 @@ export const columns: ColumnDef<{ key: string; value: string }>[] = [
 ];
 
 const KvNamespaceDetails: FunctionComponent = () => {
-  const [currentPage, setCurrentPage] = useState(0);
-  const navigate = useNavigate();
   const location: Location<KvNamespace> = useLocation();
   const namespace = location.state;
+  const navigate = useNavigate();
 
   if (!namespace) {
     navigate('/');
     return;
   }
 
-  const { data, fetchNextPage, fetchPreviousPage } = useKvItems(namespace.id);
+  const [currentPage, setCurrentPage] = useState(0);
+  const { kvItems, isLoading, hasNextItems, loadPreviousItems, loadNextItems } =
+    useKvItems(namespace.id);
+
+  useEffect(() => {
+    setCurrentPage(0);
+    console.log('loaddata', namespace);
+  }, [namespace]);
 
   return (
     <>
@@ -86,32 +91,19 @@ const KvNamespaceDetails: FunctionComponent = () => {
 
         <DataTable
           columns={columns}
-          data={data?.pages[currentPage]?.items ?? []}
+          data={kvItems?.items ?? []}
+          onPaginationChange={async (pagination) => {
+            if (pagination.pageIndex > currentPage) {
+              await loadNextItems();
+            } else {
+              await loadPreviousItems();
+            }
+
+            setCurrentPage(pagination.pageIndex);
+          }}
+          hasNextPage={hasNextItems}
+          isLoading={isLoading}
         />
-        <div className="flex items-center justify-end space-x-2 py-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={async () => {
-              await fetchPreviousPage();
-              setCurrentPage(currentPage - 1);
-            }}
-            disabled={currentPage === 0}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={async () => {
-              await fetchNextPage();
-              setCurrentPage(currentPage + 1);
-            }}
-            disabled={!data?.pages[currentPage]?.cursor}
-          >
-            Next
-          </Button>
-        </div>
       </div>
     </>
   );
