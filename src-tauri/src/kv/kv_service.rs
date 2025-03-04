@@ -2,7 +2,8 @@ use crate::cloudflare::read_key_value::url_encode_key;
 use crate::common::common_models::Credentials;
 use crate::common::common_utils::get_cloudflare_env;
 use crate::kv::kv_models::{
-    map_api_errors, GetKeyValueInput, GetKvItemsInput, KvError, KvItem, KvItems,
+    map_api_errors, GetKeyValueInput, GetKeysInput, GetKvItemsInput, KvError, KvItem, KvItems,
+    KvKeys,
 };
 use cloudflare::endpoints::workerskv::list_namespace_keys::{
     ListNamespaceKeys, ListNamespaceKeysParams,
@@ -52,6 +53,46 @@ impl KvService {
         credentials: &Credentials,
         input: GetKvItemsInput<'a>,
     ) -> Result<KvItems, KvError> {
+        let keys = self
+            .get_keys(
+                credentials,
+                GetKeysInput {
+                    namespace_id: input.namespace_id,
+                    cursor: input.cursor,
+                },
+            )
+            .await?;
+
+        let items: Vec<KvItem> = try_join_all(keys.keys.iter().map(|key| async {
+            let value = self
+                .get_key_value(
+                    credentials,
+                    &GetKeyValueInput {
+                        namespace_id: input.namespace_id,
+                        key: &key.name,
+                    },
+                )
+                .await?;
+
+            Ok::<KvItem, KvError>(KvItem {
+                key: key.name.to_string(),
+                value,
+                expiration: key.expiration,
+            })
+        }))
+        .await?;
+
+        Ok(KvItems {
+            cursor: keys.cursor,
+            items,
+        })
+    }
+
+    pub async fn get_keys<'a>(
+        &self,
+        credentials: &Credentials,
+        input: GetKeysInput<'a>,
+    ) -> Result<KvKeys, KvError> {
         let api_client = self.create_http_client(credentials)?;
         let keys_endpoint = ListNamespaceKeys {
             account_identifier: credentials.account_id(),
@@ -72,26 +113,10 @@ impl KvService {
             },
         };
 
-        let items: Vec<KvItem> = try_join_all(response.result.iter().map(|key| async {
-            let value = self
-                .get_key_value(
-                    credentials,
-                    &GetKeyValueInput {
-                        namespace_id: input.namespace_id,
-                        key: &key.name,
-                    },
-                )
-                .await?;
-
-            Ok::<KvItem, KvError>(KvItem {
-                key: key.name.to_string(),
-                value,
-                expiration: key.expiration,
-            })
-        }))
-        .await?;
-
-        Ok(KvItems { cursor, items })
+        Ok(KvKeys {
+            cursor,
+            keys: response.result.into_iter().map(|key| key.into()).collect(),
+        })
     }
 
     fn create_http_client(&self, credentials: &Credentials) -> Result<Client, KvError> {

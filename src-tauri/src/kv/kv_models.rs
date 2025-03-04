@@ -1,5 +1,6 @@
 use crate::authentication::authentication_models::{AuthenticationError, ResponseInfo};
 use chrono::{DateTime, Utc};
+use cloudflare::endpoints::workerskv::Key;
 use cloudflare::framework::response::{ApiError, ApiFailure};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
@@ -96,8 +97,35 @@ pub struct KvItem {
     pub expiration: Option<DateTime<Utc>>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct KvKeys {
+    pub keys: Vec<KvKey>,
+    pub cursor: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct KvKey {
+    pub name: String,
+    pub expiration: Option<DateTime<Utc>>,
+}
+
+impl From<Key> for KvKey {
+    fn from(value: Key) -> Self {
+        Self {
+            name: value.name,
+            expiration: value.expiration,
+        }
+    }
+}
+
 #[derive(Debug, Deserialize)]
 pub struct GetKvItemsInput<'a> {
+    pub namespace_id: &'a str,
+    pub cursor: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GetKeysInput<'a> {
     pub namespace_id: &'a str,
     pub cursor: Option<String>,
 }
