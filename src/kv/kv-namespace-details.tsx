@@ -1,4 +1,4 @@
-import { FunctionComponent, useEffect, useState } from 'react';
+import { FunctionComponent } from 'react';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -8,46 +8,7 @@ import {
 } from '@/components/ui/breadcrumb.tsx';
 import { Location, useLocation, useNavigate } from 'react-router';
 import { KvNamespace } from '@/kv/kv-models.ts';
-import { ColumnDef } from '@tanstack/react-table';
-import { DataTable } from '@/components/ui/data-table.tsx';
-import { Checkbox } from '@/components/ui/checkbox';
-import { useKvItems } from '@/kv/kv-hooks.ts';
-
-export const columns: ColumnDef<{ key: string; value: string }>[] = [
-  {
-    id: 'select',
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && 'indeterminate')
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
-    ),
-    meta: {
-      width: '30px',
-    },
-  },
-  {
-    id: 'key',
-    accessorKey: 'key',
-    header: 'Key',
-  },
-  {
-    id: 'value',
-    accessorKey: 'value',
-    header: 'Value',
-  },
-];
+import { KvTable } from '@/kv/table/kv-table.tsx';
 
 const KvNamespaceDetails: FunctionComponent = () => {
   const location: Location<KvNamespace> = useLocation();
@@ -58,15 +19,6 @@ const KvNamespaceDetails: FunctionComponent = () => {
     navigate('/');
     return;
   }
-
-  const [currentPage, setCurrentPage] = useState(0);
-  const { kvItems, isLoading, hasNextItems, loadPreviousItems, loadNextItems } =
-    useKvItems(namespace.id);
-
-  useEffect(() => {
-    setCurrentPage(0);
-    console.log('loaddata', namespace);
-  }, [namespace]);
 
   return (
     <>
@@ -89,21 +41,7 @@ const KvNamespaceDetails: FunctionComponent = () => {
           {namespace.title}
         </h2>
 
-        <DataTable
-          columns={columns}
-          data={kvItems?.items ?? []}
-          onPaginationChange={async (pagination) => {
-            if (pagination.pageIndex > currentPage) {
-              await loadNextItems();
-            } else {
-              await loadPreviousItems();
-            }
-
-            setCurrentPage(pagination.pageIndex);
-          }}
-          hasNextPage={hasNextItems}
-          isLoading={isLoading}
-        />
+        <KvTable namespace={namespace} />
       </div>
     </>
   );

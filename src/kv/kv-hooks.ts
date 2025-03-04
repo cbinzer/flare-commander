@@ -45,9 +45,10 @@ export function useNamespaces() {
 export function useKvItems(namespaceId: string) {
   const { account } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isLoadingNextItems, setIsLoadingNextItems] = useState(false);
   const [kvItems, setKvItems] = useState<KvItems | null>(null);
   const [hasNextItems, setHasNextItems] = useState<boolean>(false);
-  const [previousCursors, setPreviousCursors] = useState<string[]>([]);
   const [error, setError] = useState<KvError | null>(null);
 
   const loadItems = async (cursor?: string) => {
@@ -59,51 +60,53 @@ export function useKvItems(namespaceId: string) {
       token: (account?.credentials as UserAuthTokenCredentials).token,
     };
 
-    getKvItems({ namespaceId, cursor }, credentials)
-      .then((items) => {
-        setError(null);
-        setKvItems(items);
-        setHasNextItems(!!items.cursor);
-        setIsLoading(false);
-      })
-      .catch((error) => {
-        setError(error);
-        setHasNextItems(false);
-        setIsLoading(false);
+    try {
+      const items = await getKvItems({ namespaceId, cursor }, credentials);
+      setKvItems((previousItems) => {
+        return {
+          items: [...(previousItems?.items ?? []), ...items.items],
+          cursor: items.cursor,
+        };
       });
+
+      setHasNextItems(!!items.cursor);
+      setError(null);
+    } catch (e) {
+      setError(e as KvError);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const loadPreviousItems = async () => {
-    let previousCursor: string | undefined = undefined;
-    if (previousCursors.length > 1) {
-      // We need the penultimate cursor because the last one is the cursor from
-      // the current page
-      previousCursor = previousCursors[previousCursors.length - 2];
+  const loadItemsInitial = async () => {
+    try {
+      setIsInitialLoading(true);
+      setKvItems(null);
+      await loadItems();
+    } finally {
+      setIsInitialLoading(false);
     }
-
-    await loadItems(previousCursor);
-
-    setPreviousCursors(previousCursors.slice(0, -1));
   };
 
   const loadNextItems = async () => {
-    const cursorForNexItems = kvItems?.cursor;
-    await loadItems(cursorForNexItems);
-
-    if (cursorForNexItems) {
-      setPreviousCursors([...previousCursors, cursorForNexItems]);
+    try {
+      setIsLoadingNextItems(true);
+      await loadItems(kvItems?.cursor);
+    } finally {
+      setIsLoadingNextItems(false);
     }
   };
 
   useEffect(() => {
-    loadItems().then();
+    loadItemsInitial().then();
   }, [namespaceId]);
 
   return {
     kvItems,
     isLoading,
+    isInitialLoading,
+    isLoadingNextItems,
     hasNextItems,
-    loadPreviousItems,
     loadNextItems,
     error,
   };
