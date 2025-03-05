@@ -1,6 +1,6 @@
 use crate::app_state::AppState;
 use crate::common::common_models::Credentials;
-use crate::kv::kv_models::{GetKvItemsInput, KvError, KvItems};
+use crate::kv::kv_models::{GetKeysInput, GetKvItemsInput, KvError, KvItems, KvKeys};
 use cloudflare::endpoints::workerskv::WorkersKvNamespace;
 use log::error;
 use serde::{Deserialize, Serialize};
@@ -21,6 +21,15 @@ pub async fn get_kv_items<'a>(
     state: State<'_, AppState>,
 ) -> Result<KvItems, KvCommandError> {
     Ok(state.kv_service.get_kv_items(&credentials, input).await?)
+}
+
+#[tauri::command]
+pub async fn get_kv_keys<'a>(
+    credentials: Credentials,
+    input: GetKeysInput<'a>,
+    state: State<'_, AppState>,
+) -> Result<KvKeys, KvCommandError> {
+    Ok(state.kv_service.get_keys(&credentials, input).await?)
 }
 
 #[derive(Debug, Serialize, Deserialize)]
