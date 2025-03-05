@@ -112,6 +112,76 @@ export function useKvItems(namespaceId: string) {
   };
 }
 
+export function useKvKeys(namespaceId: string) {
+  const { account } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isLoadingNextKeys, setIsLoadingNextKeys] = useState(false);
+  const [kvKeys, setKvKeys] = useState<KvKeys | null>(null);
+  const [hasNextKeys, setHasNextKeys] = useState<boolean>(false);
+  const [error, setError] = useState<KvError | null>(null);
+
+  const loadKeys = async (cursor?: string) => {
+    setIsLoading(true);
+
+    const credentials: UserAuthTokenCredentials = {
+      type: CredentialsType.UserAuthToken,
+      account_id: account?.id ?? '',
+      token: (account?.credentials as UserAuthTokenCredentials).token,
+    };
+
+    try {
+      const nextKeys = await getKvKeys({ namespaceId, cursor }, credentials);
+      setKvKeys((previousKeys) => {
+        return {
+          keys: [...(previousKeys?.keys ?? []), ...nextKeys.keys],
+          cursor: nextKeys.cursor,
+        };
+      });
+
+      setHasNextKeys(!!nextKeys.cursor);
+      setError(null);
+    } catch (e) {
+      setError(e as KvError);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadKeysInitial = async () => {
+    try {
+      setIsInitialLoading(true);
+      setKvKeys(null);
+      await loadKeys();
+    } finally {
+      setIsInitialLoading(false);
+    }
+  };
+
+  const loadNextKeys = async () => {
+    try {
+      setIsLoadingNextKeys(true);
+      await loadKeys(kvKeys?.cursor);
+    } finally {
+      setIsLoadingNextKeys(false);
+    }
+  };
+
+  useEffect(() => {
+    loadKeysInitial().then();
+  }, [namespaceId]);
+
+  return {
+    kvKeys,
+    isLoading,
+    isInitialLoading,
+    isLoadingNextKeys,
+    hasNextKeys,
+    loadNextKeys,
+    error,
+  };
+}
+
 async function getKvItems(
   input: {
     namespaceId: string;
