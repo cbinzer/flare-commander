@@ -14,6 +14,16 @@ export interface KvItem {
   expiration?: Date;
 }
 
+export interface KvKeys {
+  keys: KvKey[];
+  cursor?: string;
+}
+
+export interface KvKey {
+  name: string;
+  expiration?: Date;
+}
+
 export type KvErrorKind = 'Authentication' | 'Unknown';
 
 export class KvError extends Error {

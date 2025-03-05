@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/authentication/use-auth.ts';
 import { invoke } from '@tauri-apps/api/core';
-import { KvError, KvItems, KvNamespace } from '@/kv/kv-models.ts';
+import { KvError, KvItems, KvKeys, KvNamespace } from '@/kv/kv-models.ts';
 import {
   CredentialsType,
   UserAuthTokenCredentials,
@@ -135,6 +135,38 @@ async function getKvItems(
       items: kvItems.items.map((item) => ({
         ...item,
         expiration: item.expiration ? new Date(item.expiration) : undefined,
+      })),
+    };
+  } catch (e) {
+    const kvError = e as KvError;
+    console.error(kvError);
+    throw new KvError(kvError.message, kvError.kind);
+  }
+}
+
+export async function getKvKeys(
+  input: {
+    namespaceId: string;
+    cursor?: string;
+  },
+  credentials: UserAuthTokenCredentials,
+): Promise<KvKeys> {
+  try {
+    const invokeInput = {
+      namespace_id: input.namespaceId,
+      cursor: input.cursor,
+    };
+
+    const kvKeys = await invoke<KvKeys>('get_kv_keys', {
+      input: invokeInput,
+      credentials,
+    });
+
+    return {
+      ...kvKeys,
+      keys: kvKeys.keys.map((key) => ({
+        ...key,
+        expiration: key.expiration ? new Date(key.expiration) : undefined,
       })),
     };
   } catch (e) {
