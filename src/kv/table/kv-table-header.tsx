@@ -1,17 +1,17 @@
 import { flexRender, HeaderGroup } from '@tanstack/react-table';
 import { TableHead, TableHeader, TableRow } from '@/components/ui/table.tsx';
-import { KvItem } from '@/kv/kv-models.ts';
+import { KvKey } from '@/kv/kv-models.ts';
 import { calcElementWidth } from '@/kv/table/kv-table-utils.ts';
 
 interface DataTableHeaderProps {
-  headerGroups: HeaderGroup<KvItem>[];
+  headerGroups: HeaderGroup<KvKey>[];
 }
 
 export function KvTableHeader(props: DataTableHeaderProps) {
   return (
     <TableHeader>
       {props.headerGroups.map((headerGroup) => (
-        <TableRow key={headerGroup.id} className="h-[40px]">
+        <TableRow key={headerGroup.id} className="h-[40px]" selectable={false}>
           {headerGroup.headers.map((header) => {
             return (
               <TableHead

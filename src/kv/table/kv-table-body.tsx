@@ -1,10 +1,10 @@
 import { flexRender, Row } from '@tanstack/react-table';
 import { TableBody, TableCell, TableRow } from '@/components/ui/table.tsx';
-import { KvItem } from '@/kv/kv-models.ts';
+import { KvKey } from '@/kv/kv-models.ts';
 import { calcElementWidth } from '@/kv/table/kv-table-utils.ts';
 
 interface DataTableBodyProps {
-  rows: Row<KvItem>[];
+  rows: Row<KvKey>[];
   amountItems?: number;
 }
 

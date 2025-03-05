@@ -16,14 +16,14 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner.tsx';
 import { KvTableHeader } from '@/kv/table/kv-table-header.tsx';
 import { KvTableBody } from '@/kv/table/kv-table-body.tsx';
 import { Checkbox } from '@/components/ui/checkbox.tsx';
-import { KvItem, KvNamespace } from '@/kv/kv-models.ts';
-import { useKvItems } from '@/kv/kv-hooks.ts';
+import { KvKey, KvNamespace } from '@/kv/kv-models.ts';
+import { useKvKeys } from '@/kv/kv-hooks.ts';
 
 interface KvTableProps {
   namespace: KvNamespace;
 }
 
-const columns: ColumnDef<KvItem>[] = [
+const columns: ColumnDef<KvKey>[] = [
   {
     id: 'select',
     header: ({ table }) => (
@@ -48,14 +48,9 @@ const columns: ColumnDef<KvItem>[] = [
     },
   },
   {
-    id: 'key',
-    accessorKey: 'key',
-    header: 'Key',
-  },
-  {
-    id: 'value',
-    accessorKey: 'value',
-    header: 'Value',
+    id: 'name',
+    accessorKey: 'name',
+    header: 'Key Name',
   },
   {
     id: 'expiration',
@@ -72,15 +67,15 @@ export function KvTable({ namespace }: KvTableProps) {
   const [rowSelection, setRowSelection] = useState({});
 
   const {
-    kvItems,
+    kvKeys,
     isInitialLoading,
-    isLoadingNextItems,
-    hasNextItems,
-    loadNextItems,
-  } = useKvItems(namespace.id);
+    isLoadingNextKeys,
+    hasNextKeys,
+    loadNextKeys,
+  } = useKvKeys(namespace.id);
 
   const table = useReactTable({
-    data: kvItems?.items ?? [],
+    data: kvKeys?.keys ?? [],
     columns,
     onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
@@ -92,7 +87,7 @@ export function KvTable({ namespace }: KvTableProps) {
   return (
     <>
       <div className="rounded-md border">
-        <Table style={{ tableLayout: 'fixed' }}>
+        <Table className="table-fixed">
           <KvTableHeader headerGroups={table.getHeaderGroups()} />
 
           {isInitialLoading ? (
@@ -105,15 +100,15 @@ export function KvTable({ namespace }: KvTableProps) {
         </Table>
       </div>
 
-      {hasNextItems && !isInitialLoading ? (
+      {hasNextKeys && !isInitialLoading ? (
         <div className="flex items-center justify-center space-x-2 py-4">
           <Button
             variant="outline"
             size="sm"
-            onClick={loadNextItems}
-            disabled={isLoadingNextItems}
+            onClick={loadNextKeys}
+            disabled={isLoadingNextKeys}
           >
-            {isLoadingNextItems ? <LoadingSpinner /> : 'Load more'}
+            {isLoadingNextKeys ? <LoadingSpinner /> : 'Load more'}
           </Button>
         </div>
       ) : null}
@@ -129,7 +124,7 @@ const LoadingTableBody: FunctionComponent<{ pageSize?: number }> = ({
       {Array(pageSize)
         .fill(null)
         .map((_, i) => (
-          <TableRow key={i} className={'h-[40px]'}>
+          <TableRow key={i} className={'h-[40px]'} selectable={false}>
             {columns.map(() => (
               <TableCell>
                 <Skeleton className="h-5" />
@@ -146,9 +141,9 @@ const EmptyTableBody: FunctionComponent<{ columnsLength: number }> = ({
 }) => {
   return (
     <TableBody>
-      <TableRow>
+      <TableRow selectable={false}>
         <TableCell colSpan={columnsLength} className="h-24 text-center">
-          No items available.
+          No keys available.
         </TableCell>
       </TableRow>
     </TableBody>
