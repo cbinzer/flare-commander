@@ -7,6 +7,7 @@ import AuthProvider from '@/authentication/auth-provider.tsx';
 import { Toaster } from '@/components/ui/toaster.tsx';
 import KvNamespaceDetails from '@/kv/kv-namespace-details.tsx';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import KvItemDetails from './kv/kv-item-details';
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ function App() {
               }
             >
               <Route path="namespaces/:id" element={<KvNamespaceDetails />} />
+              <Route path="namespaces/:id/:keyName" element={<KvItemDetails />} />
             </Route>
           </Routes>
         </AuthProvider>

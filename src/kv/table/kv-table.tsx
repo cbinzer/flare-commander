@@ -1,14 +1,5 @@
-import {
-  ColumnDef,
-  getCoreRowModel,
-  useReactTable,
-} from '@tanstack/react-table';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableRow,
-} from '@/components/ui/table.tsx';
+import { ColumnDef, getCoreRowModel, Row, useReactTable } from '@tanstack/react-table';
+import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table.tsx';
 import { FunctionComponent, useState } from 'react';
 import { Button } from '@/components/ui/button.tsx';
 import { Skeleton } from '@/components/ui/skeleton.tsx';
@@ -18,6 +9,7 @@ import { KvTableBody } from '@/kv/table/kv-table-body.tsx';
 import { Checkbox } from '@/components/ui/checkbox.tsx';
 import { KvKey, KvNamespace } from '@/kv/kv-models.ts';
 import { useKvKeys } from '@/kv/kv-hooks.ts';
+import { useNavigate } from 'react-router';
 
 interface KvTableProps {
   namespace: KvNamespace;
@@ -28,10 +20,7 @@ const columns: ColumnDef<KvKey>[] = [
     id: 'select',
     header: ({ table }) => (
       <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && 'indeterminate')
-        }
+        checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate')}
         onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
         aria-label="Select all"
       />
@@ -65,14 +54,9 @@ const columns: ColumnDef<KvKey>[] = [
 
 export function KvTable({ namespace }: KvTableProps) {
   const [rowSelection, setRowSelection] = useState({});
+  const navigate = useNavigate();
 
-  const {
-    kvKeys,
-    isInitialLoading,
-    isLoadingNextKeys,
-    hasNextKeys,
-    loadNextKeys,
-  } = useKvKeys(namespace.id);
+  const { kvKeys, isInitialLoading, isLoadingNextKeys, hasNextKeys, loadNextKeys } = useKvKeys(namespace.id);
 
   const table = useReactTable({
     data: kvKeys?.keys ?? [],
@@ -84,6 +68,10 @@ export function KvTable({ namespace }: KvTableProps) {
     },
   });
 
+  const navigateToItemDetails = (row: Row<KvKey>) => {
+    navigate(`/namespaces/${namespace.id}/${row.original.name}`, { state: namespace });
+  };
+
   return (
     <>
       <div className="rounded-md border">
@@ -93,7 +81,7 @@ export function KvTable({ namespace }: KvTableProps) {
           {isInitialLoading ? (
             <LoadingTableBody />
           ) : table.getRowModel().rows?.length ? (
-            <KvTableBody rows={table.getRowModel().rows} />
+            <KvTableBody rows={table.getRowModel().rows} onRowClick={navigateToItemDetails} />
           ) : (
             <EmptyTableBody columnsLength={columns.length} />
           )}
@@ -102,12 +90,7 @@ export function KvTable({ namespace }: KvTableProps) {
 
       {hasNextKeys && !isInitialLoading ? (
         <div className="flex items-center justify-center space-x-2 py-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={loadNextKeys}
-            disabled={isLoadingNextKeys}
-          >
+          <Button variant="outline" size="sm" onClick={loadNextKeys} disabled={isLoadingNextKeys}>
             {isLoadingNextKeys ? <LoadingSpinner /> : 'Load more'}
           </Button>
         </div>
@@ -116,9 +99,7 @@ export function KvTable({ namespace }: KvTableProps) {
   );
 }
 
-const LoadingTableBody: FunctionComponent<{ pageSize?: number }> = ({
-  pageSize = 10,
-}) => {
+const LoadingTableBody: FunctionComponent<{ pageSize?: number }> = ({ pageSize = 10 }) => {
   return (
     <TableBody>
       {Array(pageSize)
@@ -136,9 +117,7 @@ const LoadingTableBody: FunctionComponent<{ pageSize?: number }> = ({
   );
 };
 
-const EmptyTableBody: FunctionComponent<{ columnsLength: number }> = ({
-  columnsLength,
-}) => {
+const EmptyTableBody: FunctionComponent<{ columnsLength: number }> = ({ columnsLength }) => {
   return (
     <TableBody>
       <TableRow selectable={false}>

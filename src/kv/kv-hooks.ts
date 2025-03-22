@@ -2,10 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/authentication/use-auth.ts';
 import { invoke } from '@tauri-apps/api/core';
 import { KvError, KvItems, KvKeys, KvNamespace } from '@/kv/kv-models.ts';
-import {
-  CredentialsType,
-  UserAuthTokenCredentials,
-} from '@/authentication/auth-models.ts';
+import { CredentialsType, UserAuthTokenCredentials } from '@/authentication/auth-models.ts';
 
 export function useNamespaces() {
   const { account } = useAuth();
