@@ -132,12 +132,16 @@ export function useKvKeys(namespaceId: string) {
 
     try {
       const nextKeys = await getKvKeys({ namespaceId, cursor }, credentials);
-      setKvKeys((previousKeys) => {
-        return {
-          keys: [...(previousKeys?.keys ?? []), ...nextKeys.keys],
-          cursor: nextKeys.cursor,
-        };
-      });
+      if (cursor) {
+        setKvKeys((previousKeys) => {
+          return {
+            keys: [...(previousKeys?.keys ?? []), ...nextKeys.keys],
+            cursor: nextKeys.cursor,
+          };
+        });
+      } else {
+        setKvKeys(nextKeys);
+      }
 
       setHasNextKeys(!!nextKeys.cursor);
       setError(null);
