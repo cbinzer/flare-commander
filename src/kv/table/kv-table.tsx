@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox.tsx';
 import { KvKey, KvNamespace } from '@/kv/kv-models.ts';
 import { useKvKeys } from '@/kv/kv-hooks.ts';
 import { useNavigate } from 'react-router';
+import { KvItemSheet } from '../kv-item-sheet';
 
 interface KvTableProps {
   namespace: KvNamespace;
@@ -33,13 +34,14 @@ const columns: ColumnDef<KvKey>[] = [
       />
     ),
     meta: {
-      width: '60px',
+      width: '30px',
     },
   },
   {
     id: 'name',
     accessorKey: 'name',
     header: 'Key Name',
+    cell: (cell) => <KvItemSheet name={cell.getValue() as string} />,
   },
   {
     id: 'expiration',
@@ -68,10 +70,6 @@ export function KvTable({ namespace }: KvTableProps) {
     },
   });
 
-  const navigateToItemDetails = (row: Row<KvKey>) => {
-    navigate(`/namespaces/${namespace.id}/${row.original.name}`, { state: namespace });
-  };
-
   return (
     <>
       <div className="rounded-md border">
@@ -81,7 +79,7 @@ export function KvTable({ namespace }: KvTableProps) {
           {isInitialLoading ? (
             <LoadingTableBody />
           ) : table.getRowModel().rows?.length ? (
-            <KvTableBody rows={table.getRowModel().rows} onRowClick={navigateToItemDetails} />
+            <KvTableBody rows={table.getRowModel().rows} />
           ) : (
             <EmptyTableBody columnsLength={columns.length} />
           )}
