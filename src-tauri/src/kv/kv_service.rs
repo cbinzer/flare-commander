@@ -75,7 +75,7 @@ impl KvService {
                     .get("expiration")
                     .and_then(|header_val| header_val.to_str().ok())
                     .and_then(|str_val| str_val.parse::<i64>().ok())
-                    .and_then(|num_val| DateTime::from_timestamp_micros(num_val));
+                    .and_then(DateTime::from_timestamp_micros);
                 let value = response.text().await?;
 
                 Ok(KvItem {
