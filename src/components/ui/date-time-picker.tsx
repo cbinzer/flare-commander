@@ -44,7 +44,7 @@ const DateTimePicker: FunctionComponent<DateTimePickerProps> = ({ container }) =
           className={cn('w-full justify-start text-left font-normal', !date && 'text-muted-foreground')}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, 'MM/dd/yyyy HH:mm') : <span>MM/DD/YYYY HH:mm</span>}
+          {date ? format(date, 'yyyy-MM-dd HH:mm') : <span>yyyy-MM-dd HH:mm</span>}
         </Button>
       </PopoverTrigger>
 

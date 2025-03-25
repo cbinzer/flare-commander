@@ -1,4 +1,5 @@
 use crate::authentication::authentication_models::{AuthenticationError, ResponseInfo};
+use crate::common::common_utils::serialize_datetime;
 use chrono::{DateTime, Utc};
 use cloudflare::endpoints::workerskv::Key;
 use cloudflare::framework::response::{ApiError, ApiFailure};
@@ -106,6 +107,8 @@ pub struct KvKeys {
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct KvKey {
     pub name: String,
+
+    #[serde(serialize_with = "serialize_datetime")]
     pub expiration: Option<DateTime<Utc>>,
 }
 

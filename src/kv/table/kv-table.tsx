@@ -10,6 +10,7 @@ import { KvTableHeader } from '@/kv/table/kv-table-header.tsx';
 import { ColumnDef, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { FunctionComponent, useState } from 'react';
 import KvItemSheet from '../kv-item-sheet';
+import { format } from 'date-fns';
 
 interface KvTableProps {
   namespace: KvNamespace;
@@ -46,7 +47,14 @@ const columns: ColumnDef<KvKey>[] = [
     id: 'expiration',
     accessorKey: 'expiration',
     header: 'Expiration',
-    cell: (cell) => <>{cell.getValue() ?? '-'}</>,
+    cell: (cell) => {
+      let formattedExpirationDate = '-';
+      if (cell.getValue()) {
+        formattedExpirationDate = format(cell.getValue() as Date, 'yyyy-MM-dd HH:mm');
+      }
+
+      return <>{formattedExpirationDate}</>;
+    },
     meta: {
       width: '150px',
     },

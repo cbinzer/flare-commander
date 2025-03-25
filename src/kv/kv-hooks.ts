@@ -233,6 +233,7 @@ export async function getKvKeys(
       credentials,
     });
 
+    console.log(kvKeys);
     return {
       ...kvKeys,
       keys: kvKeys.keys.map((key) => ({
