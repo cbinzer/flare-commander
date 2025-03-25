@@ -5,6 +5,7 @@ use crate::kv::kv_models::{
     map_api_errors, GetKeyValueInput, GetKeysInput, GetKvItemsInput, KvError, KvItem, KvItems,
     KvKeys,
 };
+use chrono::DateTime;
 use cloudflare::endpoints::workerskv::list_namespace_keys::{
     ListNamespaceKeys, ListNamespaceKeysParams,
 };
@@ -17,6 +18,8 @@ use futures::future::try_join_all;
 use reqwest::StatusCode;
 use serde_json::Value;
 use url::Url;
+
+use super::kv_models::GetKvItemInput;
 
 pub struct KvService {
     api_url: Option<Url>,
@@ -45,6 +48,46 @@ impl KvService {
         match response {
             Ok(api_success) => Ok(api_success.result),
             Err(api_failure) => Err(api_failure.into()),
+        }
+    }
+
+    pub async fn get_kv_item<'a>(
+        &self,
+        credentials: &Credentials,
+        input: GetKvItemInput<'a>,
+    ) -> Result<KvItem, KvError> {
+        let base_url: Url = (&get_cloudflare_env(&self.api_url)).into();
+        let url = format!(
+            "{}accounts/{}/storage/kv/namespaces/{}/values/{}",
+            base_url,
+            credentials.account_id(),
+            input.namespace_id,
+            url_encode_key(input.key),
+        );
+
+        let token = credentials.token().unwrap_or_default();
+        let response = self.http_client.get(&url).bearer_auth(token).send().await?;
+
+        match response.status() {
+            StatusCode::OK => {
+                let expiration = response
+                    .headers()
+                    .get("expiration")
+                    .and_then(|header_val| header_val.to_str().ok())
+                    .and_then(|str_val| str_val.parse::<i64>().ok())
+                    .and_then(|num_val| DateTime::from_timestamp_micros(num_val));
+                let value = response.text().await?;
+
+                Ok(KvItem {
+                    key: input.key.to_string(),
+                    value,
+                    expiration,
+                })
+            }
+            _ => {
+                let api_response = response.json::<ApiSuccess<()>>().await?;
+                Err(map_api_errors(api_response.errors))
+            }
         }
     }
 
@@ -580,6 +623,65 @@ mod test {
 
             let error = result.unwrap_err();
             assert!(matches!(error, KvError::KeyNotFound));
+
+            Ok(())
+        }
+    }
+
+    mod get_kv_item {
+        use chrono::Utc;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        use crate::common::common_models::Credentials;
+        use crate::kv::kv_models::{KvError, KvItem};
+        use crate::kv::kv_service::test::create_kv_service;
+        use crate::kv::kv_service::GetKvItemInput;
+
+        #[tokio::test]
+        async fn should_get_kv_item() -> Result<(), KvError> {
+            let expected_kv_item = KvItem {
+                key: "key1".to_string(),
+                value: "value".to_string(),
+                expiration: Some(Utc::now()),
+            };
+            let credentials = Credentials::UserAuthToken {
+                account_id: "my_account_id".to_string(),
+                token: "my_token".to_string(),
+            };
+            let namespace = "my_namespace";
+
+            let mock_server = MockServer::start().await;
+            let response_template = ResponseTemplate::new(200)
+                .set_body_string(&expected_kv_item.value)
+                .append_header(
+                    "expiration",
+                    expected_kv_item.expiration.unwrap().timestamp_micros(),
+                );
+            Mock::given(method("GET"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/values/{}",
+                    credentials.account_id(),
+                    namespace,
+                    expected_kv_item.key
+                )))
+                .respond_with(response_template)
+                .mount(&mock_server)
+                .await;
+
+            let kv_service = create_kv_service(mock_server.uri());
+            let result = kv_service
+                .get_kv_item(
+                    &credentials,
+                    GetKvItemInput {
+                        namespace_id: namespace,
+                        key: &expected_kv_item.key,
+                    },
+                )
+                .await;
+
+            assert!(result.is_ok());
+            assert_eq!(result.unwrap(), expected_kv_item);
 
             Ok(())
         }

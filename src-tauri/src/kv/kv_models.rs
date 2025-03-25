@@ -128,6 +128,12 @@ pub struct GetKvItemsInput<'a> {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct GetKvItemInput<'a> {
+    pub namespace_id: &'a str,
+    pub key: &'a str,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct GetKeysInput<'a> {
     pub namespace_id: &'a str,
     pub cursor: Option<String>,
