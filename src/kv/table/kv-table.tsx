@@ -1,16 +1,15 @@
-import { ColumnDef, getCoreRowModel, Row, useReactTable } from '@tanstack/react-table';
-import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table.tsx';
-import { FunctionComponent, useState } from 'react';
 import { Button } from '@/components/ui/button.tsx';
-import { Skeleton } from '@/components/ui/skeleton.tsx';
-import { LoadingSpinner } from '@/components/ui/loading-spinner.tsx';
-import { KvTableHeader } from '@/kv/table/kv-table-header.tsx';
-import { KvTableBody } from '@/kv/table/kv-table-body.tsx';
 import { Checkbox } from '@/components/ui/checkbox.tsx';
-import { KvKey, KvNamespace } from '@/kv/kv-models.ts';
+import { LoadingSpinner } from '@/components/ui/loading-spinner.tsx';
+import { Skeleton } from '@/components/ui/skeleton.tsx';
+import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table.tsx';
 import { useKvKeys } from '@/kv/kv-hooks.ts';
-import { useNavigate } from 'react-router';
-import { KvItemSheet } from '../kv-item-sheet';
+import { KvKey, KvNamespace } from '@/kv/kv-models.ts';
+import { KvTableBody } from '@/kv/table/kv-table-body.tsx';
+import { KvTableHeader } from '@/kv/table/kv-table-header.tsx';
+import { ColumnDef, getCoreRowModel, useReactTable } from '@tanstack/react-table';
+import { FunctionComponent, useState } from 'react';
+import KvItemSheet from '../kv-item-sheet';
 
 interface KvTableProps {
   namespace: KvNamespace;
@@ -41,7 +40,7 @@ const columns: ColumnDef<KvKey>[] = [
     id: 'name',
     accessorKey: 'name',
     header: 'Key Name',
-    cell: (cell) => <KvItemSheet name={cell.getValue() as string} />,
+    cell: (cell) => <KvItemSheet itemName={cell.getValue() as string} />,
   },
   {
     id: 'expiration',
@@ -56,10 +55,7 @@ const columns: ColumnDef<KvKey>[] = [
 
 export function KvTable({ namespace }: KvTableProps) {
   const [rowSelection, setRowSelection] = useState({});
-  const navigate = useNavigate();
-
   const { kvKeys, isInitialLoading, isLoadingNextKeys, hasNextKeys, loadNextKeys } = useKvKeys(namespace.id);
-
   const table = useReactTable({
     data: kvKeys?.keys ?? [],
     columns,
