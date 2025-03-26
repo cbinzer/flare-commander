@@ -630,6 +630,7 @@ mod test {
 
     mod get_kv_item {
         use chrono::Utc;
+        use cloudflare::framework::response::ApiError;
         use wiremock::matchers::{method, path};
         use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -637,6 +638,7 @@ mod test {
         use crate::kv::kv_models::{KvError, KvItem};
         use crate::kv::kv_service::test::create_kv_service;
         use crate::kv::kv_service::GetKvItemInput;
+        use crate::test::test_models::ApiSuccess;
 
         #[tokio::test]
         async fn should_get_kv_item() -> Result<(), KvError> {
@@ -682,6 +684,91 @@ mod test {
 
             assert!(result.is_ok());
             assert_eq!(result.unwrap(), expected_kv_item);
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_respond_with_namespace_not_found_error_if_a_namespace_not_exist(
+        ) -> Result<(), KvError> {
+            let mock_server = MockServer::start().await;
+            let response_template =
+                ResponseTemplate::new(404).set_body_json(ApiSuccess::<Option<String>> {
+                    result: None,
+                    errors: vec![ApiError {
+                        code: 10013,
+                        message: "get: 'namespace not found'".to_string(),
+                        other: Default::default(),
+                    }],
+                    result_info: None,
+                });
+
+            let account_id = "account_id".to_string();
+            let namespace_id = "12345";
+            let key = "key1";
+            Mock::given(method("GET"))
+                .and(path(format!(
+                    "/client/v4/accounts/{account_id}/storage/kv/namespaces/{namespace_id}/values/{key}"
+                )))
+                .respond_with(response_template)
+                .mount(&mock_server)
+                .await;
+
+            let kv_service = create_kv_service(mock_server.uri());
+            let credentials = Credentials::UserAuthToken {
+                account_id,
+                token: "my_token".to_string(),
+            };
+            let result = kv_service
+                .get_kv_item(&credentials, GetKvItemInput { namespace_id, key })
+                .await;
+
+            assert!(result.is_err());
+
+            let error = result.unwrap_err();
+            assert!(matches!(error, KvError::NamespaceNotFound));
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_respond_with_key_not_found_error_if_a_key_not_exist() -> Result<(), KvError>
+        {
+            let credentials = Credentials::UserAuthToken {
+                account_id: "my_account_id".to_string(),
+                token: "my_token".to_string(),
+            };
+            let namespace_id = "my_namespace";
+            let key = "key1";
+
+            let mock_server = MockServer::start().await;
+            let response_template_value =
+                ResponseTemplate::new(404).set_body_json(ApiSuccess::<()> {
+                    result: (),
+                    errors: vec![ApiError {
+                        code: 10009,
+                        message: "get: 'key not found'".to_string(),
+                        other: Default::default(),
+                    }],
+                    result_info: None,
+                });
+            Mock::given(method("GET"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{namespace_id}/values/{key}",
+                    credentials.account_id(),
+                )))
+                .respond_with(response_template_value)
+                .mount(&mock_server)
+                .await;
+
+            let kv_service = create_kv_service(mock_server.uri());
+            let params = GetKvItemInput { namespace_id, key };
+
+            let result = kv_service.get_kv_item(&credentials, params).await;
+            assert!(result.is_err());
+
+            let error = result.unwrap_err();
+            assert!(matches!(error, KvError::KeyNotFound));
 
             Ok(())
         }
