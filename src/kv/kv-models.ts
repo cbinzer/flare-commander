@@ -24,6 +24,10 @@ export interface KvKey {
   expiration?: Date;
 }
 
+export interface KvTableItem extends KvKey {
+  namespaceId: string;
+}
+
 export type KvErrorKind = 'Authentication' | 'Unknown';
 
 export class KvError extends Error {

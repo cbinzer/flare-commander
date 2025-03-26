@@ -13,29 +13,24 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
-import { FunctionComponent, useRef, useState } from 'react';
+import { FunctionComponent, useEffect, useRef, useState } from 'react';
+import { useKvItem } from './kv-hooks';
+import { KvItem } from './kv-models';
 
 export interface KvItemSheetProps {
-  itemName: string;
+  namespaceId: string;
+  itemKey: string;
 }
 
-const KvItemSheet: FunctionComponent<KvItemSheetProps> = ({ itemName: name }) => {
-  const valueInputRef = useRef<HTMLTextAreaElement>(null);
-  const [datePickerContainer, setDatePickerContainer] = useState<HTMLElement | null>(null);
+const KvItemSheet: FunctionComponent<KvItemSheetProps> = ({ namespaceId, itemKey }) => {
+  const { kvItem, loadKvItem } = useKvItem();
+  const [sheetContainer, setSheetContainer] = useState<HTMLElement | null>(null);
 
   const focusValueInputOnOpenChange = (open: boolean) => {
     if (open) {
-      // Small delay to ensure the sheet is fully rendered
-      setTimeout(() => {
-        const textarea = valueInputRef.current;
-        if (textarea) {
-          textarea.focus();
-          // Set cursor at the end
-          textarea.setSelectionRange(textarea.value.length, textarea.value.length);
-        }
-        // Get the container after the sheet is mounted
-        setDatePickerContainer(document.querySelector('[role="dialog"]') as HTMLElement);
-      }, 100);
+      loadKvItem(namespaceId, itemKey).then(() =>
+        setSheetContainer(document.querySelector('[role="dialog"]') as HTMLElement),
+      );
     }
   };
 
@@ -43,46 +38,68 @@ const KvItemSheet: FunctionComponent<KvItemSheetProps> = ({ itemName: name }) =>
     <Sheet onOpenChange={focusValueInputOnOpenChange}>
       <SheetTrigger asChild>
         <Button variant="link" className="w-fit px-0 text-left text-foreground">
-          {name}
+          {itemKey}
         </Button>
       </SheetTrigger>
 
-      <SheetContent className="w-[500px] sm:max-w-[500px]">
-        <SheetHeader>
-          <SheetTitle>Edit KV Item</SheetTitle>
-          <SheetDescription>Edit the value and expiration date of the KV item</SheetDescription>
-        </SheetHeader>
+      <KvItemSheetContent item={kvItem} container={sheetContainer} />
+    </Sheet>
+  );
+};
 
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-12 items-center gap-4">
-            <Label htmlFor="name" className="col-span-2 text-right">
-              Name
-            </Label>
-            <Input id="name" value="Pedro Duarte" className="col-span-10" disabled={true} />
-          </div>
-          <div className="grid grid-cols-12 items-start gap-4">
-            <Label htmlFor="value" className="col-span-2 text-right pt-2">
-              Value
-            </Label>
-            <Textarea id="value" value="@peduarte" className="col-span-10 min-h-[200px]" ref={valueInputRef} />
-          </div>
-          <div className="grid grid-cols-12 items-center gap-4">
-            <Label htmlFor="expiration" className="col-span-2 text-right">
-              Expiration
-            </Label>
-            <div className="col-span-10">
-              <DateTimePicker container={datePickerContainer} />
-            </div>
+interface KvItemSheetContentProps {
+  item: KvItem | null;
+  container?: HTMLElement | null;
+}
+
+const KvItemSheetContent: FunctionComponent<KvItemSheetContentProps> = ({ item, container }) => {
+  const valueInputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const textarea = valueInputRef.current;
+    if (textarea) {
+      textarea.focus();
+      // Set cursor at the end
+      textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+    }
+  }, [item, container]);
+
+  return (
+    <SheetContent className="w-[500px] sm:max-w-[500px]">
+      <SheetHeader>
+        <SheetTitle>Edit KV Item</SheetTitle>
+        <SheetDescription>Edit the value and expiration date of the KV item</SheetDescription>
+      </SheetHeader>
+
+      <div className="grid gap-4 py-4">
+        <div className="grid grid-cols-12 items-center gap-4">
+          <Label htmlFor="name" className="col-span-2 text-right">
+            Name
+          </Label>
+          <Input id="name" value={item?.key} className="col-span-10" disabled={true} />
+        </div>
+        <div className="grid grid-cols-12 items-start gap-4">
+          <Label htmlFor="value" className="col-span-2 text-right pt-2">
+            Value
+          </Label>
+          <Textarea id="value" value={item?.value} className="col-span-10 min-h-[200px]" ref={valueInputRef} />
+        </div>
+        <div className="grid grid-cols-12 items-center gap-4">
+          <Label htmlFor="expiration" className="col-span-2 text-right">
+            Expiration
+          </Label>
+          <div className="col-span-10">
+            <DateTimePicker container={container} />
           </div>
         </div>
+      </div>
 
-        <SheetFooter>
-          <SheetClose asChild>
-            <Button type="submit">Save</Button>
-          </SheetClose>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
+      <SheetFooter>
+        <SheetClose asChild>
+          <Button type="submit">Save</Button>
+        </SheetClose>
+      </SheetFooter>
+    </SheetContent>
   );
 };
 

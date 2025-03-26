@@ -7,13 +7,14 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
-import { FunctionComponent, useState } from 'react';
+import { FunctionComponent, useEffect, useState } from 'react';
 
 export interface DateTimePickerProps {
+  value?: Date;
   container?: Element | null | undefined;
 }
 
-const DateTimePicker: FunctionComponent<DateTimePickerProps> = ({ container }) => {
+const DateTimePicker: FunctionComponent<DateTimePickerProps> = ({ value, container }) => {
   const [date, setDate] = useState<Date>();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -35,6 +36,8 @@ const DateTimePicker: FunctionComponent<DateTimePickerProps> = ({ container }) =
       setDate(newDate);
     }
   };
+
+  useEffect(() => setDate(value), [value]);
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>

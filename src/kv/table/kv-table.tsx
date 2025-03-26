@@ -4,19 +4,19 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner.tsx';
 import { Skeleton } from '@/components/ui/skeleton.tsx';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table.tsx';
 import { useKvKeys } from '@/kv/kv-hooks.ts';
-import { KvKey, KvNamespace } from '@/kv/kv-models.ts';
+import { KvNamespace, KvTableItem } from '@/kv/kv-models.ts';
 import { KvTableBody } from '@/kv/table/kv-table-body.tsx';
 import { KvTableHeader } from '@/kv/table/kv-table-header.tsx';
 import { ColumnDef, getCoreRowModel, useReactTable } from '@tanstack/react-table';
-import { FunctionComponent, useState } from 'react';
-import KvItemSheet from '../kv-item-sheet';
 import { format } from 'date-fns';
+import { FunctionComponent, useEffect, useState } from 'react';
+import KvItemSheet from '../kv-item-sheet';
 
 interface KvTableProps {
   namespace: KvNamespace;
 }
 
-const columns: ColumnDef<KvKey>[] = [
+const columns: ColumnDef<KvTableItem>[] = [
   {
     id: 'select',
     header: ({ table }) => (
@@ -41,7 +41,7 @@ const columns: ColumnDef<KvKey>[] = [
     id: 'name',
     accessorKey: 'name',
     header: 'Key Name',
-    cell: (cell) => <KvItemSheet itemName={cell.getValue() as string} />,
+    cell: (cell) => <KvItemSheet namespaceId={cell.row.original.namespaceId} itemKey={cell.getValue() as string} />,
   },
   {
     id: 'expiration',
@@ -63,9 +63,11 @@ const columns: ColumnDef<KvKey>[] = [
 
 export function KvTable({ namespace }: KvTableProps) {
   const [rowSelection, setRowSelection] = useState({});
+  const [tableData, setTableData] = useState<KvTableItem[]>([]);
   const { kvKeys, isInitialLoading, isLoadingNextKeys, hasNextKeys, loadNextKeys } = useKvKeys(namespace.id);
+
   const table = useReactTable({
-    data: kvKeys?.keys ?? [],
+    data: tableData,
     columns,
     onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
@@ -73,6 +75,10 @@ export function KvTable({ namespace }: KvTableProps) {
       rowSelection,
     },
   });
+
+  useEffect(() => {
+    setTableData(kvKeys?.keys.map((key) => ({ ...key, namespaceId: namespace.id })) ?? []);
+  }, [kvKeys]);
 
   return (
     <>

@@ -75,7 +75,7 @@ impl KvService {
                     .get("expiration")
                     .and_then(|header_val| header_val.to_str().ok())
                     .and_then(|str_val| str_val.parse::<i64>().ok())
-                    .and_then(DateTime::from_timestamp_micros);
+                    .and_then(DateTime::from_timestamp_millis);
                 let value = response.text().await?;
 
                 Ok(KvItem {
@@ -629,7 +629,7 @@ mod test {
     }
 
     mod get_kv_item {
-        use chrono::Utc;
+        use chrono::{DateTime, Utc};
         use cloudflare::framework::response::ApiError;
         use wiremock::matchers::{method, path};
         use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -645,7 +645,7 @@ mod test {
             let expected_kv_item = KvItem {
                 key: "key1".to_string(),
                 value: "value".to_string(),
-                expiration: Some(Utc::now()),
+                expiration: DateTime::from_timestamp_millis(Utc::now().timestamp_millis()),
             };
             let credentials = Credentials::UserAuthToken {
                 account_id: "my_account_id".to_string(),
@@ -658,7 +658,7 @@ mod test {
                 .set_body_string(&expected_kv_item.value)
                 .append_header(
                     "expiration",
-                    expected_kv_item.expiration.unwrap().timestamp_micros(),
+                    expected_kv_item.expiration.unwrap().timestamp_millis(),
                 );
             Mock::given(method("GET"))
                 .and(path(format!(

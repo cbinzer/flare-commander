@@ -143,6 +143,7 @@ export function useKvKeys(namespaceId: string) {
       setHasNextKeys(!!nextKeys.cursor);
       setError(null);
     } catch (e) {
+      console.error(e);
       setError(e as KvError);
     } finally {
       setIsLoading(false);
@@ -183,14 +184,16 @@ export function useKvKeys(namespaceId: string) {
   };
 }
 
-export function useKvItem(namespaceId: string, key: string) {
+export function useKvItem() {
   const { account } = useAuth();
   const [kvItem, setKvItem] = useState<KvItem | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<KvError | null>(null);
 
-  const loadItem = async () => {
+  const loadKvItem = async (namespaceId: string, key: string) => {
     setIsLoading(true);
+    setKvItem(null);
+
     const credentials: UserAuthTokenCredentials = {
       type: CredentialsType.UserAuthToken,
       account_id: account?.id ?? '',
@@ -207,12 +210,9 @@ export function useKvItem(namespaceId: string, key: string) {
     }
   };
 
-  useEffect(() => {
-    loadItem().then();
-  }, [namespaceId, key]);
-
   return {
     kvItem,
+    loadKvItem,
     isLoading,
     error,
   };
