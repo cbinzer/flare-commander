@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/authentication/use-auth.ts';
 import { invoke } from '@tauri-apps/api/core';
-import { KvError, KvItems, KvKeys, KvNamespace } from '@/kv/kv-models.ts';
+import { KvError, KvItem, KvItems, KvKeys, KvNamespace } from '@/kv/kv-models.ts';
 import { CredentialsType, UserAuthTokenCredentials } from '@/authentication/auth-models.ts';
 
 export function useNamespaces() {
@@ -183,6 +183,40 @@ export function useKvKeys(namespaceId: string) {
   };
 }
 
+export function useKvItem(namespaceId: string, key: string) {
+  const { account } = useAuth();
+  const [kvItem, setKvItem] = useState<KvItem | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<KvError | null>(null);
+
+  const loadItem = async () => {
+    setIsLoading(true);
+    const credentials: UserAuthTokenCredentials = {
+      type: CredentialsType.UserAuthToken,
+      account_id: account?.id ?? '',
+      token: (account?.credentials as UserAuthTokenCredentials).token,
+    };
+
+    try {
+      const item = await getKvItem({ namespaceId, key }, credentials);
+      setKvItem(item);
+    } catch (e) {
+      setError(e as KvError);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadItem().then();
+  }, [namespaceId, key]);
+
+  return {
+    kvItem,
+    isLoading,
+    error,
+  };
+}
 async function getKvItems(
   input: {
     namespaceId: string;
@@ -233,13 +267,41 @@ export async function getKvKeys(
       credentials,
     });
 
-    console.log(kvKeys);
     return {
       ...kvKeys,
       keys: kvKeys.keys.map((key) => ({
         ...key,
         expiration: key.expiration ? new Date(key.expiration) : undefined,
       })),
+    };
+  } catch (e) {
+    const kvError = e as KvError;
+    console.error(kvError);
+    throw new KvError(kvError.message, kvError.kind);
+  }
+}
+
+export async function getKvItem(
+  input: {
+    namespaceId: string;
+    key: string;
+  },
+  credentials: UserAuthTokenCredentials,
+): Promise<KvItem> {
+  try {
+    const invokeInput = {
+      namespace_id: input.namespaceId,
+      key: input.key,
+    };
+
+    const kvItem = await invoke<KvItem>('get_kv_item', {
+      input: invokeInput,
+      credentials,
+    });
+
+    return {
+      ...kvItem,
+      expiration: kvItem.expiration ? new Date(kvItem.expiration) : undefined,
     };
   } catch (e) {
     const kvError = e as KvError;
