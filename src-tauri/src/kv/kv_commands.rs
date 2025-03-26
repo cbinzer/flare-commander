@@ -1,10 +1,12 @@
 use crate::app_state::AppState;
 use crate::common::common_models::Credentials;
-use crate::kv::kv_models::{GetKeysInput, GetKvItemsInput, KvError, KvItems, KvKeys};
+use crate::kv::kv_models::{GetKeysInput, GetKvItemsInput, KvError, KvItem, KvItems, KvKeys};
 use cloudflare::endpoints::workerskv::WorkersKvNamespace;
 use log::error;
 use serde::{Deserialize, Serialize};
 use tauri::State;
+
+use super::kv_models::GetKvItemInput;
 
 #[tauri::command]
 pub async fn get_namespaces(
@@ -21,6 +23,15 @@ pub async fn get_kv_items<'a>(
     state: State<'_, AppState>,
 ) -> Result<KvItems, KvCommandError> {
     Ok(state.kv_service.get_kv_items(&credentials, input).await?)
+}
+
+#[tauri::command]
+pub async fn get_kv_item<'a>(
+    credentials: Credentials,
+    input: GetKvItemInput<'a>,
+    state: State<'_, AppState>,
+) -> Result<KvItem, KvCommandError> {
+    Ok(state.kv_service.get_kv_item(&credentials, input).await?)
 }
 
 #[tauri::command]
