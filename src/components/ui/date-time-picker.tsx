@@ -11,10 +11,11 @@ import { FunctionComponent, useEffect, useState } from 'react';
 
 export interface DateTimePickerProps {
   value?: Date;
+  disabled?: boolean;
   container?: Element | null | undefined;
 }
 
-const DateTimePicker: FunctionComponent<DateTimePickerProps> = ({ value, container }) => {
+const DateTimePicker: FunctionComponent<DateTimePickerProps> = ({ value, container, disabled = false }) => {
   const [date, setDate] = useState<Date>();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -43,6 +44,7 @@ const DateTimePicker: FunctionComponent<DateTimePickerProps> = ({ value, contain
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button
+          disabled={disabled}
           variant="outline"
           className={cn('w-full justify-start text-left font-normal', !date && 'text-muted-foreground')}
         >

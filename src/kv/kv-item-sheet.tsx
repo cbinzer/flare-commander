@@ -17,6 +17,7 @@ import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useKvItem } from './kv-hooks';
 import { KvItem } from './kv-models';
 import DateTimePicker from '@/components/ui/date-time-picker';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 export interface KvItemSheetProps {
   namespaceId: string;
@@ -24,10 +25,13 @@ export interface KvItemSheetProps {
 }
 
 const KvItemSheet: FunctionComponent<KvItemSheetProps> = ({ namespaceId, itemKey }) => {
-  const { kvItem, loadKvItem } = useKvItem();
+  const { kvItem, loadKvItem, updateKvItem, isUpdating } = useKvItem();
   const [sheetContainer, setSheetContainer] = useState<HTMLElement | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
 
   const loadKvItemOnOpenChange = (open: boolean) => {
+    setIsOpen(open);
+
     if (open) {
       loadKvItem(namespaceId, itemKey).then(() =>
         setSheetContainer(document.querySelector('[role="dialog"]') as HTMLElement),
@@ -35,15 +39,25 @@ const KvItemSheet: FunctionComponent<KvItemSheetProps> = ({ namespaceId, itemKey
     }
   };
 
+  const updateKvItemOnSave = async () => {
+    await updateKvItem('', new Date());
+    setIsOpen(false);
+  };
+
   return (
-    <Sheet onOpenChange={loadKvItemOnOpenChange}>
+    <Sheet open={isOpen} onOpenChange={loadKvItemOnOpenChange}>
       <SheetTrigger asChild>
         <Button variant="link" className="w-fit px-0 text-left text-foreground">
           {itemKey}
         </Button>
       </SheetTrigger>
 
-      <KvItemSheetContent item={kvItem} container={sheetContainer} />
+      <KvItemSheetContent
+        item={kvItem}
+        container={sheetContainer}
+        onSaveClick={updateKvItemOnSave}
+        isSaving={isUpdating}
+      />
     </Sheet>
   );
 };
@@ -51,9 +65,16 @@ const KvItemSheet: FunctionComponent<KvItemSheetProps> = ({ namespaceId, itemKey
 interface KvItemSheetContentProps {
   item: KvItem | null;
   container?: HTMLElement | null;
+  isSaving?: boolean;
+  onSaveClick?: () => void;
 }
 
-const KvItemSheetContent: FunctionComponent<KvItemSheetContentProps> = ({ item, container }) => {
+const KvItemSheetContent: FunctionComponent<KvItemSheetContentProps> = ({
+  item,
+  container,
+  isSaving = false,
+  onSaveClick = () => {},
+}) => {
   const valueInputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -88,7 +109,13 @@ const KvItemSheetContent: FunctionComponent<KvItemSheetContentProps> = ({ item, 
             Value
           </Label>
           {item ? (
-            <Textarea id="value" value={item?.value} className="col-span-10 min-h-[200px]" ref={valueInputRef} />
+            <Textarea
+              id="value"
+              value={item?.value}
+              className="col-span-10 min-h-[200px]"
+              ref={valueInputRef}
+              disabled={isSaving}
+            />
           ) : (
             <Skeleton id="value" className="w-full h-[200px] rounded-md col-span-10" />
           )}
@@ -99,7 +126,7 @@ const KvItemSheetContent: FunctionComponent<KvItemSheetContentProps> = ({ item, 
           </Label>
           <div className="col-span-10 w-full">
             {item ? (
-              <DateTimePicker container={container} value={item?.expiration} />
+              <DateTimePicker container={container} value={item?.expiration} disabled={isSaving} />
             ) : (
               <Skeleton className="w-full h-[36px] rounded-md" />
             )}
@@ -108,11 +135,9 @@ const KvItemSheetContent: FunctionComponent<KvItemSheetContentProps> = ({ item, 
       </div>
 
       <SheetFooter>
-        <SheetClose asChild>
-          <Button type="submit" disabled={!item}>
-            Save
-          </Button>
-        </SheetClose>
+        <Button type="submit" disabled={!item || isSaving} onClick={onSaveClick}>
+          {isSaving ? <LoadingSpinner /> : 'Save'}
+        </Button>
       </SheetFooter>
     </SheetContent>
   );

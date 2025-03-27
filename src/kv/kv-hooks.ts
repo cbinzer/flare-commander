@@ -188,6 +188,7 @@ export function useKvItem() {
   const { account } = useAuth();
   const [kvItem, setKvItem] = useState<KvItem | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<KvError | null>(null);
 
   const loadKvItem = async (namespaceId: string, key: string) => {
@@ -210,10 +211,23 @@ export function useKvItem() {
     }
   };
 
+  const updateKvItem = async (value: string, expiration: Date) => {
+    setIsUpdating(true);
+
+    await new Promise((resolve) => {
+      setTimeout(() => {
+        setIsUpdating(false);
+        resolve(true);
+      }, 1000);
+    });
+  };
+
   return {
     kvItem,
     loadKvItem,
+    updateKvItem,
     isLoading,
+    isUpdating,
     error,
   };
 }
