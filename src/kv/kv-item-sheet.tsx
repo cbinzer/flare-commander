@@ -80,7 +80,7 @@ const KvItemSheetContent: FunctionComponent<KvItemSheetContentProps> = ({ item, 
           {item ? (
             <Input id="name" value={item?.key} className="col-span-10" disabled={true} />
           ) : (
-            <Skeleton className="w-full h-8 rounded-md col-span-10" />
+            <Skeleton className="w-full h-[36px] rounded-md col-span-10" />
           )}
         </div>
         <div className="grid grid-cols-12 items-start gap-4">
@@ -90,7 +90,7 @@ const KvItemSheetContent: FunctionComponent<KvItemSheetContentProps> = ({ item, 
           {item ? (
             <Textarea id="value" value={item?.value} className="col-span-10 min-h-[200px]" ref={valueInputRef} />
           ) : (
-            <Skeleton id="value" className="w-full h-48 rounded-md col-span-10" />
+            <Skeleton id="value" className="w-full h-[200px] rounded-md col-span-10" />
           )}
         </div>
         <div className="grid grid-cols-12 items-center gap-4">
@@ -101,7 +101,7 @@ const KvItemSheetContent: FunctionComponent<KvItemSheetContentProps> = ({ item, 
             {item ? (
               <DateTimePicker container={container} value={item?.expiration} />
             ) : (
-              <Skeleton className="w-full h-8 rounded-md" />
+              <Skeleton className="w-full h-[36px] rounded-md" />
             )}
           </div>
         </div>
