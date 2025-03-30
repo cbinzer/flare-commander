@@ -47,7 +47,7 @@ const KvItemSheet: FunctionComponent<KvItemSheetProps> = ({ namespaceId, itemKey
   return (
     <Sheet open={isOpen} onOpenChange={loadKvItemOnOpenChange}>
       <SheetTrigger asChild>
-        <Button variant="link" className="w-fit px-0 text-left text-foreground">
+        <Button variant="link" className="w-fit h-fit p-0 text-left text-foreground">
           {itemKey}
         </Button>
       </SheetTrigger>
