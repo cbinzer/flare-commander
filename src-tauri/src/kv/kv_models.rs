@@ -147,3 +147,10 @@ pub struct GetKeyValueInput<'a> {
     pub namespace_id: &'a str,
     pub key: &'a str,
 }
+
+pub struct SetKvItemInput<'a> {
+    pub namespace_id: &'a str,
+    pub key: &'a str,
+    pub value: &'a str,
+    pub expiration: Option<DateTime<Utc>>,
+}
