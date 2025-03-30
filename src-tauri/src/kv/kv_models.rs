@@ -149,9 +149,9 @@ pub struct GetKeyValueInput<'a> {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct SetKvItemInput<'a> {
+pub struct WriteKvItemInput<'a> {
     pub namespace_id: &'a str,
     pub key: &'a str,
-    pub value: &'a str,
+    pub value: Option<String>,
     pub expiration: Option<DateTime<Utc>>,
 }

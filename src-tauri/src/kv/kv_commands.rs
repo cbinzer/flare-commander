@@ -6,7 +6,7 @@ use log::error;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
-use super::kv_models::{GetKvItemInput, SetKvItemInput};
+use super::kv_models::{GetKvItemInput, WriteKvItemInput};
 
 #[tauri::command]
 pub async fn get_namespaces(
@@ -37,10 +37,10 @@ pub async fn get_kv_item<'a>(
 #[tauri::command]
 pub async fn set_kv_item<'a>(
     credentials: Credentials,
-    input: SetKvItemInput<'a>,
+    input: WriteKvItemInput<'a>,
     state: State<'_, AppState>,
 ) -> Result<KvItem, KvCommandError> {
-    Ok(state.kv_service.set_kv_item(&credentials, input).await?)
+    Ok(state.kv_service.write_kv_item(&credentials, input).await?)
 }
 
 #[tauri::command]

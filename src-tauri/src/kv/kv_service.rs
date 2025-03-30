@@ -15,11 +15,12 @@ use cloudflare::framework::async_api::Client;
 use cloudflare::framework::response::ApiSuccess;
 use cloudflare::framework::HttpApiClientConfig;
 use futures::future::try_join_all;
+use reqwest::multipart::Form;
 use reqwest::StatusCode;
 use serde_json::Value;
 use url::Url;
 
-use super::kv_models::{GetKvItemInput, SetKvItemInput};
+use super::kv_models::{GetKvItemInput, WriteKvItemInput};
 
 pub struct KvService {
     api_url: Option<Url>,
@@ -162,10 +163,10 @@ impl KvService {
         })
     }
 
-    pub async fn set_kv_item<'a>(
+    pub async fn write_kv_item<'a>(
         &self,
         credentials: &Credentials,
-        input: SetKvItemInput<'a>,
+        input: WriteKvItemInput<'a>,
     ) -> Result<KvItem, KvError> {
         let base_url: Url = (&get_cloudflare_env(&self.api_url)).into();
         let url = format!(
@@ -185,7 +186,9 @@ impl KvService {
             request = request.header("expiration", expiration);
         }
 
-        let response = request.send().await?;
+        let value = input.value.unwrap_or_default();
+        let form_data = Form::new().text("value", value.clone());
+        let response = request.multipart(form_data).send().await?;
         let new_expiration = response
             .headers()
             .get("expiration")
@@ -194,14 +197,11 @@ impl KvService {
             .and_then(DateTime::from_timestamp_millis);
 
         match response.status() {
-            StatusCode::OK => {
-                let new_value = response.text().await?;
-                Ok(KvItem {
-                    key: input.key.to_string(),
-                    value: new_value,
-                    expiration: new_expiration,
-                })
-            }
+            StatusCode::OK => Ok(KvItem {
+                key: input.key.to_string(),
+                value,
+                expiration: new_expiration,
+            }),
             _ => {
                 let api_response = response.json::<ApiSuccess<()>>().await?;
                 Err(map_api_errors(api_response.errors))
@@ -821,7 +821,7 @@ mod test {
         }
     }
 
-    mod set_kv_item {
+    mod write_kv_item {
         use chrono::{DateTime, Utc};
         use cloudflare::framework::response::ApiError;
         use wiremock::{
@@ -831,14 +831,14 @@ mod test {
 
         use crate::{
             common::common_models::Credentials,
-            kv::kv_models::{KvError, KvItem, SetKvItemInput},
+            kv::kv_models::{KvError, KvItem, WriteKvItemInput},
             test::test_models::ApiSuccess,
         };
 
         use super::create_kv_service;
 
         #[tokio::test]
-        async fn should_set_kv_item() -> Result<(), KvError> {
+        async fn should_write_kv_item() -> Result<(), KvError> {
             let expected_kv_item = KvItem {
                 key: "key1".to_string(),
                 value: "value".to_string(),
@@ -852,11 +852,15 @@ mod test {
 
             let mock_server = MockServer::start().await;
             let response_template = ResponseTemplate::new(200)
-                .set_body_string(&expected_kv_item.value)
                 .append_header(
                     "expiration",
                     expected_kv_item.expiration.unwrap().timestamp_millis(),
-                );
+                )
+                .set_body_json(ApiSuccess::<Option<String>> {
+                    result: None,
+                    errors: vec![],
+                    result_info: None,
+                });
             Mock::given(method("PUT"))
                 .and(path(format!(
                     "/client/v4/accounts/{}/storage/kv/namespaces/{}/values/{}",
@@ -870,12 +874,12 @@ mod test {
 
             let kv_service = create_kv_service(mock_server.uri());
             let updated_kv_item = kv_service
-                .set_kv_item(
+                .write_kv_item(
                     &credentials,
-                    SetKvItemInput {
+                    WriteKvItemInput {
                         namespace_id: namespace,
                         key: &expected_kv_item.key,
-                        value: &expected_kv_item.value,
+                        value: Some(expected_kv_item.value.clone()),
                         expiration: expected_kv_item.expiration,
                     },
                 )
@@ -918,12 +922,12 @@ mod test {
                 token: "my_token".to_string(),
             };
             let result = kv_service
-                .set_kv_item(
+                .write_kv_item(
                     &credentials,
-                    SetKvItemInput {
+                    WriteKvItemInput {
                         namespace_id,
                         key,
-                        value: "value",
+                        value: Some("value".to_string()),
                         expiration: None,
                     },
                 )
