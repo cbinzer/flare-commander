@@ -148,6 +148,7 @@ pub struct GetKeyValueInput<'a> {
     pub key: &'a str,
 }
 
+#[derive(Debug, Deserialize)]
 pub struct SetKvItemInput<'a> {
     pub namespace_id: &'a str,
     pub key: &'a str,
