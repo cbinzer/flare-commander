@@ -9,62 +9,70 @@ import { KvTableBody } from '@/kv/table/kv-table-body.tsx';
 import { KvTableHeader } from '@/kv/table/kv-table-header.tsx';
 import { ColumnDef, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { format } from 'date-fns';
-import { FunctionComponent, useEffect, useState } from 'react';
+import { FunctionComponent, useEffect, useMemo, useState } from 'react';
 import KvItemSheet from '../kv-item-sheet';
 
 interface KvTableProps {
   namespace: KvNamespace;
 }
 
-const columns: ColumnDef<KvTableItem>[] = [
-  {
-    id: 'select',
-    header: ({ table }) => (
-      <Checkbox
-        checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate')}
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
-    ),
-    meta: {
-      width: '30px',
-    },
-  },
-  {
-    id: 'name',
-    accessorKey: 'name',
-    header: 'Key Name',
-    cell: (cell) => <KvItemSheet namespaceId={cell.row.original.namespaceId} itemKey={cell.getValue() as string} />,
-  },
-  {
-    id: 'expiration',
-    accessorKey: 'expiration',
-    header: 'Expiration',
-    cell: (cell) => {
-      let formattedExpirationDate = '-';
-      if (cell.getValue()) {
-        formattedExpirationDate = format(cell.getValue() as Date, 'yyyy-MM-dd HH:mm');
-      }
-
-      return <>{formattedExpirationDate}</>;
-    },
-    meta: {
-      width: '150px',
-    },
-  },
-];
-
 export function KvTable({ namespace }: KvTableProps) {
   const [rowSelection, setRowSelection] = useState({});
   const [tableData, setTableData] = useState<KvTableItem[]>([]);
-  const { kvKeys, isInitialLoading, isLoadingNextKeys, hasNextKeys, loadNextKeys } = useKvKeys(namespace.id);
+  const { kvKeys, isInitialLoading, isLoadingNextKeys, hasNextKeys, loadNextKeys, setKey } = useKvKeys(namespace.id);
+
+  const columns = useMemo<ColumnDef<KvTableItem>[]>(() => {
+    return [
+      {
+        id: 'select',
+        header: ({ table }) => (
+          <Checkbox
+            checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && 'indeterminate')}
+            onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+            aria-label="Select all"
+          />
+        ),
+        cell: ({ row }) => (
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            aria-label="Select row"
+          />
+        ),
+        meta: {
+          width: '30px',
+        },
+      },
+      {
+        id: 'name',
+        accessorKey: 'name',
+        header: 'Key Name',
+        cell: (cell) => (
+          <KvItemSheet
+            namespaceId={cell.row.original.namespaceId}
+            itemKey={cell.getValue() as string}
+            onChange={(kvItem) => setKey({ name: kvItem.key, expiration: kvItem.expiration })}
+          />
+        ),
+      },
+      {
+        id: 'expiration',
+        accessorKey: 'expiration',
+        header: 'Expiration',
+        cell: (cell) => {
+          let formattedExpirationDate = '-';
+          if (cell.getValue()) {
+            formattedExpirationDate = format(cell.getValue() as Date, 'yyyy-MM-dd HH:mm');
+          }
+
+          return <>{formattedExpirationDate}</>;
+        },
+        meta: {
+          width: '150px',
+        },
+      },
+    ];
+  }, []);
 
   const table = useReactTable({
     data: tableData,

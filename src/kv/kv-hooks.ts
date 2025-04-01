@@ -1,6 +1,6 @@
 import { CredentialsType, UserAuthTokenCredentials } from '@/authentication/auth-models.ts';
 import { useAuth } from '@/authentication/use-auth.ts';
-import { KvError, KvItem, KvItems, KvKeys, KvNamespace, WriteKvItemInput } from '@/kv/kv-models.ts';
+import { KvError, KvItem, KvItems, KvKey, KvKeys, KvNamespace, WriteKvItemInput } from '@/kv/kv-models.ts';
 import { invoke } from '@tauri-apps/api/core';
 import { useEffect, useState } from 'react';
 
@@ -169,6 +169,19 @@ export function useKvKeys(namespaceId: string) {
     }
   };
 
+  const setKey = (keyToReplace: KvKey) => {
+    setKvKeys((previousKeys) => {
+      if (!previousKeys) {
+        return null;
+      }
+
+      return {
+        keys: previousKeys?.keys.map((key) => (key.name === keyToReplace.name ? keyToReplace : key)),
+        cursor: previousKeys?.cursor,
+      };
+    });
+  };
+
   useEffect(() => {
     loadKeysInitial().then();
   }, [namespaceId]);
@@ -180,6 +193,7 @@ export function useKvKeys(namespaceId: string) {
     isLoadingNextKeys,
     hasNextKeys,
     loadNextKeys,
+    setKey,
     error,
   };
 }

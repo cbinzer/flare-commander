@@ -21,9 +21,10 @@ import { KvItem } from './kv-models';
 export interface KvItemSheetProps {
   namespaceId: string;
   itemKey: string;
+  onChange?: (item: KvItem) => void;
 }
 
-const KvItemSheet: FunctionComponent<KvItemSheetProps> = ({ namespaceId, itemKey }) => {
+const KvItemSheet: FunctionComponent<KvItemSheetProps> = ({ namespaceId, itemKey, onChange = () => {} }) => {
   const { kvItem, loadKvItem, writeKvItem, isWriting } = useKvItem();
   const [sheetContainer, setSheetContainer] = useState<HTMLElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -47,6 +48,12 @@ const KvItemSheet: FunctionComponent<KvItemSheetProps> = ({ namespaceId, itemKey
     });
     setIsOpen(false);
   };
+
+  useEffect(() => {
+    if (kvItem) {
+      onChange(kvItem);
+    }
+  }, [kvItem]);
 
   return (
     <Sheet open={isOpen} onOpenChange={loadKvItemOnOpenChange}>
