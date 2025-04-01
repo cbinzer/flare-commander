@@ -13,9 +13,15 @@ export interface DateTimePickerProps {
   value?: Date;
   disabled?: boolean;
   container?: Element | null | undefined;
+  onChange?: (date: Date | undefined) => void;
 }
 
-const DateTimePicker: FunctionComponent<DateTimePickerProps> = ({ value, container, disabled = false }) => {
+const DateTimePicker: FunctionComponent<DateTimePickerProps> = ({
+  value,
+  container,
+  disabled = false,
+  onChange = () => {},
+}) => {
   const [date, setDate] = useState<Date>();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -38,10 +44,15 @@ const DateTimePicker: FunctionComponent<DateTimePickerProps> = ({ value, contain
     }
   };
 
+  const executeOnChangeAndSetOpenState = (open: boolean) => {
+    setIsOpen(open);
+    onChange(date);
+  };
+
   useEffect(() => setDate(value), [value]);
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover open={isOpen} onOpenChange={executeOnChangeAndSetOpenState}>
       <PopoverTrigger asChild>
         <Button
           disabled={disabled}

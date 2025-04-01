@@ -15,6 +15,7 @@ use cloudflare::framework::async_api::Client;
 use cloudflare::framework::response::ApiSuccess;
 use cloudflare::framework::HttpApiClientConfig;
 use futures::future::try_join_all;
+use log::error;
 use reqwest::multipart::Form;
 use reqwest::StatusCode;
 use serde_json::Value;
@@ -181,30 +182,30 @@ impl KvService {
         let expiration = input
             .expiration
             .map(|expiration_date| expiration_date.timestamp_millis().to_string());
-        let mut request = self.http_client.put(url).bearer_auth(token);
-        if let Some(expiration) = expiration {
-            request = request.header("expiration", expiration);
-        }
+        let request = self
+            .http_client
+            .put(url)
+            .bearer_auth(token)
+            .query(&[("expiration", expiration)]);
 
         let value = input.value.unwrap_or_default();
-        let form_data = Form::new().text("value", value.clone());
+        let form_data = Form::new()
+            .text("value", value.clone())
+            .text("metadata", "{}");
         let response = request.multipart(form_data).send().await?;
-        let new_expiration = response
-            .headers()
-            .get("expiration")
-            .and_then(|header_val| header_val.to_str().ok())
-            .and_then(|str_val| str_val.parse::<i64>().ok())
-            .and_then(DateTime::from_timestamp_millis);
 
         match response.status() {
             StatusCode::OK => Ok(KvItem {
                 key: input.key.to_string(),
                 value,
-                expiration: new_expiration,
+                expiration: input.expiration,
             }),
             _ => {
                 let api_response = response.json::<ApiSuccess<()>>().await?;
-                Err(map_api_errors(api_response.errors))
+                let kv_error = map_api_errors(api_response.errors);
+                error!("Error writing KV item: {:?}", kv_error);
+
+                Err(kv_error)
             }
         }
     }
@@ -825,7 +826,7 @@ mod test {
         use chrono::{DateTime, Utc};
         use cloudflare::framework::response::ApiError;
         use wiremock::{
-            matchers::{method, path},
+            matchers::{method, path, query_param},
             Mock, MockServer, ResponseTemplate,
         };
 
@@ -851,12 +852,8 @@ mod test {
             let namespace = "my_namespace";
 
             let mock_server = MockServer::start().await;
-            let response_template = ResponseTemplate::new(200)
-                .append_header(
-                    "expiration",
-                    expected_kv_item.expiration.unwrap().timestamp_millis(),
-                )
-                .set_body_json(ApiSuccess::<Option<String>> {
+            let response_template =
+                ResponseTemplate::new(200).set_body_json(ApiSuccess::<Option<String>> {
                     result: None,
                     errors: vec![],
                     result_info: None,
@@ -866,8 +863,16 @@ mod test {
                     "/client/v4/accounts/{}/storage/kv/namespaces/{}/values/{}",
                     credentials.account_id(),
                     namespace,
-                    expected_kv_item.key
+                    expected_kv_item.key,
                 )))
+                .and(query_param(
+                    "expiration",
+                    expected_kv_item
+                        .expiration
+                        .unwrap()
+                        .timestamp_millis()
+                        .to_string(),
+                ))
                 .respond_with(response_template)
                 .mount(&mock_server)
                 .await;

@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
-import { useAuth } from '@/authentication/use-auth.ts';
-import { invoke } from '@tauri-apps/api/core';
-import { KvError, KvItem, KvItems, KvKeys, KvNamespace } from '@/kv/kv-models.ts';
 import { CredentialsType, UserAuthTokenCredentials } from '@/authentication/auth-models.ts';
+import { useAuth } from '@/authentication/use-auth.ts';
+import { KvError, KvItem, KvItems, KvKeys, KvNamespace, WriteKvItemInput } from '@/kv/kv-models.ts';
+import { invoke } from '@tauri-apps/api/core';
+import { useEffect, useState } from 'react';
 
 export function useNamespaces() {
   const { account } = useAuth();
@@ -188,7 +188,7 @@ export function useKvItem() {
   const { account } = useAuth();
   const [kvItem, setKvItem] = useState<KvItem | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [isWriting, setIsWriting] = useState(false);
   const [error, setError] = useState<KvError | null>(null);
 
   const loadKvItem = async (namespaceId: string, key: string) => {
@@ -211,23 +211,29 @@ export function useKvItem() {
     }
   };
 
-  const updateKvItem = async (value: string, expiration: Date) => {
-    setIsUpdating(true);
+  const upsertKvItem = async (input: WriteKvItemInput) => {
+    setIsWriting(true);
 
-    await new Promise((resolve) => {
-      setTimeout(() => {
-        setIsUpdating(false);
-        resolve(true);
-      }, 1000);
-    });
+    const credentials: UserAuthTokenCredentials = {
+      type: CredentialsType.UserAuthToken,
+      account_id: account?.id ?? '',
+      token: (account?.credentials as UserAuthTokenCredentials).token,
+    };
+
+    try {
+      const updatedKvItem = await writeKvItem(input, credentials);
+      setKvItem(updatedKvItem);
+    } finally {
+      setIsWriting(false);
+    }
   };
 
   return {
     kvItem,
     loadKvItem,
-    updateKvItem,
+    writeKvItem: upsertKvItem,
     isLoading,
-    isUpdating,
+    isWriting,
     error,
   };
 }
@@ -309,6 +315,31 @@ export async function getKvItem(
     };
 
     const kvItem = await invoke<KvItem>('get_kv_item', {
+      input: invokeInput,
+      credentials,
+    });
+
+    return {
+      ...kvItem,
+      expiration: kvItem.expiration ? new Date(kvItem.expiration) : undefined,
+    };
+  } catch (e) {
+    const kvError = e as KvError;
+    console.error(kvError);
+    throw new KvError(kvError.message, kvError.kind);
+  }
+}
+
+export async function writeKvItem(input: WriteKvItemInput, credentials: UserAuthTokenCredentials): Promise<KvItem> {
+  try {
+    const invokeInput = {
+      namespace_id: input.namespaceId,
+      key: input.key,
+      value: input.value,
+      expiration: input.expiration,
+    };
+
+    const kvItem = await invoke<KvItem>('set_kv_item', {
       input: invokeInput,
       credentials,
     });

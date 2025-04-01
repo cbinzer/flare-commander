@@ -14,6 +14,13 @@ export interface KvItem {
   expiration?: Date;
 }
 
+export interface WriteKvItemInput {
+  namespaceId: string;
+  key: string;
+  value?: string;
+  expiration?: Date;
+}
+
 export interface KvKeys {
   keys: KvKey[];
   cursor?: string;
