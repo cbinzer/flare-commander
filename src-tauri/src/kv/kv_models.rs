@@ -109,7 +109,8 @@ pub struct KvKeys {
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct KvKey {
     pub name: String,
-
+    // pub metadata: Option<Value>,
+    #[serde(default)]
     #[serde(with = "ts_milliseconds_option")]
     pub expiration: Option<DateTime<Utc>>,
 }
@@ -126,12 +127,6 @@ impl From<Key> for KvKey {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct GetKvItemsInput<'a> {
-    pub namespace_id: &'a str,
-    pub cursor: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
 pub struct GetKvItemInput<'a> {
     pub namespace_id: &'a str,
     pub key: &'a str,
@@ -141,11 +136,6 @@ pub struct GetKvItemInput<'a> {
 pub struct GetKeysInput<'a> {
     pub namespace_id: &'a str,
     pub cursor: Option<String>,
-}
-
-pub struct GetKeyValueInput<'a> {
-    pub namespace_id: &'a str,
-    pub key: &'a str,
 }
 
 #[derive(Debug, Deserialize)]
