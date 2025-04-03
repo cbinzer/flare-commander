@@ -95,7 +95,7 @@ export function KvTable({ namespace }: KvTableProps) {
           <KvTableHeader headerGroups={table.getHeaderGroups()} />
 
           {isInitialLoading ? (
-            <LoadingTableBody />
+            <LoadingTableBody columns={columns} />
           ) : table.getRowModel().rows?.length ? (
             <KvTableBody rows={table.getRowModel().rows} />
           ) : (
@@ -115,7 +115,12 @@ export function KvTable({ namespace }: KvTableProps) {
   );
 }
 
-const LoadingTableBody: FunctionComponent<{ pageSize?: number }> = ({ pageSize = 10 }) => {
+interface LoadingTableBodyProps {
+  pageSize?: number;
+  columns: ColumnDef<KvTableItem>[];
+}
+
+const LoadingTableBody: FunctionComponent<LoadingTableBodyProps> = ({ pageSize = 10, columns }) => {
   return (
     <TableBody>
       {Array(pageSize)
