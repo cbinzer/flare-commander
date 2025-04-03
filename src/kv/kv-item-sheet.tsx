@@ -105,7 +105,7 @@ const KvItemSheetContent: FunctionComponent<KvItemSheetContentProps> = ({
   }, [item]);
 
   return (
-    <SheetContent className="w-[500px] sm:max-w-[500px]">
+    <SheetContent closeButtonDisabled={isSaving} className="w-[500px] sm:max-w-[500px]">
       <SheetHeader>
         <SheetTitle>Edit KV Item</SheetTitle>
         <SheetDescription>Edit the value and expiration date of the KV item</SheetDescription>
