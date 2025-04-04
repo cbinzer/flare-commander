@@ -16,12 +16,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { FunctionComponent, useEffect, useRef, useState } from 'react';
 import { useKvItem } from './kv-hooks';
-import { KvItem } from './kv-models';
+import { KvItem, KvMetadata } from './kv-models';
 
 export interface KvItemSheetProps {
   namespaceId: string;
   itemKey: string;
-  itemMetadata?: Record<string, unknown>;
+  itemMetadata?: KvMetadata;
   onChange?: (item: KvItem) => void;
 }
 
@@ -82,7 +82,7 @@ const KvItemSheet: FunctionComponent<KvItemSheetProps> = ({
 
 interface KvItemSheetContentProps {
   item: KvItem | null;
-  itemMetadata?: Record<string, unknown>;
+  itemMetadata?: KvMetadata;
   container?: HTMLElement | null;
   isSaving?: boolean;
   onSaveClick?: (value: string | undefined, expiration: Date | undefined) => void;
@@ -203,16 +203,16 @@ const KvItemSheetContent: FunctionComponent<KvItemSheetContentProps> = ({
   );
 };
 
-function stringifyJSON(value: Record<string, unknown> | null): string {
+function stringifyJSON(value: KvMetadata): string {
   if (value === null) {
-    return '{}';
+    return '';
   }
 
   try {
     return JSON.stringify(value);
   } catch (e) {
     console.error('Error stringifying JSON:', e);
-    return '{}';
+    return '';
   }
 }
 

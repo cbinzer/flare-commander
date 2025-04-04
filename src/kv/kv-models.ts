@@ -26,10 +26,12 @@ export interface KvKeys {
   cursor?: string;
 }
 
+export type KvMetadata = string | number | boolean | null | Record<string, unknown> | Array<unknown>;
+
 export interface KvKey {
   name: string;
   expiration?: Date;
-  metadata?: Record<string, unknown>;
+  metadata?: KvMetadata;
 }
 
 export interface KvTableKey extends KvKey {
