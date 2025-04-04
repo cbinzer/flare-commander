@@ -21,10 +21,16 @@ import { KvItem } from './kv-models';
 export interface KvItemSheetProps {
   namespaceId: string;
   itemKey: string;
+  itemMetadata?: Record<string, unknown>;
   onChange?: (item: KvItem) => void;
 }
 
-const KvItemSheet: FunctionComponent<KvItemSheetProps> = ({ namespaceId, itemKey, onChange = () => {} }) => {
+const KvItemSheet: FunctionComponent<KvItemSheetProps> = ({
+  namespaceId,
+  itemKey,
+  itemMetadata,
+  onChange = () => {},
+}) => {
   const { kvItem, loadKvItem, writeKvItem, isWriting } = useKvItem();
   const [sheetContainer, setSheetContainer] = useState<HTMLElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -65,6 +71,7 @@ const KvItemSheet: FunctionComponent<KvItemSheetProps> = ({ namespaceId, itemKey
 
       <KvItemSheetContent
         item={kvItem}
+        itemMetadata={itemMetadata}
         container={sheetContainer}
         onSaveClick={writeKvItemOnSave}
         isSaving={isWriting}
@@ -75,6 +82,7 @@ const KvItemSheet: FunctionComponent<KvItemSheetProps> = ({ namespaceId, itemKey
 
 interface KvItemSheetContentProps {
   item: KvItem | null;
+  itemMetadata?: Record<string, unknown>;
   container?: HTMLElement | null;
   isSaving?: boolean;
   onSaveClick?: (value: string | undefined, expiration: Date | undefined) => void;
@@ -82,13 +90,21 @@ interface KvItemSheetContentProps {
 
 const KvItemSheetContent: FunctionComponent<KvItemSheetContentProps> = ({
   item,
+  itemMetadata = {},
   container,
   isSaving = false,
   onSaveClick = () => {},
 }) => {
   const valueInputRef = useRef<HTMLTextAreaElement>(null);
   const [value, setValue] = useState(item?.value);
+  const [metadata, setMetadata] = useState(stringifyJSON(itemMetadata));
+  const [isMetadataValid, setIsMetadataValid] = useState(true);
   const [expiration, setExpiration] = useState(item?.expiration);
+
+  const validateAndSetMetadata = (value: string) => {
+    setMetadata(value);
+    setIsMetadataValid(validateMetadata(value));
+  };
 
   useEffect(() => {
     const textarea = valueInputRef.current;
@@ -108,7 +124,7 @@ const KvItemSheetContent: FunctionComponent<KvItemSheetContentProps> = ({
     <SheetContent closeButtonDisabled={isSaving} className="w-[500px] sm:max-w-[500px]">
       <SheetHeader>
         <SheetTitle>Edit KV Item</SheetTitle>
-        <SheetDescription>Edit the value and expiration date of the KV item</SheetDescription>
+        <SheetDescription>Edit value, metadata and expiration date of the KV item</SheetDescription>
       </SheetHeader>
 
       <div className="grid gap-4 py-4">
@@ -139,6 +155,22 @@ const KvItemSheetContent: FunctionComponent<KvItemSheetContentProps> = ({
             <Skeleton id="value" className="w-full h-[200px] rounded-md col-span-10" />
           )}
         </div>
+        <div className="grid grid-cols-12 items-start gap-4">
+          <Label htmlFor="metadata" className="col-span-2 text-right pt-2">
+            Metadata
+          </Label>
+          {item ? (
+            <Textarea
+              id="metadata"
+              value={metadata}
+              onChange={(e) => validateAndSetMetadata(e.target.value)}
+              className="col-span-10 min-h-[200px]"
+              disabled={isSaving}
+            />
+          ) : (
+            <Skeleton id="metadata" className="w-full h-[200px] rounded-md col-span-10" />
+          )}
+        </div>
         <div className="grid grid-cols-12 items-center gap-4">
           <Label htmlFor="expiration" className="col-span-2 text-right">
             Expiration
@@ -159,12 +191,38 @@ const KvItemSheetContent: FunctionComponent<KvItemSheetContentProps> = ({
       </div>
 
       <SheetFooter>
-        <Button type="submit" disabled={!item || isSaving} onClick={() => onSaveClick(value, expiration)}>
+        <Button
+          type="submit"
+          disabled={!item || isSaving || !isMetadataValid}
+          onClick={() => onSaveClick(value, expiration)}
+        >
           {isSaving ? <LoadingSpinner /> : 'Save'}
         </Button>
       </SheetFooter>
     </SheetContent>
   );
 };
+
+function stringifyJSON(value: Record<string, unknown> | null): string {
+  if (value === null) {
+    return '{}';
+  }
+
+  try {
+    return JSON.stringify(value);
+  } catch (e) {
+    console.error('Error stringifying JSON:', e);
+    return '{}';
+  }
+}
+
+function validateMetadata(value: string): boolean {
+  try {
+    JSON.parse(value);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
 
 export default KvItemSheet;

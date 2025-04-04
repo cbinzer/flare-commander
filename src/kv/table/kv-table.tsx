@@ -4,7 +4,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner.tsx';
 import { Skeleton } from '@/components/ui/skeleton.tsx';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table.tsx';
 import { useKvKeys } from '@/kv/kv-hooks.ts';
-import { KvNamespace, KvTableItem } from '@/kv/kv-models.ts';
+import { KvNamespace, KvTableKey } from '@/kv/kv-models.ts';
 import { KvTableBody } from '@/kv/table/kv-table-body.tsx';
 import { KvTableHeader } from '@/kv/table/kv-table-header.tsx';
 import { ColumnDef, getCoreRowModel, useReactTable } from '@tanstack/react-table';
@@ -18,10 +18,10 @@ interface KvTableProps {
 
 export function KvTable({ namespace }: KvTableProps) {
   const [rowSelection, setRowSelection] = useState({});
-  const [tableData, setTableData] = useState<KvTableItem[]>([]);
+  const [tableData, setTableData] = useState<KvTableKey[]>([]);
   const { kvKeys, isInitialLoading, isLoadingNextKeys, hasNextKeys, loadNextKeys, setKey } = useKvKeys(namespace.id);
 
-  const columns = useMemo<ColumnDef<KvTableItem>[]>(() => {
+  const columns = useMemo<ColumnDef<KvTableKey>[]>(() => {
     return [
       {
         id: 'select',
@@ -51,6 +51,7 @@ export function KvTable({ namespace }: KvTableProps) {
           <KvItemSheet
             namespaceId={cell.row.original.namespaceId}
             itemKey={cell.getValue() as string}
+            itemMetadata={cell.row.original.metadata}
             onChange={(kvItem) => setKey({ name: kvItem.key, expiration: kvItem.expiration })}
           />
         ),
@@ -117,7 +118,7 @@ export function KvTable({ namespace }: KvTableProps) {
 
 interface LoadingTableBodyProps {
   pageSize?: number;
-  columns: ColumnDef<KvTableItem>[];
+  columns: ColumnDef<KvTableKey>[];
 }
 
 const LoadingTableBody: FunctionComponent<LoadingTableBodyProps> = ({ pageSize = 10, columns }) => {

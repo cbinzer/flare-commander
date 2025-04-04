@@ -29,9 +29,10 @@ export interface KvKeys {
 export interface KvKey {
   name: string;
   expiration?: Date;
+  metadata?: Record<string, unknown>;
 }
 
-export interface KvTableItem extends KvKey {
+export interface KvTableKey extends KvKey {
   namespaceId: string;
 }
 
