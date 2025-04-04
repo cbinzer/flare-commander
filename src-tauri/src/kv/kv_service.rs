@@ -78,6 +78,7 @@ impl KvService {
                     key: input.key.to_string(),
                     value,
                     expiration,
+                    metadata: None,
                 })
             }
             _ => {
@@ -157,9 +158,14 @@ impl KvService {
             .query(&[("expiration", expiration)]);
 
         let value = input.value.unwrap_or_default();
+        let mut metadata = String::from("null");
+        if let Some(metadata_value) = &input.metadata {
+            metadata = serde_json::to_string(&metadata_value).unwrap_or_default();
+        }
+
         let form_data = Form::new()
             .text("value", value.clone())
-            .text("metadata", "{}");
+            .text("metadata", metadata);
         let response = request.multipart(form_data).send().await?;
 
         match response.status() {
@@ -167,6 +173,7 @@ impl KvService {
                 key: input.key.to_string(),
                 value,
                 expiration: input.expiration,
+                metadata: input.metadata,
             }),
             _ => {
                 let api_response = response.json::<ApiSuccess<()>>().await?;
@@ -593,6 +600,7 @@ mod test {
                 key: "key1".to_string(),
                 value: "value".to_string(),
                 expiration: DateTime::from_timestamp_millis(Utc::now().timestamp_millis()),
+                metadata: None,
             };
             let credentials = Credentials::UserAuthToken {
                 account_id: "my_account_id".to_string(),
@@ -724,6 +732,7 @@ mod test {
     mod write_kv_item {
         use chrono::{DateTime, Utc};
         use cloudflare::framework::response::ApiError;
+        use serde_json::json;
         use wiremock::{
             matchers::{method, path, query_param},
             Mock, MockServer, ResponseTemplate,
@@ -743,6 +752,9 @@ mod test {
                 key: "key1".to_string(),
                 value: "value".to_string(),
                 expiration: DateTime::from_timestamp_millis(Utc::now().timestamp_millis()),
+                metadata: Some(json!({
+                    "key": "value"
+                })),
             };
             let credentials = Credentials::UserAuthToken {
                 account_id: "my_account_id".to_string(),
@@ -785,6 +797,7 @@ mod test {
                         key: &expected_kv_item.key,
                         value: Some(expected_kv_item.value.clone()),
                         expiration: expected_kv_item.expiration,
+                        metadata: expected_kv_item.metadata.clone(),
                     },
                 )
                 .await?;
@@ -833,6 +846,7 @@ mod test {
                         key,
                         value: Some("value".to_string()),
                         expiration: None,
+                        metadata: None,
                     },
                 )
                 .await;

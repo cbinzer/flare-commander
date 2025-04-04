@@ -96,6 +96,9 @@ pub struct KvItem {
     pub key: String,
     pub value: String,
 
+    #[serde(default)]
+    pub metadata: Option<Value>,
+
     #[serde(with = "ts_milliseconds_option")]
     pub expiration: Option<DateTime<Utc>>,
 }
@@ -136,4 +139,5 @@ pub struct WriteKvItemInput<'a> {
     pub key: &'a str,
     pub value: Option<String>,
     pub expiration: Option<DateTime<Utc>>,
+    pub metadata: Option<Value>,
 }
