@@ -351,6 +351,7 @@ export async function writeKvItem(input: WriteKvItemInput, credentials: UserAuth
       key: input.key,
       value: input.value,
       expiration: input.expiration,
+      metadata: input.metadata,
     };
 
     const kvItem = await invoke<KvItem>('set_kv_item', {

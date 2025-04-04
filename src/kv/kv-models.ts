@@ -12,6 +12,7 @@ export interface KvItem {
   key: string;
   value: string;
   expiration?: Date;
+  metadata?: KvMetadata;
 }
 
 export interface WriteKvItemInput {
@@ -19,6 +20,7 @@ export interface WriteKvItemInput {
   key: string;
   value?: string;
   expiration?: Date;
+  metadata?: KvMetadata;
 }
 
 export interface KvKeys {

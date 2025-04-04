@@ -45,12 +45,13 @@ const KvItemSheet: FunctionComponent<KvItemSheetProps> = ({
     }
   };
 
-  const writeKvItemOnSave = async (value: string | undefined, expiration: Date | undefined) => {
+  const writeKvItemOnSave = async (value: string | undefined, expiration: Date | undefined, metadata: KvMetadata) => {
     await writeKvItem({
       namespaceId,
       key: itemKey,
       value,
       expiration,
+      metadata,
     });
     setIsOpen(false);
   };
@@ -85,12 +86,12 @@ interface KvItemSheetContentProps {
   itemMetadata?: KvMetadata;
   container?: HTMLElement | null;
   isSaving?: boolean;
-  onSaveClick?: (value: string | undefined, expiration: Date | undefined) => void;
+  onSaveClick?: (value: string | undefined, expiration: Date | undefined, metadata: KvMetadata) => void;
 }
 
 const KvItemSheetContent: FunctionComponent<KvItemSheetContentProps> = ({
   item,
-  itemMetadata = {},
+  itemMetadata = null,
   container,
   isSaving = false,
   onSaveClick = () => {},
@@ -104,6 +105,16 @@ const KvItemSheetContent: FunctionComponent<KvItemSheetContentProps> = ({
   const validateAndSetMetadata = (value: string) => {
     setMetadata(value);
     setIsMetadataValid(validateMetadata(value));
+  };
+
+  const handleSaveClick = () => {
+    try {
+      const parsedMetadata = JSON.parse(metadata);
+      onSaveClick(value, expiration, parsedMetadata);
+    } catch (e) {
+      console.error('Error parsing metadata:', e);
+      setIsMetadataValid(false);
+    }
   };
 
   useEffect(() => {
@@ -191,11 +202,7 @@ const KvItemSheetContent: FunctionComponent<KvItemSheetContentProps> = ({
       </div>
 
       <SheetFooter>
-        <Button
-          type="submit"
-          disabled={!item || isSaving || !isMetadataValid}
-          onClick={() => onSaveClick(value, expiration)}
-        >
+        <Button type="submit" disabled={!item || isSaving || !isMetadataValid} onClick={handleSaveClick}>
           {isSaving ? <LoadingSpinner /> : 'Save'}
         </Button>
       </SheetFooter>
