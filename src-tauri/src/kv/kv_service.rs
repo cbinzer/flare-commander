@@ -408,6 +408,7 @@ mod test {
         use crate::kv::kv_service::test::create_kv_service;
         use crate::test::test_models::ApiSuccess;
         use cloudflare::framework::response::ApiError;
+        use serde_json::json;
         use wiremock::matchers::{method, path, query_param};
         use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -417,14 +418,19 @@ mod test {
                 KvKey {
                     name: "key1".to_string(),
                     expiration: None,
+                    metadata: Some(json!({
+                        "key": "value"
+                    })),
                 },
                 KvKey {
                     name: "key2".to_string(),
                     expiration: None,
+                    metadata: None,
                 },
                 KvKey {
                     name: "key3".to_string(),
                     expiration: None,
+                    metadata: None,
                 },
             ];
             let credentials = Credentials::UserAuthToken {
@@ -469,14 +475,17 @@ mod test {
                 KvKey {
                     name: "key1".to_string(),
                     expiration: None,
+                    metadata: None,
                 },
                 KvKey {
                     name: "key2".to_string(),
                     expiration: None,
+                    metadata: None,
                 },
                 KvKey {
                     name: "key3".to_string(),
                     expiration: None,
+                    metadata: None,
                 },
             ];
             let credentials = Credentials::UserAuthToken {

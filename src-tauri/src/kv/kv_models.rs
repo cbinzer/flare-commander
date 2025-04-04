@@ -1,9 +1,9 @@
 use crate::authentication::authentication_models::{AuthenticationError, ResponseInfo};
 use chrono::serde::ts_milliseconds_option;
 use chrono::{DateTime, Utc};
-use cloudflare::endpoints::workerskv::Key;
 use cloudflare::framework::response::{ApiError, ApiFailure};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::error::Error;
 use std::fmt;
 
@@ -109,21 +109,13 @@ pub struct KvKeys {
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct KvKey {
     pub name: String,
-    // pub metadata: Option<Value>,
+
+    #[serde(default)]
+    pub metadata: Option<Value>,
+
     #[serde(default)]
     #[serde(with = "ts_milliseconds_option")]
     pub expiration: Option<DateTime<Utc>>,
-}
-
-impl From<Key> for KvKey {
-    fn from(value: Key) -> Self {
-        Self {
-            name: value.name,
-            expiration: value
-                .expiration
-                .and_then(|dt| DateTime::from_timestamp_millis(dt.timestamp())),
-        }
-    }
 }
 
 #[derive(Debug, Deserialize)]
