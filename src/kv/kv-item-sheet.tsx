@@ -109,7 +109,7 @@ const KvItemSheetContent: FunctionComponent<KvItemSheetContentProps> = ({
 
   const handleSaveClick = () => {
     try {
-      const parsedMetadata = JSON.parse(metadata);
+      const parsedMetadata = parseJSON(metadata);
       onSaveClick(value, expiration, parsedMetadata);
     } catch (e) {
       console.error('Error parsing metadata:', e);
@@ -223,7 +223,24 @@ function stringifyJSON(value: KvMetadata): string {
   }
 }
 
+function parseJSON(value: string): KvMetadata {
+  if (value === '') {
+    return null;
+  }
+
+  try {
+    return JSON.parse(value);
+  } catch (e) {
+    console.error('Error parsing JSON:', e);
+    return null;
+  }
+}
+
 function validateMetadata(value: string): boolean {
+  if (value === '') {
+    return true;
+  }
+
   try {
     JSON.parse(value);
     return true;
