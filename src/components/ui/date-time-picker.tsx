@@ -6,8 +6,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { CalendarIcon } from 'lucide-react';
-import { FunctionComponent, useEffect, useState } from 'react';
+import { CalendarIcon, XIcon } from 'lucide-react';
+import { FunctionComponent, MouseEvent, useEffect, useState } from 'react';
 
 export interface DateTimePickerProps {
   value?: Date;
@@ -49,19 +49,31 @@ const DateTimePicker: FunctionComponent<DateTimePickerProps> = ({
     onChange(date);
   };
 
+  const resetDate = (event: MouseEvent) => {
+    console.log('resetDate');
+    event.preventDefault();
+    setDate(undefined);
+    onChange(undefined);
+  };
+
   useEffect(() => setDate(value), [value]);
 
   return (
     <Popover open={isOpen} onOpenChange={executeOnChangeAndSetOpenState}>
       <PopoverTrigger asChild>
-        <Button
-          disabled={disabled}
-          variant="outline"
-          className={cn('w-full justify-start text-left font-normal', !date && 'text-muted-foreground')}
-        >
-          <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, 'yyyy-MM-dd HH:mm') : <span>yyyy-MM-dd HH:mm</span>}
-        </Button>
+        <div className="grid grid-cols-[1fr_auto] w-full border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground rounded-md">
+          <Button
+            disabled={disabled}
+            variant="blank"
+            className={cn('justify-start text-left font-normal', !date && 'text-muted-foreground')}
+          >
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            <span>{date ? format(date, 'yyyy-MM-dd HH:mm') : 'yyyy-MM-dd HH:mm'}</span>
+          </Button>
+          <Button onClick={resetDate} disabled={disabled} variant="blank">
+            <XIcon className="h-4 w-4" />
+          </Button>
+        </div>
       </PopoverTrigger>
 
       <PopoverContent className="w-auto p-0" container={container}>
