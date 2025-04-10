@@ -17,30 +17,24 @@ import { Textarea } from '@/components/ui/textarea';
 import { FunctionComponent, ReactNode, useEffect, useRef, useState } from 'react';
 import { useKvItem } from './kv-hooks';
 import { KvItem, KvMetadata } from './kv-models';
+import { parseMetadataJSON, stringifyMetadataJSON, validateMetadata } from '@/kv/kv-utils.ts';
 
-export interface KvItemSheetProps {
+export interface KvItemUpdateSheetProps {
   namespaceId: string;
   itemKey: string;
   itemMetadata?: KvMetadata;
-  mode?: KvItemWriteMode;
-  onChange?: (item: KvItem) => void;
+  onUpdate?: (item: KvItem) => void;
   children?: ReactNode;
 }
 
-export enum KvItemWriteMode {
-  CREATE = 'CREATE',
-  UPDATE = 'UPDATE',
-}
-
-const KvItemUpdateSheet: FunctionComponent<KvItemSheetProps> = ({
+const KvItemUpdateSheet: FunctionComponent<KvItemUpdateSheetProps> = ({
   namespaceId,
   itemKey,
   itemMetadata,
-  mode = KvItemWriteMode.UPDATE,
   children,
-  onChange = () => {},
+  onUpdate = () => {},
 }) => {
-  const { kvItem, loadKvItem, writeKvItem, resetKvItem, isLoading, isWriting } = useKvItem();
+  const { kvItem, loadKvItem, writeKvItem, isLoading, isWriting } = useKvItem();
   const [sheetContainer, setSheetContainer] = useState<HTMLElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -50,13 +44,9 @@ const KvItemUpdateSheet: FunctionComponent<KvItemSheetProps> = ({
       return;
     }
 
-    if (mode === KvItemWriteMode.UPDATE) {
-      loadKvItem(namespaceId, itemKey).then(() =>
-        setSheetContainer(document.querySelector('[role="dialog"]') as HTMLElement),
-      );
-    } else {
-      setTimeout(() => setSheetContainer(document.querySelector('[role="dialog"]') as HTMLElement), 100);
-    }
+    loadKvItem(namespaceId, itemKey).then(() =>
+      setSheetContainer(document.querySelector('[role="dialog"]') as HTMLElement),
+    );
   };
 
   const writeKvItemOnSave = async (item: KvItem) => {
@@ -69,11 +59,7 @@ const KvItemUpdateSheet: FunctionComponent<KvItemSheetProps> = ({
 
   useEffect(() => {
     if (kvItem) {
-      onChange(kvItem);
-
-      if (mode === KvItemWriteMode.CREATE) {
-        resetKvItem();
-      }
+      onUpdate(kvItem);
     }
   }, [kvItem]);
 
@@ -85,7 +71,6 @@ const KvItemUpdateSheet: FunctionComponent<KvItemSheetProps> = ({
         item={kvItem}
         itemMetadata={itemMetadata}
         container={sheetContainer}
-        mode={mode}
         isLoading={isLoading}
         isSaving={isWriting}
         onSaveClick={writeKvItemOnSave}
@@ -94,36 +79,29 @@ const KvItemUpdateSheet: FunctionComponent<KvItemSheetProps> = ({
   );
 };
 
-interface KvItemSheetContentProps {
+interface KvItemUpdateSheetContentProps {
   item: KvItem | null;
   itemMetadata?: KvMetadata;
   container?: HTMLElement | null;
   isSaving?: boolean;
   isLoading?: boolean;
-  mode?: KvItemWriteMode;
   onSaveClick?: (item: KvItem) => void;
 }
 
-const KvItemUpdateSheetContent: FunctionComponent<KvItemSheetContentProps> = ({
+const KvItemUpdateSheetContent: FunctionComponent<KvItemUpdateSheetContentProps> = ({
   item,
   itemMetadata = null,
   container,
   isSaving = false,
   isLoading = false,
-  mode = KvItemWriteMode.UPDATE,
   onSaveClick = () => {},
 }) => {
-  const isUpdateMode = mode === KvItemWriteMode.UPDATE;
-  const title = isUpdateMode ? 'Edit KV Item' : 'Create KV Item';
-  const description = isUpdateMode
-    ? 'Edit value, metadata and expiration date of the KV item'
-    : 'Set key, value, metadata and expiration date of the KV item';
   const valueInputRef = useRef<HTMLTextAreaElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   const [key, setKey] = useState(item?.key);
   const [value, setValue] = useState(item?.value);
-  const [metadata, setMetadata] = useState(stringifyJSON(itemMetadata));
+  const [metadata, setMetadata] = useState(stringifyMetadataJSON(itemMetadata));
   const [isMetadataValid, setIsMetadataValid] = useState(true);
   const [expiration, setExpiration] = useState(item?.expiration);
   const isSaveButtonDisabled = isLoading || isSaving || !key || !isMetadataValid;
@@ -135,7 +113,7 @@ const KvItemUpdateSheetContent: FunctionComponent<KvItemSheetContentProps> = ({
 
   const handleSaveClick = () => {
     try {
-      const parsedMetadata = parseJSON(metadata);
+      const parsedMetadata = parseMetadataJSON(metadata);
       const item: KvItem = {
         key: key ?? '',
         value,
@@ -150,13 +128,9 @@ const KvItemUpdateSheetContent: FunctionComponent<KvItemSheetContentProps> = ({
   };
 
   useEffect(() => {
-    if (mode === KvItemWriteMode.CREATE) {
-      nameInputRef.current?.focus();
-    } else {
-      valueInputRef.current?.focus();
-      // Set cursor at the end
-      valueInputRef.current?.setSelectionRange(valueInputRef.current.value.length, valueInputRef.current.value.length);
-    }
+    valueInputRef.current?.focus();
+    // Set cursor at the end
+    valueInputRef.current?.setSelectionRange(valueInputRef.current.value.length, valueInputRef.current.value.length);
   }, [item, container]);
 
   useEffect(() => {
@@ -168,8 +142,8 @@ const KvItemUpdateSheetContent: FunctionComponent<KvItemSheetContentProps> = ({
   return (
     <SheetContent closeDisabled={isSaving} className="w-[500px] sm:max-w-[500px]">
       <SheetHeader>
-        <SheetTitle>{title}</SheetTitle>
-        <SheetDescription>{description}</SheetDescription>
+        <SheetTitle>Edit KV Item</SheetTitle>
+        <SheetDescription>Edit value, metadata and expiration date</SheetDescription>
       </SheetHeader>
 
       <div className="grid gap-4 py-4">
@@ -184,7 +158,7 @@ const KvItemUpdateSheetContent: FunctionComponent<KvItemSheetContentProps> = ({
               id="key"
               value={key}
               className="col-span-10"
-              disabled={isUpdateMode}
+              disabled={true}
               ref={nameInputRef}
               onChange={(e) => setKey(e.target.value)}
             />
@@ -250,44 +224,5 @@ const KvItemUpdateSheetContent: FunctionComponent<KvItemSheetContentProps> = ({
     </SheetContent>
   );
 };
-
-function stringifyJSON(value: KvMetadata): string {
-  if (value === null) {
-    return '';
-  }
-
-  try {
-    return JSON.stringify(value);
-  } catch (e) {
-    console.error('Error stringifying JSON:', e);
-    return '';
-  }
-}
-
-function parseJSON(value: string): KvMetadata {
-  if (value === '') {
-    return null;
-  }
-
-  try {
-    return JSON.parse(value);
-  } catch (e) {
-    console.error('Error parsing JSON:', e);
-    return null;
-  }
-}
-
-function validateMetadata(value: string): boolean {
-  if (value === '') {
-    return true;
-  }
-
-  try {
-    JSON.parse(value);
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
 
 export default KvItemUpdateSheet;

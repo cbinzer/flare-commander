@@ -1,5 +1,18 @@
 import { KvMetadata } from '@/kv/kv-models.ts';
 
+export function stringifyMetadataJSON(value: KvMetadata): string {
+  if (value === null) {
+    return '';
+  }
+
+  try {
+    return JSON.stringify(value);
+  } catch (e) {
+    console.error('Error stringifying JSON:', e);
+    return '';
+  }
+}
+
 export function parseMetadataJSON(value: string): KvMetadata {
   if (value === '') {
     return null;

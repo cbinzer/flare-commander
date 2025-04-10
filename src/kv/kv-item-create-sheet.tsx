@@ -125,7 +125,7 @@ const KvItemCreateSheetContent: FunctionComponent<KvItemCreateSheetContentProps>
     <SheetContent closeDisabled={isSaving} className="w-[500px] sm:max-w-[500px]">
       <SheetHeader>
         <SheetTitle>Create KV Item</SheetTitle>
-        <SheetDescription>Set key, value, metadata and expiration date of the KV item</SheetDescription>
+        <SheetDescription>Set key, value, metadata and expiration date</SheetDescription>
       </SheetHeader>
 
       <div className="grid gap-4 py-4">

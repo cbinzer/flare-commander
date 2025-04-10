@@ -244,7 +244,6 @@ export function useKvItem() {
 
   return {
     kvItem,
-    resetKvItem: () => setKvItem(null),
     loadKvItem,
     writeKvItem: upsertKvItem,
     isLoading,
