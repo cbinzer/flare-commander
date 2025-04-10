@@ -50,25 +50,38 @@ const sheetVariants = cva(
 interface SheetContentProps
   extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>,
     VariantProps<typeof sheetVariants> {
-  closeButtonDisabled?: boolean;
+  closeDisabled?: boolean;
 }
 
 const SheetContent = React.forwardRef<React.ElementRef<typeof SheetPrimitive.Content>, SheetContentProps>(
-  ({ side = 'right', closeButtonDisabled = false, className, children, ...props }, ref) => (
-    <SheetPortal>
-      <SheetOverlay />
-      <SheetPrimitive.Content ref={ref} className={cn(sheetVariants({ side }), className)} {...props}>
-        <SheetPrimitive.Close
-          disabled={closeButtonDisabled}
-          className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary"
+  ({ side = 'right', closeDisabled = false, className, children, ...props }, ref) => {
+    const avoidCloseOnOutsideClick = (event: Event) => {
+      if (closeDisabled) {
+        event.preventDefault();
+      }
+    };
+
+    return (
+      <SheetPortal>
+        <SheetOverlay />
+        <SheetPrimitive.Content
+          onInteractOutside={avoidCloseOnOutsideClick}
+          ref={ref}
+          className={cn(sheetVariants({ side }), className)}
+          {...props}
         >
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
-        </SheetPrimitive.Close>
-        {children}
-      </SheetPrimitive.Content>
-    </SheetPortal>
-  ),
+          <SheetPrimitive.Close
+            disabled={closeDisabled}
+            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary"
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </SheetPrimitive.Close>
+          {children}
+        </SheetPrimitive.Content>
+      </SheetPortal>
+    );
+  },
 );
 SheetContent.displayName = SheetPrimitive.Content.displayName;
 
