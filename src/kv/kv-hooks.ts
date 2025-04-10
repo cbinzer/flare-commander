@@ -1,6 +1,6 @@
 import { CredentialsType, UserAuthTokenCredentials } from '@/authentication/auth-models.ts';
 import { useAuth } from '@/authentication/use-auth.ts';
-import { KvError, KvItem, KvItems, KvKey, KvKeys, KvNamespace, WriteKvItemInput } from '@/kv/kv-models.ts';
+import { KvError, KvItem, KvKey, KvKeys, KvNamespace, WriteKvItemInput } from '@/kv/kv-models.ts';
 import { invoke } from '@tauri-apps/api/core';
 import { useEffect, useState } from 'react';
 
@@ -36,76 +36,6 @@ export function useNamespaces() {
     namespaces,
     getNamespaces,
     setNamespaces,
-  };
-}
-
-export function useKvItems(namespaceId: string) {
-  const { account } = useAuth();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [isLoadingNextItems, setIsLoadingNextItems] = useState(false);
-  const [kvItems, setKvItems] = useState<KvItems | null>(null);
-  const [hasNextItems, setHasNextItems] = useState<boolean>(false);
-  const [error, setError] = useState<KvError | null>(null);
-
-  const loadItems = async (cursor?: string) => {
-    setIsLoading(true);
-
-    const credentials: UserAuthTokenCredentials = {
-      type: CredentialsType.UserAuthToken,
-      account_id: account?.id ?? '',
-      token: (account?.credentials as UserAuthTokenCredentials).token,
-    };
-
-    try {
-      const items = await getKvItems({ namespaceId, cursor }, credentials);
-      setKvItems((previousItems) => {
-        return {
-          items: [...(previousItems?.items ?? []), ...items.items],
-          cursor: items.cursor,
-        };
-      });
-
-      setHasNextItems(!!items.cursor);
-      setError(null);
-    } catch (e) {
-      setError(e as KvError);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loadItemsInitial = async () => {
-    try {
-      setIsInitialLoading(true);
-      setKvItems(null);
-      await loadItems();
-    } finally {
-      setIsInitialLoading(false);
-    }
-  };
-
-  const loadNextItems = async () => {
-    try {
-      setIsLoadingNextItems(true);
-      await loadItems(kvItems?.cursor);
-    } finally {
-      setIsLoadingNextItems(false);
-    }
-  };
-
-  useEffect(() => {
-    loadItemsInitial().then();
-  }, [namespaceId]);
-
-  return {
-    kvItems,
-    isLoading,
-    isInitialLoading,
-    isLoadingNextItems,
-    hasNextItems,
-    loadNextItems,
-    error,
   };
 }
 
@@ -250,37 +180,6 @@ export function useKvItem() {
     isWriting,
     error,
   };
-}
-async function getKvItems(
-  input: {
-    namespaceId: string;
-    cursor?: string;
-  },
-  credentials: UserAuthTokenCredentials,
-): Promise<KvItems> {
-  try {
-    const invokeInput = {
-      namespace_id: input.namespaceId,
-      cursor: input.cursor,
-    };
-
-    const kvItems = await invoke<KvItems>('get_kv_items', {
-      input: invokeInput,
-      credentials,
-    });
-
-    return {
-      ...kvItems,
-      items: kvItems.items.map((item) => ({
-        ...item,
-        expiration: item.expiration ? new Date(item.expiration) : undefined,
-      })),
-    };
-  } catch (e) {
-    const kvError = e as KvError;
-    console.error(kvError);
-    throw new KvError(kvError.message, kvError.kind);
-  }
 }
 
 export async function getKvKeys(
