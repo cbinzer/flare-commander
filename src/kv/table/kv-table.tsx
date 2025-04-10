@@ -10,8 +10,9 @@ import { KvTableHeader } from '@/kv/table/kv-table-header.tsx';
 import { ColumnDef, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import { FunctionComponent, useEffect, useMemo, useState } from 'react';
-import KvItemWriteSheet, { KvItemWriteMode } from '../kv-item-write-sheet.tsx';
+import KvItemWriteSheet from '../kv-item-write-sheet.tsx';
 import { PlusIcon } from 'lucide-react';
+import KvItemCreateSheet from '@/kv/kv-item-create-sheet.tsx';
 
 interface KvTableProps {
   namespace: KvNamespace;
@@ -100,18 +101,12 @@ export function KvTable({ namespace }: KvTableProps) {
     <div>
       <div className="w-full grid grid-cols-[1fr_auto] align-items-right py-4">
         <div />
-        <KvItemWriteSheet
-          namespaceId={namespace.id}
-          itemKey={''}
-          itemMetadata={null}
-          mode={KvItemWriteMode.CREATE}
-          onChange={(kvItem) => console.log(kvItem)}
-        >
+        <KvItemCreateSheet namespaceId={namespace.id} onCreate={(kvItem) => console.log(kvItem)}>
           <Button variant="outline" size="sm">
             <PlusIcon />
             <span className="hidden lg:inline">Add Item</span>
           </Button>
-        </KvItemWriteSheet>
+        </KvItemCreateSheet>
       </div>
 
       <div className="rounded-md border">

@@ -166,7 +166,7 @@ const KvItemSheetContent: FunctionComponent<KvItemSheetContentProps> = ({
   }, [item]);
 
   return (
-    <SheetContent closeButtonDisabled={isSaving} className="w-[500px] sm:max-w-[500px]">
+    <SheetContent closeDisabled={isSaving} className="w-[500px] sm:max-w-[500px]">
       <SheetHeader>
         <SheetTitle>{title}</SheetTitle>
         <SheetDescription>{description}</SheetDescription>
