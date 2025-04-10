@@ -10,7 +10,7 @@ export interface KvItems {
 
 export interface KvItem {
   key: string;
-  value: string;
+  value?: string;
   expiration?: Date;
   metadata?: KvMetadata;
 }

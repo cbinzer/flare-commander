@@ -10,7 +10,8 @@ import { KvTableHeader } from '@/kv/table/kv-table-header.tsx';
 import { ColumnDef, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import { FunctionComponent, useEffect, useMemo, useState } from 'react';
-import KvItemSheet from '../kv-item-sheet';
+import KvItemWriteSheet, { KvItemWriteMode } from '../kv-item-write-sheet.tsx';
+import { PlusIcon } from 'lucide-react';
 
 interface KvTableProps {
   namespace: KvNamespace;
@@ -48,14 +49,18 @@ export function KvTable({ namespace }: KvTableProps) {
         accessorKey: 'name',
         header: 'Key Name',
         cell: (cell) => (
-          <KvItemSheet
+          <KvItemWriteSheet
             namespaceId={cell.row.original.namespaceId}
             itemKey={cell.getValue() as string}
             itemMetadata={cell.row.original.metadata}
             onChange={(kvItem) =>
               setKey({ name: kvItem.key, expiration: kvItem.expiration, metadata: kvItem.metadata })
             }
-          />
+          >
+            <Button variant="link" className="w-fit h-fit p-0 text-left text-foreground">
+              {cell.getValue() as string}
+            </Button>
+          </KvItemWriteSheet>
         ),
       },
       {
@@ -92,7 +97,23 @@ export function KvTable({ namespace }: KvTableProps) {
   }, [kvKeys]);
 
   return (
-    <>
+    <div>
+      <div className="w-full grid grid-cols-[1fr_auto] align-items-right py-4">
+        <div />
+        <KvItemWriteSheet
+          namespaceId={namespace.id}
+          itemKey={''}
+          itemMetadata={null}
+          mode={KvItemWriteMode.CREATE}
+          onChange={(kvItem) => console.log(kvItem)}
+        >
+          <Button variant="outline" size="sm">
+            <PlusIcon />
+            <span className="hidden lg:inline">Add Item</span>
+          </Button>
+        </KvItemWriteSheet>
+      </div>
+
       <div className="rounded-md border">
         <Table className="table-fixed">
           <KvTableHeader headerGroups={table.getHeaderGroups()} />
@@ -114,7 +135,7 @@ export function KvTable({ namespace }: KvTableProps) {
           </Button>
         </div>
       ) : null}
-    </>
+    </div>
   );
 }
 
