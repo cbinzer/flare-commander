@@ -32,7 +32,7 @@ export enum KvItemWriteMode {
   UPDATE = 'UPDATE',
 }
 
-const KvItemWriteSheet: FunctionComponent<KvItemSheetProps> = ({
+const KvItemUpdateSheet: FunctionComponent<KvItemSheetProps> = ({
   namespaceId,
   itemKey,
   itemMetadata,
@@ -81,7 +81,7 @@ const KvItemWriteSheet: FunctionComponent<KvItemSheetProps> = ({
     <Sheet open={isOpen} onOpenChange={loadKvItemOnOpenChange}>
       <SheetTrigger asChild>{children}</SheetTrigger>
 
-      <KvItemSheetContent
+      <KvItemUpdateSheetContent
         item={kvItem}
         itemMetadata={itemMetadata}
         container={sheetContainer}
@@ -104,7 +104,7 @@ interface KvItemSheetContentProps {
   onSaveClick?: (item: KvItem) => void;
 }
 
-const KvItemSheetContent: FunctionComponent<KvItemSheetContentProps> = ({
+const KvItemUpdateSheetContent: FunctionComponent<KvItemSheetContentProps> = ({
   item,
   itemMetadata = null,
   container,
@@ -290,4 +290,4 @@ function validateMetadata(value: string): boolean {
   }
 }
 
-export default KvItemWriteSheet;
+export default KvItemUpdateSheet;

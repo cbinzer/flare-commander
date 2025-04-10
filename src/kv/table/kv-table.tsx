@@ -10,7 +10,7 @@ import { KvTableHeader } from '@/kv/table/kv-table-header.tsx';
 import { ColumnDef, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import { FunctionComponent, useEffect, useMemo, useState } from 'react';
-import KvItemWriteSheet from '../kv-item-write-sheet.tsx';
+import KvItemUpdateSheet from '../kv-item-update-sheet.tsx';
 import { PlusIcon } from 'lucide-react';
 import KvItemCreateSheet from '@/kv/kv-item-create-sheet.tsx';
 
@@ -50,7 +50,7 @@ export function KvTable({ namespace }: KvTableProps) {
         accessorKey: 'name',
         header: 'Key Name',
         cell: (cell) => (
-          <KvItemWriteSheet
+          <KvItemUpdateSheet
             namespaceId={cell.row.original.namespaceId}
             itemKey={cell.getValue() as string}
             itemMetadata={cell.row.original.metadata}
@@ -61,7 +61,7 @@ export function KvTable({ namespace }: KvTableProps) {
             <Button variant="link" className="w-fit h-fit p-0 text-left text-foreground">
               {cell.getValue() as string}
             </Button>
-          </KvItemWriteSheet>
+          </KvItemUpdateSheet>
         ),
       },
       {
