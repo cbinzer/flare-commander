@@ -11,7 +11,7 @@ import { ColumnDef, getCoreRowModel, useReactTable } from '@tanstack/react-table
 import { format } from 'date-fns';
 import { FunctionComponent, useEffect, useMemo, useState } from 'react';
 import KvItemUpdateSheet from '../kv-item-update-sheet.tsx';
-import { PlusIcon } from 'lucide-react';
+import { ArrowDown, PlusIcon } from 'lucide-react';
 import KvItemCreateSheet from '@/kv/kv-item-create-sheet.tsx';
 
 interface KvTableProps {
@@ -116,7 +116,7 @@ export function KvTable({ namespace }: KvTableProps) {
           <KvTableHeader headerGroups={table.getHeaderGroups()} />
 
           {isInitialLoading ? (
-            <LoadingTableBody columns={columns} />
+            <LoadingTableBody pageSize={25} columns={columns} />
           ) : table.getRowModel().rows?.length ? (
             <KvTableBody rows={table.getRowModel().rows} />
           ) : (
@@ -128,7 +128,15 @@ export function KvTable({ namespace }: KvTableProps) {
       {hasNextKeys && !isInitialLoading ? (
         <div className="flex items-center justify-center space-x-2 py-4">
           <Button variant="outline" size="sm" onClick={loadNextKeys} disabled={isLoadingNextKeys}>
-            {isLoadingNextKeys ? <LoadingSpinner /> : 'Load more'}
+            {isLoadingNextKeys ? (
+              <>
+                <LoadingSpinner /> Loading...
+              </>
+            ) : (
+              <>
+                <ArrowDown /> Load more
+              </>
+            )}
           </Button>
         </div>
       ) : null}

@@ -17,6 +17,7 @@ import { FunctionComponent, ReactNode, useEffect, useRef, useState } from 'react
 import { useKvItem } from './kv-hooks';
 import { KvItem } from './kv-models';
 import { parseMetadataJSON, validateMetadata } from '@/kv/kv-utils.ts';
+import { Save } from 'lucide-react';
 
 export interface KvItemCreateSheetProps {
   namespaceId: string;
@@ -187,7 +188,15 @@ const KvItemCreateSheetContent: FunctionComponent<KvItemCreateSheetContentProps>
 
       <SheetFooter>
         <Button type="submit" disabled={isSaveButtonDisabled} onClick={handleSaveClick}>
-          {isSaving ? <LoadingSpinner /> : 'Save'}
+          {isSaving ? (
+            <>
+              <LoadingSpinner /> Saving...
+            </>
+          ) : (
+            <>
+              <Save /> Save
+            </>
+          )}
         </Button>
       </SheetFooter>
     </SheetContent>
