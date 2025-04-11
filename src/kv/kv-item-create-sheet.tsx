@@ -29,9 +29,10 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
   children,
   onCreate = () => Promise.resolve(),
 }) => {
-  const { kvItem, writeKvItem, isWriting } = useKvItem();
+  const { kvItem, writeKvItem } = useKvItem();
   const [sheetContainer, setSheetContainer] = useState<HTMLElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const setContainerOnOpenChange = (open: boolean) => {
     setIsOpen(open);
@@ -43,6 +44,7 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
   };
 
   const writeKvItemOnSave = async (item: KvItem) => {
+    setIsSaving(true);
     await writeKvItem({
       namespaceId,
       ...item,
@@ -51,7 +53,9 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
 
   useEffect(() => {
     if (kvItem) {
-      onCreate(kvItem).then(() => setIsOpen(false));
+      onCreate(kvItem)
+        .then(() => setIsOpen(false))
+        .finally(() => setIsSaving(false));
     }
   }, [kvItem]);
 
@@ -61,7 +65,7 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
       <KvItemCreateSheetContent
         open={isOpen}
         container={sheetContainer}
-        isSaving={isWriting}
+        isSaving={isSaving}
         onSaveClick={writeKvItemOnSave}
       />
     </Sheet>

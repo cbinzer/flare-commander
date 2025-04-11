@@ -21,7 +21,9 @@ interface KvTableProps {
 export function KvTable({ namespace }: KvTableProps) {
   const [rowSelection, setRowSelection] = useState({});
   const [tableData, setTableData] = useState<KvTableKey[]>([]);
-  const { kvKeys, isInitialLoading, isLoadingNextKeys, hasNextKeys, loadNextKeys, setKey } = useKvKeys(namespace.id);
+  const { kvKeys, isInitialLoading, isLoadingNextKeys, hasNextKeys, loadNextKeys, reloadKeys, setKey } = useKvKeys(
+    namespace.id,
+  );
 
   const columns = useMemo<ColumnDef<KvTableKey>[]>(() => {
     return [
@@ -101,7 +103,7 @@ export function KvTable({ namespace }: KvTableProps) {
     <div>
       <div className="w-full grid grid-cols-[1fr_auto] align-items-right py-4">
         <div />
-        <KvItemCreateSheet namespaceId={namespace.id} onCreate={async (kvItem) => console.log(kvItem)}>
+        <KvItemCreateSheet namespaceId={namespace.id} onCreate={async () => await reloadKeys()}>
           <Button variant="outline" size="sm">
             <PlusIcon />
             <span className="hidden lg:inline">Add Item</span>
