@@ -101,7 +101,7 @@ export function KvTable({ namespace }: KvTableProps) {
     <div>
       <div className="w-full grid grid-cols-[1fr_auto] align-items-right py-4">
         <div />
-        <KvItemCreateSheet namespaceId={namespace.id} onCreate={(kvItem) => console.log(kvItem)}>
+        <KvItemCreateSheet namespaceId={namespace.id} onCreate={async (kvItem) => console.log(kvItem)}>
           <Button variant="outline" size="sm">
             <PlusIcon />
             <span className="hidden lg:inline">Add Item</span>

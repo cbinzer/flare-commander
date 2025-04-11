@@ -20,14 +20,14 @@ import { parseMetadataJSON, validateMetadata } from '@/kv/kv-utils.ts';
 
 export interface KvItemCreateSheetProps {
   namespaceId: string;
-  onCreate?: (item: KvItem) => void;
+  onCreate?: (item: KvItem) => Promise<void>;
   children?: ReactNode;
 }
 
 const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
   namespaceId,
   children,
-  onCreate = () => {},
+  onCreate = () => Promise.resolve(),
 }) => {
   const { kvItem, writeKvItem, isWriting } = useKvItem();
   const [sheetContainer, setSheetContainer] = useState<HTMLElement | null>(null);
@@ -47,12 +47,11 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
       namespaceId,
       ...item,
     });
-    setIsOpen(false);
   };
 
   useEffect(() => {
     if (kvItem) {
-      onCreate(kvItem);
+      onCreate(kvItem).then(() => setIsOpen(false));
     }
   }, [kvItem]);
 
