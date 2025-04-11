@@ -131,6 +131,7 @@ pub struct GetKvItemInput<'a> {
 pub struct GetKeysInput<'a> {
     pub namespace_id: &'a str,
     pub cursor: Option<String>,
+    pub limit: Option<u32>,
 }
 
 #[derive(Debug, Deserialize)]

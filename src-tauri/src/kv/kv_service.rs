@@ -102,15 +102,14 @@ impl KvService {
         );
 
         let token = credentials.token().unwrap_or_default();
+        let limit = input
+            .limit
+            .map_or(Some("25".to_string()), |l| Some(l.to_string()));
         let response = self
             .http_client
             .get(&url)
             .bearer_auth(token)
-            .query(&[
-                ("limit", Some("10".to_string())),
-                ("cursor", input.cursor),
-                ("prefix", None),
-            ])
+            .query(&[("limit", limit), ("cursor", input.cursor), ("prefix", None)])
             .send()
             .await?;
         let api_response = response.json::<ApiSuccess<Option<Vec<KvKey>>>>().await?;
@@ -459,6 +458,7 @@ mod test {
                     credentials.account_id(),
                     namespace
                 )))
+                .and(query_param("limit", "25"))
                 .respond_with(response_template)
                 .mount(&mock_server)
                 .await;
@@ -466,6 +466,7 @@ mod test {
             let kv_service = create_kv_service(mock_server.uri());
             let get_keys_input = GetKeysInput {
                 namespace_id: namespace,
+                limit: None,
                 cursor: None,
             };
 
@@ -523,6 +524,7 @@ mod test {
             let kv_service = create_kv_service(mock_server.uri());
             let get_keys_input = GetKeysInput {
                 namespace_id: namespace,
+                limit: None,
                 cursor: Some(cursor.to_string()),
             };
 
@@ -568,6 +570,7 @@ mod test {
                     &credentials,
                     GetKeysInput {
                         namespace_id,
+                        limit: None,
                         cursor: None,
                     },
                 )
