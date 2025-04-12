@@ -18,19 +18,19 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2.0.5", features = [] }
 
 [dependencies]
-chrono = { version = "0.4.39", features = ["serde"] }
-cloudflare = { version = "0.13.0" }
-log = "0.4.25"
+chrono = { version = "0.4.40", features = ["serde"] }
+cloudflare = { version = "0.14.0" }
+log = "0.4.27"
 tauri = { version = "2.2.3", features = [] }
 tauri-plugin-opener = "2.2.4"
 tauri-plugin-log = "2.2.1"
-serde = { version = "1.0.217", features = ["derive"] }
-serde_json = "1.0.136"
-reqwest = { version = "0.12.12", features = ["multipart"] }
-tokio = { version = "1.43.0", features = ["macros"] }
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+reqwest = { version = "0.12.15", features = ["multipart"] }
+tokio = { version = "1.44.2", features = ["macros"] }
 url = "2.5.4"
 percent-encoding = "2.3.1"
 futures = "0.3.31"
 
 [dev-dependencies]
-wiremock = "0.6.2"
+wiremock = "0.6.3"
