@@ -104,9 +104,13 @@ impl KvService {
         );
 
         let token = credentials.token().unwrap_or_default();
-        let limit = input
-            .limit
-            .map_or(Some("25".to_string()), |l| Some(l.to_string()));
+        let limit = input.limit.map_or(Some("25".to_string()), |l| {
+            if l < 10 {
+                Some("10".to_string())
+            } else {
+                Some(l.to_string())
+            }
+        });
         let response = self
             .http_client
             .get(&url)
