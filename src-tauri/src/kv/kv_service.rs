@@ -1,7 +1,9 @@
 use crate::cloudflare::read_key_value::url_encode_key;
 use crate::common::common_models::Credentials;
 use crate::common::common_utils::get_cloudflare_env;
-use crate::kv::kv_models::{map_api_errors, GetKeysInput, KvError, KvItem, KvKey, KvKeys};
+use crate::kv::kv_models::{
+    map_api_errors, CreateKvItemInput, GetKeysInput, KvError, KvItem, KvKey, KvKeys,
+};
 use chrono::DateTime;
 use cloudflare::endpoints::workerskv::list_namespaces::{ListNamespaces, ListNamespacesParams};
 use cloudflare::endpoints::workerskv::WorkersKvNamespace;
@@ -132,10 +134,26 @@ impl KvService {
         })
     }
 
-    pub async fn write_kv_item<'a>(
+    pub async fn create_kv_item(
         &self,
         credentials: &Credentials,
-        input: WriteKvItemInput<'a>,
+        input: &CreateKvItemInput,
+    ) -> Result<KvItem, KvError> {
+        // Check if the item already exists
+        let kv_item_result = self.get_kv_item(credentials, input.into()).await;
+        match kv_item_result {
+            Ok(_) => Err(KvError::KeyAlreadyExists(input.key.clone())),
+            Err(error) => match error {
+                KvError::KeyNotFound => self.write_kv_item(credentials, input.into()).await,
+                _ => Err(error),
+            },
+        }
+    }
+
+    pub async fn write_kv_item(
+        &self,
+        credentials: &Credentials,
+        input: WriteKvItemInput,
     ) -> Result<KvItem, KvError> {
         let base_url: Url = (&get_cloudflare_env(&self.api_url)).into();
         let url = format!(
@@ -143,7 +161,7 @@ impl KvService {
             base_url,
             credentials.account_id(),
             input.namespace_id,
-            url_encode_key(input.key),
+            url_encode_key(input.key.as_str()),
         );
 
         let token = credentials.token().unwrap_or_default();
@@ -796,8 +814,8 @@ mod test {
                 .write_kv_item(
                     &credentials,
                     WriteKvItemInput {
-                        namespace_id: namespace,
-                        key: &expected_kv_item.key,
+                        namespace_id: namespace.to_string(),
+                        key: expected_kv_item.key.clone(),
                         value: Some(expected_kv_item.value.clone()),
                         expiration: expected_kv_item.expiration,
                         metadata: expected_kv_item.metadata.clone(),
@@ -845,8 +863,8 @@ mod test {
                 .write_kv_item(
                     &credentials,
                     WriteKvItemInput {
-                        namespace_id,
-                        key,
+                        namespace_id: namespace_id.to_string(),
+                        key: key.to_string(),
                         value: Some("value".to_string()),
                         expiration: None,
                         metadata: None,
@@ -858,6 +876,137 @@ mod test {
 
             let error = result.unwrap_err();
             assert!(matches!(error, KvError::NamespaceNotFound));
+
+            Ok(())
+        }
+    }
+
+    mod create_kv_item {
+        use crate::common::common_models::Credentials;
+        use crate::kv::kv_models::{CreateKvItemInput, KvError, KvItem};
+        use crate::kv::kv_service::test::create_kv_service;
+        use crate::test::test_models::ApiSuccess;
+        use chrono::{DateTime, Utc};
+        use cloudflare::framework::response::ApiError;
+        use serde_json::json;
+        use wiremock::matchers::{method, path, query_param};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        #[tokio::test]
+        async fn should_create_a_kv_item() -> Result<(), KvError> {
+            let expected_kv_item = KvItem {
+                key: "key1".to_string(),
+                value: "value".to_string(),
+                expiration: DateTime::from_timestamp_millis(Utc::now().timestamp_millis()),
+                metadata: Some(json!({
+                    "key": "value"
+                })),
+            };
+            let credentials = Credentials::UserAuthToken {
+                account_id: "my_account_id".to_string(),
+                token: "my_token".to_string(),
+            };
+            let namespace = "my_namespace";
+            let key = expected_kv_item.key.clone();
+            let mock_server = MockServer::start().await;
+
+            let response_template_value =
+                ResponseTemplate::new(404).set_body_json(ApiSuccess::<()> {
+                    result: (),
+                    errors: vec![ApiError {
+                        code: 10009,
+                        message: "get: 'key not found'".to_string(),
+                        other: Default::default(),
+                    }],
+                    result_info: None,
+                });
+            Mock::given(method("GET"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{namespace}/values/{key}",
+                    credentials.account_id(),
+                )))
+                .respond_with(response_template_value)
+                .mount(&mock_server)
+                .await;
+
+            let response_template_write =
+                ResponseTemplate::new(200).set_body_json(ApiSuccess::<Option<String>> {
+                    result: None,
+                    errors: vec![],
+                    result_info: None,
+                });
+            Mock::given(method("PUT"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/values/{}",
+                    credentials.account_id(),
+                    namespace,
+                    expected_kv_item.key,
+                )))
+                .and(query_param(
+                    "expiration",
+                    expected_kv_item
+                        .expiration
+                        .unwrap()
+                        .timestamp_millis()
+                        .to_string(),
+                ))
+                .respond_with(response_template_write)
+                .mount(&mock_server)
+                .await;
+
+            let kv_service = create_kv_service(mock_server.uri());
+            let updated_kv_item = kv_service
+                .create_kv_item(
+                    &credentials,
+                    &CreateKvItemInput {
+                        namespace_id: namespace.to_string(),
+                        key: expected_kv_item.key.clone(),
+                        value: Some(expected_kv_item.value.clone()),
+                        expiration: expected_kv_item.expiration,
+                        metadata: expected_kv_item.metadata.clone(),
+                    },
+                )
+                .await?;
+
+            assert_eq!(updated_kv_item, expected_kv_item);
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_result_with_a_item_already_exists_error() -> Result<(), KvError> {
+            let credentials = Credentials::UserAuthToken {
+                account_id: "my_account_id".to_string(),
+                token: "my_token".to_string(),
+            };
+            let namespace_id = "my_namespace";
+            let key = "key1";
+
+            let mock_server = MockServer::start().await;
+            let response_template_value = ResponseTemplate::new(200).set_body_string("value");
+            Mock::given(method("GET"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{namespace_id}/values/{key}",
+                    credentials.account_id(),
+                )))
+                .respond_with(response_template_value)
+                .mount(&mock_server)
+                .await;
+
+            let kv_service = create_kv_service(mock_server.uri());
+            let input = CreateKvItemInput {
+                namespace_id: namespace_id.to_string(),
+                key: key.to_string(),
+                value: None,
+                expiration: None,
+                metadata: None,
+            };
+
+            let result = kv_service.create_kv_item(&credentials, &input).await;
+            assert!(result.is_err());
+
+            let error = result.unwrap_err();
+            assert!(matches!(error, KvError::KeyAlreadyExists(_)));
 
             Ok(())
         }

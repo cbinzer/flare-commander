@@ -18,6 +18,7 @@ pub struct KvNamespace {
 pub enum KvError {
     NamespaceNotFound,
     KeyNotFound,
+    KeyAlreadyExists(String),
     Authentication(AuthenticationError),
     Reqwest(reqwest::Error),
     Unknown(String),
@@ -135,10 +136,40 @@ pub struct GetKeysInput<'a> {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct WriteKvItemInput<'a> {
-    pub namespace_id: &'a str,
-    pub key: &'a str,
+pub struct WriteKvItemInput {
+    pub namespace_id: String,
+    pub key: String,
     pub value: Option<String>,
     pub expiration: Option<DateTime<Utc>>,
     pub metadata: Option<Value>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateKvItemInput {
+    pub namespace_id: String,
+    pub key: String,
+    pub value: Option<String>,
+    pub expiration: Option<DateTime<Utc>>,
+    pub metadata: Option<Value>,
+}
+
+impl From<&CreateKvItemInput> for WriteKvItemInput {
+    fn from(value: &CreateKvItemInput) -> Self {
+        WriteKvItemInput {
+            namespace_id: value.namespace_id.clone(),
+            key: value.key.clone(),
+            value: value.value.clone(),
+            expiration: value.expiration,
+            metadata: value.metadata.clone(),
+        }
+    }
+}
+
+impl<'a> From<&'a CreateKvItemInput> for GetKvItemInput<'a> {
+    fn from(value: &'a CreateKvItemInput) -> Self {
+        GetKvItemInput {
+            namespace_id: &value.namespace_id,
+            key: &value.key,
+        }
+    }
 }

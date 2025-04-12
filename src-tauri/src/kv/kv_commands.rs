@@ -26,9 +26,9 @@ pub async fn get_kv_item<'a>(
 }
 
 #[tauri::command]
-pub async fn set_kv_item<'a>(
+pub async fn set_kv_item(
     credentials: Credentials,
-    input: WriteKvItemInput<'a>,
+    input: WriteKvItemInput,
     state: State<'_, AppState>,
 ) -> Result<KvItem, KvCommandError> {
     Ok(state.kv_service.write_kv_item(&credentials, input).await?)
@@ -53,6 +53,7 @@ pub struct KvCommandError {
 pub enum KvCommandErrorKind {
     NamespaceNotFound,
     KeyNotFound,
+    KeyAlreadyExists,
     Authentication,
     Unknown,
 }
@@ -67,6 +68,10 @@ impl From<KvError> for KvCommandError {
             KvError::KeyNotFound => KvCommandError {
                 kind: KvCommandErrorKind::KeyNotFound,
                 message: "Key not found".to_string(),
+            },
+            KvError::KeyAlreadyExists(key) => KvCommandError {
+                kind: KvCommandErrorKind::KeyAlreadyExists,
+                message: format!("An item with the key {} already exists", key),
             },
             KvError::Authentication(auth_err) => {
                 error!(
