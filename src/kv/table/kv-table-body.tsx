@@ -1,12 +1,12 @@
 import { flexRender, Row } from '@tanstack/react-table';
 import { TableBody, TableCell, TableRow } from '@/components/ui/table.tsx';
-import { KvKey } from '@/kv/kv-models.ts';
+import { KvTableKey } from '@/kv/kv-models.ts';
 import { calcElementWidth } from '@/kv/table/kv-table-utils.ts';
 
 interface KvTableBodyProps {
-  rows: Row<KvKey>[];
+  rows: Row<KvTableKey>[];
   amountItems?: number;
-  onRowClick?: (row: Row<KvKey>) => void;
+  onRowClick?: (row: Row<KvTableKey>) => void;
 }
 
 export function KvTableBody(props: KvTableBodyProps) {
