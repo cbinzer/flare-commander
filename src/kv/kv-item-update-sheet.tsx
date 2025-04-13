@@ -24,7 +24,7 @@ import { cn } from '@/lib/utils.ts';
 export interface KvItemUpdateSheetProps {
   namespaceId: string;
   itemKey: string;
-  itemMetadata?: KvMetadata;
+  itemMetadata: KvMetadata;
   onUpdate?: (item: KvItem) => void;
   children?: ReactNode;
 }
@@ -37,8 +37,18 @@ const KvItemUpdateSheet: FunctionComponent<KvItemUpdateSheetProps> = ({
   onUpdate = () => {},
 }) => {
   const { kvItem, loadKvItem, writeKvItem, isLoading, isWriting } = useKvItem();
+  const valueInputRef = useRef<HTMLTextAreaElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
   const [sheetContainer, setSheetContainer] = useState<HTMLElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [key, setKey] = useState(kvItem?.key);
+  const [value, setValue] = useState(kvItem?.value);
+  const [metadata, setMetadata] = useState(stringifyMetadataJSON(itemMetadata));
+  const [errors, setErrors] = useState<{ metadata?: Error }>({});
+  const [expiration, setExpiration] = useState(kvItem?.expiration);
+
+  const isSaveButtonDisabled = isLoading || isWriting || !key || !!errors.metadata;
 
   const loadKvItemOnOpenChange = (open: boolean) => {
     setIsOpen(open);
@@ -51,13 +61,42 @@ const KvItemUpdateSheet: FunctionComponent<KvItemUpdateSheetProps> = ({
     );
   };
 
-  const writeKvItemOnSave = async (item: KvItem) => {
-    await writeKvItem({
-      namespaceId,
-      ...item,
-    });
-    setIsOpen(false);
+  const validateAndSetMetadata = (value: string) => {
+    setMetadata(value);
+    setErrors((prev) => ({ ...prev, metadata: validateMetadata(value) ? undefined : new Error('Invalid JSON') }));
   };
+
+  const handleSaveClick = async () => {
+    try {
+      const parsedMetadata = parseMetadataJSON(metadata);
+      const item: KvItem = {
+        key: key ?? '',
+        value,
+        expiration,
+        metadata: parsedMetadata,
+      };
+      await writeKvItem({
+        namespaceId,
+        ...item,
+      });
+      setIsOpen(false);
+    } catch (e) {
+      console.error('Error parsing metadata:', e);
+      setErrors((prevState) => ({ ...prevState, metadata: e as Error }));
+    }
+  };
+
+  useEffect(() => {
+    valueInputRef.current?.focus();
+    // Set cursor at the end
+    valueInputRef.current?.setSelectionRange(valueInputRef.current.value.length, valueInputRef.current.value.length);
+  }, [sheetContainer]);
+
+  useEffect(() => {
+    setKey(kvItem?.key);
+    setValue(kvItem?.value);
+    setExpiration(kvItem?.expiration);
+  }, [kvItem]);
 
   useEffect(() => {
     if (kvItem) {
@@ -69,177 +108,105 @@ const KvItemUpdateSheet: FunctionComponent<KvItemUpdateSheetProps> = ({
     <Sheet open={isOpen} onOpenChange={loadKvItemOnOpenChange}>
       <SheetTrigger asChild>{children}</SheetTrigger>
 
-      <KvItemUpdateSheetContent
-        item={kvItem}
-        itemMetadata={itemMetadata}
-        container={sheetContainer}
-        isLoading={isLoading}
-        isSaving={isWriting}
-        onSaveClick={writeKvItemOnSave}
-      />
-    </Sheet>
-  );
-};
+      <SheetContent closeDisabled={isWriting} className="w-[500px] sm:max-w-[500px]">
+        <SheetHeader>
+          <SheetTitle>Edit KV Item</SheetTitle>
+          <SheetDescription>Edit value, metadata and expiration date</SheetDescription>
+        </SheetHeader>
 
-interface KvItemUpdateSheetContentProps {
-  item: KvItem | null;
-  itemMetadata?: KvMetadata;
-  container?: HTMLElement | null;
-  isSaving?: boolean;
-  isLoading?: boolean;
-  onSaveClick?: (item: KvItem) => void;
-}
-
-const KvItemUpdateSheetContent: FunctionComponent<KvItemUpdateSheetContentProps> = ({
-  item,
-  itemMetadata = null,
-  container,
-  isSaving = false,
-  isLoading = false,
-  onSaveClick = () => {},
-}) => {
-  const valueInputRef = useRef<HTMLTextAreaElement>(null);
-  const nameInputRef = useRef<HTMLInputElement>(null);
-
-  const [key, setKey] = useState(item?.key);
-  const [value, setValue] = useState(item?.value);
-  const [metadata, setMetadata] = useState(stringifyMetadataJSON(itemMetadata));
-  const [errors, setErrors] = useState<{ metadata?: Error }>({});
-  const [expiration, setExpiration] = useState(item?.expiration);
-  const isSaveButtonDisabled = isLoading || isSaving || !key || !!errors.metadata;
-
-  const validateAndSetMetadata = (value: string) => {
-    setMetadata(value);
-    setErrors((prev) => ({ ...prev, metadata: validateMetadata(value) ? undefined : new Error('Invalid JSON') }));
-  };
-
-  const handleSaveClick = () => {
-    try {
-      const parsedMetadata = parseMetadataJSON(metadata);
-      const item: KvItem = {
-        key: key ?? '',
-        value,
-        expiration,
-        metadata: parsedMetadata,
-      };
-      onSaveClick(item);
-    } catch (e) {
-      console.error('Error parsing metadata:', e);
-      setErrors((prevState) => ({ ...prevState, metadata: e as Error }));
-    }
-  };
-
-  useEffect(() => {
-    valueInputRef.current?.focus();
-    // Set cursor at the end
-    valueInputRef.current?.setSelectionRange(valueInputRef.current.value.length, valueInputRef.current.value.length);
-  }, [item, container]);
-
-  useEffect(() => {
-    setKey(item?.key);
-    setValue(item?.value);
-    setExpiration(item?.expiration);
-  }, [item]);
-
-  return (
-    <SheetContent closeDisabled={isSaving} className="w-[500px] sm:max-w-[500px]">
-      <SheetHeader>
-        <SheetTitle>Edit KV Item</SheetTitle>
-        <SheetDescription>Edit value, metadata and expiration date</SheetDescription>
-      </SheetHeader>
-
-      <div className="grid gap-4 py-4">
-        <div className="grid grid-cols-12 items-center gap-4">
-          <Label htmlFor="key" className="col-span-2 text-right">
-            Key *
-          </Label>
-          {isLoading ? (
-            <Skeleton className="w-full h-[36px] rounded-md col-span-10" />
-          ) : (
-            <Input
-              id="key"
-              value={key}
-              className="col-span-10"
-              disabled={true}
-              ref={nameInputRef}
-              onChange={(e) => setKey(e.target.value)}
-            />
-          )}
-        </div>
-
-        <div className="grid grid-cols-12 items-start gap-4">
-          <Label htmlFor="value" className="col-span-2 text-right pt-2">
-            Value
-          </Label>
-          {isLoading ? (
-            <Skeleton id="value" className="w-full h-[200px] rounded-md col-span-10" />
-          ) : (
-            <Textarea
-              id="value"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              className="col-span-10 min-h-[200px]"
-              ref={valueInputRef}
-              disabled={isSaving}
-            />
-          )}
-        </div>
-
-        <div className="grid grid-cols-12 items-start gap-4">
-          <Label htmlFor="metadata" className="col-span-2 text-right pt-2">
-            Metadata
-          </Label>
-          {isLoading ? (
-            <Skeleton id="metadata" className="w-full h-[200px] rounded-md col-span-10" />
-          ) : (
-            <div className="col-span-10 space-y-2">
-              <Textarea
-                id="metadata"
-                value={metadata}
-                onChange={(e) => validateAndSetMetadata(e.target.value)}
-                className={cn('min-h-[200px]', errors.metadata && 'border-red-500 focus-visible:ring-red-500')}
-                disabled={isSaving}
-              />
-              {errors.metadata && (
-                <p className={cn('text-[0.8rem] font-medium text-destructive')}>Must be a valid JSON</p>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="grid grid-cols-12 items-center gap-4">
-          <Label htmlFor="expiration" className="col-span-2 text-right">
-            Expiration
-          </Label>
-          <div className="col-span-10 w-full">
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-12 items-center gap-4">
+            <Label htmlFor="key" className="col-span-2 text-right">
+              Key *
+            </Label>
             {isLoading ? (
-              <Skeleton className="w-full h-[36px] rounded-md" />
+              <Skeleton className="w-full h-[36px] rounded-md col-span-10" />
             ) : (
-              <DateTimePicker
-                container={container}
-                value={expiration}
-                disabled={isSaving}
-                onChange={(date) => setExpiration(date)}
+              <Input
+                id="key"
+                value={key}
+                className="col-span-10"
+                disabled={true}
+                ref={nameInputRef}
+                onChange={(e) => setKey(e.target.value)}
               />
             )}
           </div>
-        </div>
-      </div>
 
-      <SheetFooter>
-        <Button type="submit" disabled={isSaveButtonDisabled} onClick={handleSaveClick}>
-          {isSaving ? (
-            <>
-              <LoadingSpinner /> Saving...
-            </>
-          ) : (
-            <>
-              <Save /> Save
-            </>
-          )}
-        </Button>
-      </SheetFooter>
-    </SheetContent>
+          <div className="grid grid-cols-12 items-start gap-4">
+            <Label htmlFor="value" className="col-span-2 text-right pt-2">
+              Value
+            </Label>
+            {isLoading ? (
+              <Skeleton id="value" className="w-full h-[200px] rounded-md col-span-10" />
+            ) : (
+              <Textarea
+                id="value"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                className="col-span-10 min-h-[200px]"
+                ref={valueInputRef}
+                disabled={isWriting}
+              />
+            )}
+          </div>
+
+          <div className="grid grid-cols-12 items-start gap-4">
+            <Label htmlFor="metadata" className="col-span-2 text-right pt-2">
+              Metadata
+            </Label>
+            {isLoading ? (
+              <Skeleton id="metadata" className="w-full h-[200px] rounded-md col-span-10" />
+            ) : (
+              <div className="col-span-10 space-y-2">
+                <Textarea
+                  id="metadata"
+                  value={metadata}
+                  onChange={(e) => validateAndSetMetadata(e.target.value)}
+                  className={cn('min-h-[200px]', errors.metadata && 'border-red-500 focus-visible:ring-red-500')}
+                  disabled={isWriting}
+                />
+                {errors.metadata && (
+                  <p className={cn('text-[0.8rem] font-medium text-destructive')}>Must be a valid JSON</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-12 items-center gap-4">
+            <Label htmlFor="expiration" className="col-span-2 text-right">
+              Expiration
+            </Label>
+            <div className="col-span-10 w-full">
+              {isLoading ? (
+                <Skeleton className="w-full h-[36px] rounded-md" />
+              ) : (
+                <DateTimePicker
+                  container={sheetContainer}
+                  value={expiration}
+                  disabled={isWriting}
+                  onChange={(date) => setExpiration(date)}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+
+        <SheetFooter>
+          <Button type="submit" disabled={isSaveButtonDisabled} onClick={handleSaveClick}>
+            {isWriting ? (
+              <>
+                <LoadingSpinner /> Saving...
+              </>
+            ) : (
+              <>
+                <Save /> Save
+              </>
+            )}
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 };
 

@@ -55,7 +55,7 @@ export function KvTable({ namespace }: KvTableProps) {
           <KvItemUpdateSheet
             namespaceId={cell.row.original.namespaceId}
             itemKey={cell.getValue() as string}
-            itemMetadata={cell.row.original.metadata}
+            itemMetadata={cell.row.original.metadata ?? null}
             onUpdate={(kvItem) =>
               setKey({ name: kvItem.key, expiration: kvItem.expiration, metadata: kvItem.metadata })
             }
