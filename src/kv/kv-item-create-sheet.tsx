@@ -111,7 +111,10 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
       setIsSaving(false);
 
       if (error.kind === 'KeyAlreadyExists') {
-        setErrors({ key: error });
+        setErrors((prev) => ({
+          ...prev,
+          key: error,
+        }));
       } else {
         console.error('Error creating KV item:', error);
       }

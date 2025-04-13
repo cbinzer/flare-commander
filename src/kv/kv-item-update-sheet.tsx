@@ -19,6 +19,7 @@ import { useKvItem } from './kv-hooks';
 import { KvItem, KvMetadata } from './kv-models';
 import { parseMetadataJSON, stringifyMetadataJSON, validateMetadata } from '@/kv/kv-utils.ts';
 import { Save } from 'lucide-react';
+import { cn } from '@/lib/utils.ts';
 
 export interface KvItemUpdateSheetProps {
   namespaceId: string;
@@ -103,13 +104,13 @@ const KvItemUpdateSheetContent: FunctionComponent<KvItemUpdateSheetContentProps>
   const [key, setKey] = useState(item?.key);
   const [value, setValue] = useState(item?.value);
   const [metadata, setMetadata] = useState(stringifyMetadataJSON(itemMetadata));
-  const [isMetadataValid, setIsMetadataValid] = useState(true);
+  const [errors, setErrors] = useState<{ metadata?: Error }>({});
   const [expiration, setExpiration] = useState(item?.expiration);
-  const isSaveButtonDisabled = isLoading || isSaving || !key || !isMetadataValid;
+  const isSaveButtonDisabled = isLoading || isSaving || !key || !!errors.metadata;
 
   const validateAndSetMetadata = (value: string) => {
     setMetadata(value);
-    setIsMetadataValid(validateMetadata(value));
+    setErrors((prev) => ({ ...prev, metadata: validateMetadata(value) ? undefined : new Error('Invalid JSON') }));
   };
 
   const handleSaveClick = () => {
@@ -124,7 +125,7 @@ const KvItemUpdateSheetContent: FunctionComponent<KvItemUpdateSheetContentProps>
       onSaveClick(item);
     } catch (e) {
       console.error('Error parsing metadata:', e);
-      setIsMetadataValid(false);
+      setErrors((prevState) => ({ ...prevState, metadata: e as Error }));
     }
   };
 
@@ -165,6 +166,7 @@ const KvItemUpdateSheetContent: FunctionComponent<KvItemUpdateSheetContentProps>
             />
           )}
         </div>
+
         <div className="grid grid-cols-12 items-start gap-4">
           <Label htmlFor="value" className="col-span-2 text-right pt-2">
             Value
@@ -182,6 +184,7 @@ const KvItemUpdateSheetContent: FunctionComponent<KvItemUpdateSheetContentProps>
             />
           )}
         </div>
+
         <div className="grid grid-cols-12 items-start gap-4">
           <Label htmlFor="metadata" className="col-span-2 text-right pt-2">
             Metadata
@@ -189,15 +192,21 @@ const KvItemUpdateSheetContent: FunctionComponent<KvItemUpdateSheetContentProps>
           {isLoading ? (
             <Skeleton id="metadata" className="w-full h-[200px] rounded-md col-span-10" />
           ) : (
-            <Textarea
-              id="metadata"
-              value={metadata}
-              onChange={(e) => validateAndSetMetadata(e.target.value)}
-              className="col-span-10 min-h-[200px]"
-              disabled={isSaving}
-            />
+            <div className="col-span-10 space-y-2">
+              <Textarea
+                id="metadata"
+                value={metadata}
+                onChange={(e) => validateAndSetMetadata(e.target.value)}
+                className={cn('min-h-[200px]', errors.metadata && 'border-red-500 focus-visible:ring-red-500')}
+                disabled={isSaving}
+              />
+              {errors.metadata && (
+                <p className={cn('text-[0.8rem] font-medium text-destructive')}>Must be a valid JSON</p>
+              )}
+            </div>
           )}
         </div>
+
         <div className="grid grid-cols-12 items-center gap-4">
           <Label htmlFor="expiration" className="col-span-2 text-right">
             Expiration
