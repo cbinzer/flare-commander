@@ -42,11 +42,10 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
   const [key, setKey] = useState<string | undefined>(undefined);
   const [value, setValue] = useState<string | undefined>(undefined);
   const [metadata, setMetadata] = useState('');
-  const [keyErrorMessageVisible, setKeyErrorMessageVisible] = useState(false);
-  const [isMetadataValid, setIsMetadataValid] = useState(true);
+  const [errors, setErrors] = useState<{ key?: Error; metadata?: Error }>({});
   const [expiration, setExpiration] = useState<Date | undefined>(undefined);
 
-  const isSaveButtonDisabled = isSaving || !key || !isMetadataValid;
+  const isSaveButtonDisabled = isSaving || !key || !!errors.key || !!errors.metadata;
 
   const setContainerOnOpenChange = (open: boolean) => {
     setIsOpen(open);
@@ -62,12 +61,12 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
 
   const handleKeyChange = (e: ChangeEvent<HTMLInputElement>) => {
     setKey(e.target.value);
-    setKeyErrorMessageVisible(false);
+    setErrors((prev) => ({ ...prev, key: undefined }));
   };
 
   const validateAndSetMetadata = (value: string) => {
     setMetadata(value);
-    setIsMetadataValid(validateMetadata(value));
+    setErrors((prev) => ({ ...prev, metadata: validateMetadata(value) ? undefined : new Error('Invalid JSON') }));
   };
 
   const handleSaveClick = async () => {
@@ -87,7 +86,7 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
       });
     } catch (e) {
       console.error('Error parsing metadata:', e);
-      setIsMetadataValid(false);
+      setErrors((prev) => ({ ...prev, metadata: e as Error }));
     }
   };
 
@@ -104,7 +103,7 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
     setValue(undefined);
     setMetadata('');
     setExpiration(undefined);
-    setKeyErrorMessageVisible(false);
+    setErrors({});
   }, [isOpen]);
 
   useEffect(() => {
@@ -112,10 +111,10 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
       setIsSaving(false);
 
       if (error.kind === 'KeyAlreadyExists') {
-        setKeyErrorMessageVisible(true);
+        setErrors({ key: error });
+      } else {
+        console.error('Error creating KV item:', error);
       }
-
-      console.error('Error creating KV item:', error);
     }
   }, [error]);
 
@@ -140,10 +139,10 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
                 ref={nameInputRef}
                 disabled={isSaving}
                 onChange={handleKeyChange}
-                className={cn(keyErrorMessageVisible && 'border-red-500 focus-visible:ring-red-500')}
+                className={cn(errors.key && 'border-red-500 focus-visible:ring-red-500')}
               />
-              {keyErrorMessageVisible && (
-                <p className={cn('text-[0.8rem] font-medium text-destructive')}>This key already exists</p>
+              {errors.key && (
+                <p className={cn('text-[0.8rem] font-medium text-destructive')}>An item with this key already exists</p>
               )}
             </div>
           </div>
@@ -166,13 +165,18 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
             <Label htmlFor="metadata" className="col-span-2 text-right pt-2">
               Metadata
             </Label>
-            <Textarea
-              id="metadata"
-              value={metadata}
-              onChange={(e) => validateAndSetMetadata(e.target.value)}
-              className="col-span-10 min-h-[200px]"
-              disabled={isSaving}
-            />
+            <div className="col-span-10 space-y-2">
+              <Textarea
+                id="metadata"
+                value={metadata}
+                onChange={(e) => validateAndSetMetadata(e.target.value)}
+                className={cn('min-h-[200px]', errors.metadata && 'border-red-500 focus-visible:ring-red-500')}
+                disabled={isSaving}
+              />
+              {errors.metadata && (
+                <p className={cn('text-[0.8rem] font-medium text-destructive')}>Must be a valid JSON</p>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-12 items-start gap-4">
