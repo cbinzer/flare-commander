@@ -129,26 +129,25 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
         </SheetHeader>
 
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-12 items-center gap-4">
-            <Label htmlFor="key" className="col-span-2 text-right">
+          <div className="grid grid-cols-12 items-start gap-4">
+            <Label htmlFor="key" className="col-span-2 text-right pt-3">
               Key *
             </Label>
-            <Input
-              id="key"
-              value={key}
-              className="col-span-10"
-              ref={nameInputRef}
-              disabled={isSaving}
-              onChange={handleKeyChange}
-            />
-
-            {keyErrorMessageVisible ? (
-              <>
-                <div className="col-span-2" />
-                <p className={cn('text-[0.8rem] font-medium text-destructive col-span-10')}>This key already exists</p>
-              </>
-            ) : null}
+            <div className="col-span-10 space-y-2">
+              <Input
+                id="key"
+                value={key}
+                ref={nameInputRef}
+                disabled={isSaving}
+                onChange={handleKeyChange}
+                className={cn(keyErrorMessageVisible && 'border-red-500 focus-visible:ring-red-500')}
+              />
+              {keyErrorMessageVisible && (
+                <p className={cn('text-[0.8rem] font-medium text-destructive')}>This key already exists</p>
+              )}
+            </div>
           </div>
+
           <div className="grid grid-cols-12 items-start gap-4">
             <Label htmlFor="value" className="col-span-2 text-right pt-2">
               Value
@@ -162,6 +161,7 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
               disabled={isSaving}
             />
           </div>
+
           <div className="grid grid-cols-12 items-start gap-4">
             <Label htmlFor="metadata" className="col-span-2 text-right pt-2">
               Metadata
@@ -174,8 +174,9 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
               disabled={isSaving}
             />
           </div>
-          <div className="grid grid-cols-12 items-center gap-4">
-            <Label htmlFor="expiration" className="col-span-2 text-right">
+
+          <div className="grid grid-cols-12 items-start gap-4">
+            <Label htmlFor="expiration" className="col-span-2 text-right pt-3">
               Expiration
             </Label>
             <div className="col-span-10 w-full">
