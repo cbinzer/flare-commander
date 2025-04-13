@@ -1,6 +1,6 @@
 use crate::app_state::AppState;
 use crate::common::common_models::Credentials;
-use crate::kv::kv_models::{GetKeysInput, KvError, KvItem, KvKeys};
+use crate::kv::kv_models::{CreateKvItemInput, GetKeysInput, KvError, KvItem, KvKeys};
 use cloudflare::endpoints::workerskv::WorkersKvNamespace;
 use log::error;
 use serde::{Deserialize, Serialize};
@@ -32,6 +32,18 @@ pub async fn set_kv_item(
     state: State<'_, AppState>,
 ) -> Result<KvItem, KvCommandError> {
     Ok(state.kv_service.write_kv_item(&credentials, input).await?)
+}
+
+#[tauri::command]
+pub async fn create_kv_item(
+    credentials: Credentials,
+    input: CreateKvItemInput,
+    state: State<'_, AppState>,
+) -> Result<KvItem, KvCommandError> {
+    Ok(state
+        .kv_service
+        .create_kv_item(&credentials, &input)
+        .await?)
 }
 
 #[tauri::command]
