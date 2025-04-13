@@ -1,7 +1,7 @@
 use crate::app_state::AppState;
 use crate::authentication::authentication_commands::verify_credentials;
 use crate::kv::kv_commands::{create_kv_item, get_kv_keys, get_namespaces};
-use kv::kv_commands::{get_kv_item, set_kv_item};
+use kv::kv_commands::{get_kv_item, write_kv_item};
 use tauri::Manager;
 
 mod app_state;
@@ -28,7 +28,7 @@ pub fn run() {
             get_kv_item,
             get_kv_keys,
             create_kv_item,
-            set_kv_item,
+            write_kv_item,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -26,7 +26,7 @@ pub async fn get_kv_item<'a>(
 }
 
 #[tauri::command]
-pub async fn set_kv_item(
+pub async fn write_kv_item(
     credentials: Credentials,
     input: WriteKvItemInput,
     state: State<'_, AppState>,
