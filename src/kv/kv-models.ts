@@ -15,6 +15,14 @@ export interface KvItem {
   metadata?: KvMetadata;
 }
 
+export interface CreateKvItemInput {
+  namespaceId: string;
+  key: string;
+  value?: string;
+  expiration?: Date;
+  metadata?: KvMetadata;
+}
+
 export interface WriteKvItemInput {
   namespaceId: string;
   key: string;

@@ -30,7 +30,7 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
   children,
   onCreate = () => Promise.resolve(),
 }) => {
-  const { kvItem, writeKvItem } = useKvItem();
+  const { kvItem, createKvItem } = useKvItem();
   const [sheetContainer, setSheetContainer] = useState<HTMLElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -44,9 +44,9 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
     setTimeout(() => setSheetContainer(document.querySelector('[role="dialog"]') as HTMLElement), 100);
   };
 
-  const writeKvItemOnSave = async (item: KvItem) => {
+  const createKvItemOnSave = async (item: KvItem) => {
     setIsSaving(true);
-    await writeKvItem({
+    await createKvItem({
       namespaceId,
       ...item,
     });
@@ -67,7 +67,7 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
         open={isOpen}
         container={sheetContainer}
         isSaving={isSaving}
-        onSaveClick={writeKvItemOnSave}
+        onSaveClick={createKvItemOnSave}
       />
     </Sheet>
   );
