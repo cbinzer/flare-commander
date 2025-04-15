@@ -2,7 +2,8 @@ use crate::cloudflare::read_key_value::url_encode_key;
 use crate::common::common_models::Credentials;
 use crate::common::common_utils::get_cloudflare_env;
 use crate::kv::kv_models::{
-    map_api_errors, CreateKvItemInput, GetKeysInput, KvError, KvItem, KvKey, KvKeys,
+    map_api_errors, CreateKvItemInput, GetKeysInput, KvError, KvItem, KvItemsDeletionInput,
+    KvItemsDeletionResult, KvKey, KvKeys,
 };
 use chrono::DateTime;
 use cloudflare::endpoints::workerskv::list_namespaces::{ListNamespaces, ListNamespacesParams};
@@ -202,6 +203,40 @@ impl KvService {
                 error!("Error writing KV item: {:?}", kv_error);
 
                 Err(kv_error)
+            }
+        }
+    }
+
+    async fn delete_items(
+        &self,
+        credentials: &Credentials,
+        input: &KvItemsDeletionInput,
+    ) -> Result<KvItemsDeletionResult, KvError> {
+        let base_url: Url = (&get_cloudflare_env(&self.api_url)).into();
+        let url = format!(
+            "{}accounts/{}/storage/kv/namespaces/{}/bulk/delete",
+            base_url,
+            credentials.account_id(),
+            input.namespace_id,
+        );
+
+        let token = credentials.token().unwrap_or_default();
+        let response = self
+            .http_client
+            .delete(url)
+            .bearer_auth(token)
+            .json(&input.keys)
+            .send()
+            .await?;
+
+        match response.status() {
+            StatusCode::OK => {
+                let api_response = response.json::<ApiSuccess<KvItemsDeletionResult>>().await?;
+                Ok(api_response.result)
+            }
+            _ => {
+                let api_response = response.json::<ApiSuccess<()>>().await?;
+                Err(map_api_errors(api_response.errors))
             }
         }
     }
@@ -1013,6 +1048,80 @@ mod test {
             assert!(matches!(error, KvError::KeyAlreadyExists(_)));
 
             Ok(())
+        }
+    }
+
+    mod delete_items {
+        use crate::common::common_models::Credentials;
+        use crate::kv::kv_models::{KvError, KvItemsDeletionInput, KvItemsDeletionResult};
+        use crate::kv::kv_service::test::create_kv_service;
+        use crate::test::test_models::ApiSuccess;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        #[tokio::test]
+        async fn should_delete_items() -> Result<(), KvError> {
+            let deletion_input = KvItemsDeletionInput {
+                namespace_id: "my_namespace".to_string(),
+                keys: vec!["key1".to_string(), "key2".to_string()],
+            };
+
+            let account_id = "account_id";
+            let credentials = Credentials::UserAuthToken {
+                account_id: account_id.to_string(),
+                token: "my_token".to_string(),
+            };
+            let expected_result = KvItemsDeletionResult {
+                successful_key_count: deletion_input.keys.len() as u32,
+                unsuccessful_keys: vec![],
+            };
+            let mock_server =
+                create_mock_server(account_id, &deletion_input.namespace_id, &expected_result)
+                    .await;
+            let kv_service = create_kv_service(mock_server.uri());
+
+            let deletion_result = kv_service
+                .delete_items(&credentials, &deletion_input)
+                .await?;
+
+            assert_eq!(expected_result, deletion_result);
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_respond_with_unsuccessful_deleted_keys_if_it_is_not_possible_to_delete_some(
+        ) -> Result<(), KvError> {
+            todo!()
+        }
+
+        async fn should_respond_with_namespace_not_found_error_if_a_namespace_not_exist(
+        ) -> Result<(), KvError> {
+            todo!()
+        }
+
+        async fn create_mock_server(
+            account_id: &str,
+            namespace_id: &str,
+            result: &KvItemsDeletionResult,
+        ) -> MockServer {
+            let mock_server = MockServer::start().await;
+            let response_template_value =
+                ResponseTemplate::new(200).set_body_json(ApiSuccess::<KvItemsDeletionResult> {
+                    result: result.clone(),
+                    errors: vec![],
+                    result_info: None,
+                });
+
+            Mock::given(method("DELETE"))
+                .and(path(format!(
+                    "/client/v4/accounts/{account_id}/storage/kv/namespaces/{namespace_id}/bulk/delete",
+                )))
+                .respond_with(response_template_value)
+                .mount(&mock_server)
+                .await;
+
+            mock_server
         }
     }
 
