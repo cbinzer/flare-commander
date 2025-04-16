@@ -1,6 +1,16 @@
 import { CredentialsType, UserAuthTokenCredentials } from '@/authentication/auth-models.ts';
 import { useAuth } from '@/authentication/use-auth.ts';
-import { CreateKvItemInput, KvError, KvItem, KvKey, KvKeys, KvNamespace, WriteKvItemInput } from '@/kv/kv-models.ts';
+import {
+  CreateKvItemInput,
+  KvError,
+  KvItem,
+  KvItemsDeletionInput,
+  KvItemsDeletionResult,
+  KvKey,
+  KvKeys,
+  KvNamespace,
+  WriteKvItemInput,
+} from '@/kv/kv-models.ts';
 import { invoke } from '@tauri-apps/api/core';
 import { useEffect, useState } from 'react';
 
@@ -44,7 +54,9 @@ export function useKvKeys(namespaceId: string) {
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isLoadingNextKeys, setIsLoadingNextKeys] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [kvKeys, setKvKeys] = useState<KvKeys | null>(null);
+  const [deletionResult, setDeletionResult] = useState<KvItemsDeletionResult | null>(null);
   const [hasNextKeys, setHasNextKeys] = useState<boolean>(false);
   const [error, setError] = useState<KvError | null>(null);
 
@@ -117,19 +129,46 @@ export function useKvKeys(namespaceId: string) {
     });
   };
 
+  const deleteKeys = async (keys: string[]) => {
+    setIsDeleting(true);
+
+    const credentials: UserAuthTokenCredentials = {
+      type: CredentialsType.UserAuthToken,
+      account_id: account?.id ?? '',
+      token: (account?.credentials as UserAuthTokenCredentials).token,
+    };
+    const input: KvItemsDeletionInput = {
+      namespace_id: namespaceId,
+      keys,
+    };
+
+    try {
+      const result = await deleteKvItems(input, credentials);
+      setDeletionResult(result);
+    } catch (e) {
+      console.error(e);
+      setError(e as KvError);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   useEffect(() => {
     loadKeysInitial().then();
   }, [namespaceId]);
 
   return {
     kvKeys,
+    deletionResult,
     isLoading,
     isInitialLoading,
     isLoadingNextKeys,
+    isDeleting,
     hasNextKeys,
     loadNextKeys,
     reloadKeys,
     setKey,
+    deleteKeys,
     error,
   };
 }
@@ -319,6 +358,22 @@ export async function writeKvItem(input: WriteKvItemInput, credentials: UserAuth
       ...kvItem,
       expiration: kvItem.expiration ? new Date(kvItem.expiration) : undefined,
     };
+  } catch (e) {
+    const kvError = e as KvError;
+    console.error(kvError);
+    throw new KvError(kvError.message, kvError.kind);
+  }
+}
+
+export async function deleteKvItems(
+  input: KvItemsDeletionInput,
+  credentials: UserAuthTokenCredentials,
+): Promise<KvItemsDeletionResult> {
+  try {
+    return invoke<KvItemsDeletionResult>('delete_kv_items', {
+      input,
+      credentials,
+    });
   } catch (e) {
     const kvError = e as KvError;
     console.error(kvError);

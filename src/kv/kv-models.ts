@@ -31,6 +31,16 @@ export interface WriteKvItemInput {
   metadata?: KvMetadata;
 }
 
+export interface KvItemsDeletionInput {
+  namespace_id: string;
+  keys: string[];
+}
+
+export interface KvItemsDeletionResult {
+  successful_key_count: number;
+  unsuccessful_keys: string[];
+}
+
 export interface KvKeys {
   keys: KvKey[];
   cursor?: string;
