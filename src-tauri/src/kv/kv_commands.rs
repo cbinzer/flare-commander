@@ -1,6 +1,9 @@
 use crate::app_state::AppState;
 use crate::common::common_models::Credentials;
-use crate::kv::kv_models::{CreateKvItemInput, GetKeysInput, KvError, KvItem, KvKeys};
+use crate::kv::kv_models::{
+    CreateKvItemInput, GetKeysInput, KvError, KvItem, KvItemsDeletionInput, KvItemsDeletionResult,
+    KvKeys,
+};
 use cloudflare::endpoints::workerskv::WorkersKvNamespace;
 use log::error;
 use serde::{Deserialize, Serialize};
@@ -44,6 +47,15 @@ pub async fn create_kv_item(
         .kv_service
         .create_kv_item(&credentials, &input)
         .await?)
+}
+
+#[tauri::command]
+pub async fn delete_kv_items(
+    credentials: Credentials,
+    input: KvItemsDeletionInput,
+    state: State<'_, AppState>,
+) -> Result<KvItemsDeletionResult, KvCommandError> {
+    Ok(state.kv_service.delete_items(&credentials, &input).await?)
 }
 
 #[tauri::command]

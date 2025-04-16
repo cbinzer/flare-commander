@@ -174,7 +174,7 @@ impl<'a> From<&'a CreateKvItemInput> for GetKvItemInput<'a> {
     }
 }
 
-#[derive(Debug, Serialize, Clone, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct KvItemsDeletionInput {
     pub namespace_id: String,
     pub keys: Vec<String>,

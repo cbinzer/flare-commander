@@ -207,7 +207,7 @@ impl KvService {
         }
     }
 
-    async fn delete_items(
+    pub async fn delete_items(
         &self,
         credentials: &Credentials,
         input: &KvItemsDeletionInput,
