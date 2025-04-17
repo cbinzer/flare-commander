@@ -28,9 +28,16 @@ interface KvTableProps {
 export function KvTable({ namespace }: KvTableProps) {
   const [rowSelection, setRowSelection] = useState({});
   const [tableData, setTableData] = useState<KvTableKey[]>([]);
+  const [isUpdateSheetOpen, setIsUpdateSheetOpen] = useState(false);
+  const [kvKeyToEdit, setKvKeyToEdit] = useState<KvTableKey | null>(null);
   const { kvKeys, isInitialLoading, isLoadingNextKeys, hasNextKeys, loadNextKeys, reloadKeys, setKey } = useKvKeys(
     namespace.id,
   );
+
+  const openKvItemUpdateSheet = (key: KvTableKey) => {
+    setKvKeyToEdit(key);
+    setIsUpdateSheetOpen(true);
+  };
 
   const columns = useMemo<ColumnDef<KvTableKey>[]>(() => {
     return [
@@ -59,18 +66,13 @@ export function KvTable({ namespace }: KvTableProps) {
         accessorKey: 'name',
         header: 'Key Name',
         cell: (cell) => (
-          <KvItemUpdateSheet
-            namespaceId={cell.row.original.namespaceId}
-            itemKey={cell.getValue() as string}
-            itemMetadata={cell.row.original.metadata ?? null}
-            onUpdate={(kvItem) =>
-              setKey({ name: kvItem.key, expiration: kvItem.expiration, metadata: kvItem.metadata })
-            }
+          <Button
+            onClick={() => openKvItemUpdateSheet(cell.row.original)}
+            variant="link"
+            className="w-fit h-fit p-0 text-left text-foreground"
           >
-            <Button variant="link" className="w-fit h-fit p-0 text-left text-foreground">
-              {cell.getValue() as string}
-            </Button>
-          </KvItemUpdateSheet>
+            {cell.getValue() as string}
+          </Button>
         ),
       },
       {
@@ -96,7 +98,7 @@ export function KvTable({ namespace }: KvTableProps) {
         meta: {
           width: '50px',
         },
-        cell: () => (
+        cell: (cell) => (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -109,7 +111,7 @@ export function KvTable({ namespace }: KvTableProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-32">
-              <DropdownMenuItem>Edit</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => openKvItemUpdateSheet(cell.row.original)}>Edit</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem>Delete</DropdownMenuItem>
             </DropdownMenuContent>
@@ -174,6 +176,15 @@ export function KvTable({ namespace }: KvTableProps) {
           </Button>
         </div>
       ) : null}
+
+      <KvItemUpdateSheet
+        namespaceId={namespace.id}
+        itemKey={kvKeyToEdit?.name ?? ''}
+        itemMetadata={kvKeyToEdit?.metadata ?? null}
+        open={isUpdateSheetOpen}
+        onUpdate={(kvItem) => setKey({ name: kvItem.key, expiration: kvItem.expiration, metadata: kvItem.metadata })}
+        onOpenChange={setIsUpdateSheetOpen}
+      />
     </div>
   );
 }

@@ -25,7 +25,9 @@ export interface KvItemUpdateSheetProps {
   namespaceId: string;
   itemKey: string;
   itemMetadata: KvMetadata;
+  open?: boolean;
   onUpdate?: (item: KvItem) => void;
+  onOpenChange?: (open: boolean) => void;
   children?: ReactNode;
 }
 
@@ -33,8 +35,10 @@ const KvItemUpdateSheet: FunctionComponent<KvItemUpdateSheetProps> = ({
   namespaceId,
   itemKey,
   itemMetadata,
+  open = false,
   children,
   onUpdate = () => {},
+  onOpenChange = () => {},
 }) => {
   const { kvItem, loadKvItem, writeKvItem, isLoading, isWriting } = useKvItem();
   const valueInputRef = useRef<HTMLTextAreaElement>(null);
@@ -51,7 +55,9 @@ const KvItemUpdateSheet: FunctionComponent<KvItemUpdateSheetProps> = ({
   const isSaveButtonDisabled = isLoading || isWriting || !key || !!errors.metadata;
 
   const loadKvItemOnOpenChange = (open: boolean) => {
+    onOpenChange(open);
     setIsOpen(open);
+
     if (!open) {
       return;
     }
@@ -80,6 +86,7 @@ const KvItemUpdateSheet: FunctionComponent<KvItemUpdateSheetProps> = ({
         ...item,
       });
       setIsOpen(false);
+      onOpenChange(false);
     } catch (e) {
       console.error('Error parsing metadata:', e);
       setErrors((prevState) => ({ ...prevState, metadata: e as Error }));
@@ -103,6 +110,8 @@ const KvItemUpdateSheet: FunctionComponent<KvItemUpdateSheetProps> = ({
       onUpdate(kvItem);
     }
   }, [kvItem]);
+
+  useEffect(() => loadKvItemOnOpenChange(open), [open]);
 
   return (
     <Sheet open={isOpen} onOpenChange={loadKvItemOnOpenChange}>
