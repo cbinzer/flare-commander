@@ -20,6 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu.tsx';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog.tsx';
 
 interface KvTableProps {
   namespace: KvNamespace;
@@ -29,6 +30,7 @@ export function KvTable({ namespace }: KvTableProps) {
   const [rowSelection, setRowSelection] = useState({});
   const [tableData, setTableData] = useState<KvTableKey[]>([]);
   const [isUpdateSheetOpen, setIsUpdateSheetOpen] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [kvKeyToEdit, setKvKeyToEdit] = useState<KvTableKey | null>(null);
   const { kvKeys, isInitialLoading, isLoadingNextKeys, hasNextKeys, loadNextKeys, reloadKeys, setKey } = useKvKeys(
     namespace.id,
@@ -37,6 +39,10 @@ export function KvTable({ namespace }: KvTableProps) {
   const openKvItemUpdateSheet = (key: KvTableKey) => {
     setKvKeyToEdit(key);
     setIsUpdateSheetOpen(true);
+  };
+
+  const openDialog = () => {
+    setIsDialogOpen(true);
   };
 
   const columns = useMemo<ColumnDef<KvTableKey>[]>(() => {
@@ -113,7 +119,7 @@ export function KvTable({ namespace }: KvTableProps) {
             <DropdownMenuContent align="end" className="w-32">
               <DropdownMenuItem onClick={() => openKvItemUpdateSheet(cell.row.original)}>Edit</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Delete</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => openDialog()}>Delete</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         ),
@@ -185,6 +191,18 @@ export function KvTable({ namespace }: KvTableProps) {
         onUpdate={(kvItem) => setKey({ name: kvItem.key, expiration: kvItem.expiration, metadata: kvItem.metadata })}
         onOpenChange={setIsUpdateSheetOpen}
       />
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Are you absolutely sure?</DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. This will permanently delete your account and remove your data from our
+              servers.
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
