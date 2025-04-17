@@ -11,8 +11,15 @@ import { ColumnDef, getCoreRowModel, useReactTable } from '@tanstack/react-table
 import { format } from 'date-fns';
 import { FunctionComponent, useEffect, useMemo, useState } from 'react';
 import KvItemUpdateSheet from '../kv-item-update-sheet.tsx';
-import { ArrowDown, PlusIcon } from 'lucide-react';
+import { ArrowDown, MoreVerticalIcon, PlusIcon } from 'lucide-react';
 import KvItemCreateSheet from '@/kv/kv-item-create-sheet.tsx';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu.tsx';
 
 interface KvTableProps {
   namespace: KvNamespace;
@@ -81,6 +88,33 @@ export function KvTable({ namespace }: KvTableProps) {
         meta: {
           width: '150px',
         },
+      },
+      {
+        id: 'actions',
+        accessorKey: 'actions',
+        header: '',
+        meta: {
+          width: '50px',
+        },
+        cell: () => (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className="flex size-8 text-muted-foreground data-[state=open]:bg-muted"
+                size="icon"
+              >
+                <MoreVerticalIcon />
+                <span className="sr-only">Open menu</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-32">
+              <DropdownMenuItem>Edit</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>Delete</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ),
       },
     ];
   }, []);
