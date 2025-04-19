@@ -11,7 +11,7 @@ import { ColumnDef, getCoreRowModel, useReactTable } from '@tanstack/react-table
 import { format } from 'date-fns';
 import { FunctionComponent, useEffect, useMemo, useState } from 'react';
 import KvItemUpdateSheet from '../kv-item-update-sheet.tsx';
-import { ArrowDown, EditIcon, MoreVerticalIcon, PlusIcon, TrashIcon } from 'lucide-react';
+import { ArrowDown, EditIcon, MoreVerticalIcon, PlusIcon, Trash2Icon, TrashIcon } from 'lucide-react';
 import KvItemCreateSheet from '@/kv/kv-item-create-sheet.tsx';
 import {
   DropdownMenu,
@@ -54,6 +54,12 @@ export function KvTable({ namespace }: KvTableProps) {
     setIsDialogOpen(true);
   };
 
+  const openKvKeysDeleteDialogWithSelectedItems = () => {
+    const selectedKeys = table.getSelectedRowModel().rows.map((row) => row.original);
+    setKvKeysToDelete(selectedKeys);
+    setIsDialogOpen(true);
+  };
+
   const closeKvKeysDeleteDialog = () => {
     setKvKeysToDelete([]);
     setIsDialogOpen(false);
@@ -65,6 +71,11 @@ export function KvTable({ namespace }: KvTableProps) {
     try {
       await deleteKeys(kvKeysToDelete.map((item) => item.name));
       await reloadKeys();
+
+      const keys = kvKeysToDelete.map((key) => key.name);
+      const newSelection: Record<string, unknown> = { ...rowSelection };
+      keys.forEach((key) => delete newSelection[key]);
+      setRowSelection(newSelection);
     } catch (e) {
       console.error('Error deleting keys:', e);
     } finally {
@@ -164,7 +175,9 @@ export function KvTable({ namespace }: KvTableProps) {
   const table = useReactTable({
     data: tableData,
     columns,
+    enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
+    getRowId: (row) => row.name,
     getCoreRowModel: getCoreRowModel(),
     state: {
       rowSelection,
@@ -180,20 +193,32 @@ export function KvTable({ namespace }: KvTableProps) {
     setTableData(kvKeys?.keys.map((key) => ({ ...key, namespaceId: namespace.id })) ?? []);
   }, [kvKeys]);
 
+  const deleteButtonEnabled = table.getIsAllPageRowsSelected() || table.getIsSomePageRowsSelected();
   return (
     <div>
       <div className="w-full grid grid-cols-[1fr_auto] align-items-right py-4">
         <div />
-        <KvItemCreateSheet namespaceId={namespace.id} onCreate={async () => await reloadKeys()}>
-          <Button variant="outline" size="sm">
-            <PlusIcon />
-            <span className="hidden lg:inline">Add Item</span>
+        <div className="grid grid-cols-[auto_auto] gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!deleteButtonEnabled}
+            onClick={openKvKeysDeleteDialogWithSelectedItems}
+          >
+            <Trash2Icon />
+            <span className="hidden lg:inline">Delete</span>
           </Button>
-        </KvItemCreateSheet>
+          <KvItemCreateSheet namespaceId={namespace.id} onCreate={async () => await reloadKeys()}>
+            <Button variant="outline" size="sm">
+              <PlusIcon />
+              <span className="hidden lg:inline">Add Item</span>
+            </Button>
+          </KvItemCreateSheet>
+        </div>
       </div>
 
       <div className="rounded-md border">
-        <Table className="table-fixed">
+        <Table className="table-fixed" onSelect={(e) => console.log(e)}>
           <KvTableHeader headerGroups={table.getHeaderGroups()} />
 
           {isInitialLoading ? (
