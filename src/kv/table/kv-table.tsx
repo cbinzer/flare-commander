@@ -11,7 +11,7 @@ import { ColumnDef, getCoreRowModel, useReactTable } from '@tanstack/react-table
 import { format } from 'date-fns';
 import { FunctionComponent, useEffect, useMemo, useState } from 'react';
 import KvItemUpdateSheet from '../kv-item-update-sheet.tsx';
-import { ArrowDown, MoreVerticalIcon, PlusIcon } from 'lucide-react';
+import { ArrowDown, EditIcon, MoreVerticalIcon, PlusIcon, TrashIcon } from 'lucide-react';
 import KvItemCreateSheet from '@/kv/kv-item-create-sheet.tsx';
 import {
   DropdownMenu,
@@ -20,7 +20,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu.tsx';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog.tsx';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog.tsx';
 
 interface KvTableProps {
   namespace: KvNamespace;
@@ -31,18 +38,39 @@ export function KvTable({ namespace }: KvTableProps) {
   const [tableData, setTableData] = useState<KvTableKey[]>([]);
   const [isUpdateSheetOpen, setIsUpdateSheetOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [kvKeyToEdit, setKvKeyToEdit] = useState<KvTableKey | null>(null);
-  const { kvKeys, isInitialLoading, isLoadingNextKeys, hasNextKeys, loadNextKeys, reloadKeys, setKey } = useKvKeys(
-    namespace.id,
-  );
+  const [kvKeysToDelete, setKvKeysToDelete] = useState<KvTableKey[]>([]);
+  const { kvKeys, isInitialLoading, isLoadingNextKeys, hasNextKeys, loadNextKeys, reloadKeys, setKey, deleteKeys } =
+    useKvKeys(namespace.id);
 
   const openKvItemUpdateSheet = (key: KvTableKey) => {
     setKvKeyToEdit(key);
     setIsUpdateSheetOpen(true);
   };
 
-  const openDialog = () => {
+  const openKvKeysDeleteDialog = (keys: KvTableKey[]) => {
+    setKvKeysToDelete(keys);
     setIsDialogOpen(true);
+  };
+
+  const closeKvKeysDeleteDialog = () => {
+    setKvKeysToDelete([]);
+    setIsDialogOpen(false);
+  };
+
+  const deleteKvItemsAndReload = async () => {
+    setIsDeleting(true);
+
+    try {
+      await deleteKeys(kvKeysToDelete.map((item) => item.name));
+      await reloadKeys();
+    } catch (e) {
+      console.error('Error deleting keys:', e);
+    } finally {
+      setIsDialogOpen(false);
+      setIsDeleting(false);
+    }
   };
 
   const columns = useMemo<ColumnDef<KvTableKey>[]>(() => {
@@ -68,9 +96,9 @@ export function KvTable({ namespace }: KvTableProps) {
         },
       },
       {
-        id: 'name',
+        id: 'key',
         accessorKey: 'name',
-        header: 'Key Name',
+        header: 'Key',
         cell: (cell) => (
           <Button
             onClick={() => openKvItemUpdateSheet(cell.row.original)}
@@ -94,7 +122,7 @@ export function KvTable({ namespace }: KvTableProps) {
           return <>{formattedExpirationDate}</>;
         },
         meta: {
-          width: '150px',
+          width: '180px',
         },
       },
       {
@@ -117,9 +145,15 @@ export function KvTable({ namespace }: KvTableProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-32">
-              <DropdownMenuItem onClick={() => openKvItemUpdateSheet(cell.row.original)}>Edit</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => openKvItemUpdateSheet(cell.row.original)}>
+                <EditIcon />
+                Edit
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => openDialog()}>Delete</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => openKvKeysDeleteDialog([cell.row.original])}>
+                <TrashIcon />
+                Delete
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         ),
@@ -136,6 +170,11 @@ export function KvTable({ namespace }: KvTableProps) {
       rowSelection,
     },
   });
+
+  const deleteDescription =
+    kvKeysToDelete.length === 1
+      ? `the item with the key <b>${kvKeysToDelete[0].name}</b>`
+      : `<b>${kvKeysToDelete.length}</b> items`;
 
   useEffect(() => {
     setTableData(kvKeys?.keys.map((key) => ({ ...key, namespaceId: namespace.id })) ?? []);
@@ -193,14 +232,30 @@ export function KvTable({ namespace }: KvTableProps) {
       />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent closeDisabled={isDeleting}>
           <DialogHeader>
-            <DialogTitle>Are you absolutely sure?</DialogTitle>
+            <DialogTitle>Are you sure?</DialogTitle>
             <DialogDescription>
-              This action cannot be undone. This will permanently delete your account and remove your data from our
-              servers.
+              Do you really want to delete <span dangerouslySetInnerHTML={{ __html: deleteDescription }} />? This action
+              cannot be undone.
             </DialogDescription>
           </DialogHeader>
+          <DialogFooter>
+            <Button variant="secondary" disabled={isDeleting} onClick={closeKvKeysDeleteDialog}>
+              Cancel
+            </Button>
+            <Button variant="destructive" disabled={isDeleting} onClick={deleteKvItemsAndReload}>
+              {isDeleting ? (
+                <>
+                  <LoadingSpinner /> Deleting...
+                </>
+              ) : (
+                <>
+                  <TrashIcon /> Delete
+                </>
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
