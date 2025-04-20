@@ -197,9 +197,14 @@ export function KvTable({ namespace }: KvTableProps) {
   const deleteButtonEnabled = table.getIsAllPageRowsSelected() || table.getIsSomePageRowsSelected();
   return (
     <div>
-      <div className="w-full grid grid-cols-[1fr_auto] align-items-right py-4">
-        <div />
+      <div className="w-full grid grid-cols-[auto_1fr] align-items-right py-4">
         <div className="grid grid-cols-[auto_auto] gap-2">
+          <KvItemCreateSheet namespaceId={namespace.id} onCreate={async () => await reloadKeys()}>
+            <Button variant="outline" size="sm">
+              <PlusIcon />
+              <span className="hidden lg:inline">Add Item</span>
+            </Button>
+          </KvItemCreateSheet>
           <Button
             variant="outline"
             size="sm"
@@ -209,13 +214,8 @@ export function KvTable({ namespace }: KvTableProps) {
             <Trash2Icon />
             <span className="hidden lg:inline">Delete</span>
           </Button>
-          <KvItemCreateSheet namespaceId={namespace.id} onCreate={async () => await reloadKeys()}>
-            <Button variant="outline" size="sm">
-              <PlusIcon />
-              <span className="hidden lg:inline">Add Item</span>
-            </Button>
-          </KvItemCreateSheet>
         </div>
+        <div />
       </div>
 
       <div className="rounded-md border">
