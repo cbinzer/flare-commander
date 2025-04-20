@@ -192,6 +192,7 @@ export function KvTable({ namespace }: KvTableProps) {
   useEffect(() => {
     setTableData(kvKeys?.keys.map((key) => ({ ...key, namespaceId: namespace.id })) ?? []);
   }, [kvKeys]);
+  useEffect(() => setRowSelection({}), [namespace]);
 
   const deleteButtonEnabled = table.getIsAllPageRowsSelected() || table.getIsSomePageRowsSelected();
   return (
