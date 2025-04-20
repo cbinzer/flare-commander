@@ -11,7 +11,7 @@ import { ColumnDef, getCoreRowModel, useReactTable } from '@tanstack/react-table
 import { format } from 'date-fns';
 import { FunctionComponent, useEffect, useMemo, useState } from 'react';
 import KvItemUpdateSheet from '../kv-item-update-sheet.tsx';
-import { ArrowDown, EditIcon, MoreVerticalIcon, PlusIcon, Trash2Icon, TrashIcon } from 'lucide-react';
+import { ArrowDown, EditIcon, MoreVerticalIcon, PlusIcon, RefreshCcwIcon, Trash2Icon, TrashIcon } from 'lucide-react';
 import KvItemCreateSheet from '@/kv/kv-item-create-sheet.tsx';
 import {
   DropdownMenu,
@@ -39,6 +39,7 @@ export function KvTable({ namespace }: KvTableProps) {
   const [isUpdateSheetOpen, setIsUpdateSheetOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [kvKeyToEdit, setKvKeyToEdit] = useState<KvTableKey | null>(null);
   const [kvKeysToDelete, setKvKeysToDelete] = useState<KvTableKey[]>([]);
   const { kvKeys, isInitialLoading, isLoadingNextKeys, hasNextKeys, loadNextKeys, reloadKeys, setKey, deleteKeys } =
@@ -63,6 +64,19 @@ export function KvTable({ namespace }: KvTableProps) {
   const closeKvKeysDeleteDialog = () => {
     setKvKeysToDelete([]);
     setIsDialogOpen(false);
+  };
+
+  const refreshKeys = async () => {
+    setIsRefreshing(true);
+
+    try {
+      await reloadKeys();
+      setRowSelection({});
+    } catch (e) {
+      console.error('Error refreshing keys:', e);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const deleteKvItemsAndReload = async () => {
@@ -198,9 +212,12 @@ export function KvTable({ namespace }: KvTableProps) {
   return (
     <div>
       <div className="w-full grid grid-cols-[auto_1fr] align-items-right py-4">
-        <div className="grid grid-cols-[auto_auto] gap-2">
+        <div className="grid grid-cols-[auto_auto_auto] gap-2">
+          <Button variant="outline" size="sm" disabled={isRefreshing} onClick={refreshKeys}>
+            <RefreshCcwIcon className={isRefreshing ? 'animate-spin' : ''} />
+          </Button>
           <KvItemCreateSheet namespaceId={namespace.id} onCreate={async () => await reloadKeys()}>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" disabled={isRefreshing}>
               <PlusIcon />
               <span className="hidden lg:inline">Add Item</span>
             </Button>
@@ -208,7 +225,7 @@ export function KvTable({ namespace }: KvTableProps) {
           <Button
             variant="outline"
             size="sm"
-            disabled={!deleteButtonEnabled}
+            disabled={!deleteButtonEnabled || isRefreshing}
             onClick={openKvKeysDeleteDialogWithSelectedItems}
           >
             <Trash2Icon />
@@ -222,7 +239,7 @@ export function KvTable({ namespace }: KvTableProps) {
         <Table className="table-fixed" onSelect={(e) => console.log(e)}>
           <KvTableHeader headerGroups={table.getHeaderGroups()} />
 
-          {isInitialLoading ? (
+          {isInitialLoading || isRefreshing ? (
             <LoadingTableBody pageSize={25} columns={columns} />
           ) : table.getRowModel().rows?.length ? (
             <KvTableBody rows={table.getRowModel().rows} />
@@ -232,7 +249,7 @@ export function KvTable({ namespace }: KvTableProps) {
         </Table>
       </div>
 
-      {hasNextKeys && !isInitialLoading ? (
+      {hasNextKeys && !isInitialLoading && !isRefreshing ? (
         <div className="flex items-center justify-center space-x-2 py-4">
           <Button variant="outline" size="sm" onClick={loadNextKeys} disabled={isLoadingNextKeys}>
             {isLoadingNextKeys ? (
