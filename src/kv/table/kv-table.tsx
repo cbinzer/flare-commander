@@ -9,7 +9,7 @@ import { KvTableBody } from '@/kv/table/kv-table-body.tsx';
 import { KvTableHeader } from '@/kv/table/kv-table-header.tsx';
 import { ColumnDef, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { format } from 'date-fns';
-import { FunctionComponent, useEffect, useMemo, useState } from 'react';
+import { FocusEvent, FunctionComponent, KeyboardEvent, useEffect, useMemo, useState } from 'react';
 import KvItemUpdateSheet from '../kv-item-update-sheet.tsx';
 import {
   ArrowDown,
@@ -52,8 +52,18 @@ export function KvTable({ namespace }: KvTableProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [kvKeyToEdit, setKvKeyToEdit] = useState<KvTableKey | null>(null);
   const [kvKeysToDelete, setKvKeysToDelete] = useState<KvTableKey[]>([]);
-  const { kvKeys, isInitialLoading, isLoadingNextKeys, hasNextKeys, loadNextKeys, reloadKeys, setKey, deleteKeys } =
-    useKvKeys(namespace.id);
+  const {
+    kvKeys,
+    prefix,
+    isInitialLoading,
+    isLoadingNextKeys,
+    hasNextKeys,
+    loadNextKeys,
+    reloadKeys,
+    setKey,
+    setPrefix,
+    deleteKeys,
+  } = useKvKeys(namespace.id);
 
   const openKvItemUpdateSheet = (key: KvTableKey) => {
     setKvKeyToEdit(key);
@@ -105,6 +115,22 @@ export function KvTable({ namespace }: KvTableProps) {
     } finally {
       setIsDialogOpen(false);
       setIsDeleting(false);
+    }
+  };
+
+  const changePrefixOnEnter = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      setPrefix(event.currentTarget.value);
+      setRowSelection({});
+    }
+  };
+
+  const changePrefixOnBlur = (event: FocusEvent<HTMLInputElement>) => {
+    const newPrefix = event.currentTarget.value;
+    const currentPrefix = prefix ?? '';
+    if (newPrefix !== currentPrefix) {
+      setPrefix(newPrefix);
+      setRowSelection({});
     }
   };
 
@@ -229,6 +255,8 @@ export function KvTable({ namespace }: KvTableProps) {
             placeholder="Search keys by prefix..."
             className="pl-8 max-w-[250px] h-8"
             disabled={isInitialLoading || isRefreshing}
+            onKeyDown={changePrefixOnEnter}
+            onBlur={changePrefixOnBlur}
           />
         </div>
 

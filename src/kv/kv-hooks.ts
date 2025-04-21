@@ -57,10 +57,11 @@ export function useKvKeys(namespaceId: string) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [kvKeys, setKvKeys] = useState<KvKeys | null>(null);
   const [deletionResult, setDeletionResult] = useState<KvItemsDeletionResult | null>(null);
+  const [prefix, setPrefix] = useState<string | undefined>(undefined);
   const [hasNextKeys, setHasNextKeys] = useState<boolean>(false);
   const [error, setError] = useState<KvError | null>(null);
 
-  const loadKeys = async (cursor?: string, limit?: number) => {
+  const loadKeys = async (cursor?: string, limit?: number, prefix?: string) => {
     setIsLoading(true);
 
     const credentials: UserAuthTokenCredentials = {
@@ -70,7 +71,7 @@ export function useKvKeys(namespaceId: string) {
     };
 
     try {
-      const nextKeys = await getKvKeys({ namespaceId, cursor, limit }, credentials);
+      const nextKeys = await getKvKeys({ namespaceId, cursor, limit, prefix }, credentials);
       if (cursor) {
         setKvKeys((previousKeys) => {
           return {
@@ -96,7 +97,7 @@ export function useKvKeys(namespaceId: string) {
     try {
       setIsInitialLoading(true);
       setKvKeys(null);
-      await loadKeys();
+      await loadKeys(undefined, undefined, prefix);
     } finally {
       setIsInitialLoading(false);
     }
@@ -113,7 +114,7 @@ export function useKvKeys(namespaceId: string) {
 
   const reloadKeys = async () => {
     const limit = kvKeys?.keys.length;
-    await loadKeys(undefined, limit);
+    await loadKeys(undefined, limit, prefix);
   };
 
   const setKey = (keyToReplace: KvKey) => {
@@ -155,10 +156,11 @@ export function useKvKeys(namespaceId: string) {
 
   useEffect(() => {
     loadKeysInitial().then();
-  }, [namespaceId]);
+  }, [namespaceId, prefix]);
 
   return {
     kvKeys,
+    prefix,
     deletionResult,
     isLoading,
     isInitialLoading,
@@ -168,6 +170,7 @@ export function useKvKeys(namespaceId: string) {
     loadNextKeys,
     reloadKeys,
     setKey,
+    setPrefix,
     deleteKeys,
     error,
   };
@@ -255,6 +258,7 @@ export async function getKvKeys(
     namespaceId: string;
     cursor?: string;
     limit?: number;
+    prefix?: string;
   },
   credentials: UserAuthTokenCredentials,
 ): Promise<KvKeys> {
@@ -263,6 +267,7 @@ export async function getKvKeys(
       namespace_id: input.namespaceId,
       cursor: input.cursor,
       limit: input.limit,
+      prefix: input.prefix,
     };
 
     const kvKeys = await invoke<KvKeys>('get_kv_keys', {
