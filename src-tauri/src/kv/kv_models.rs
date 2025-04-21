@@ -133,6 +133,7 @@ pub struct GetKeysInput<'a> {
     pub namespace_id: &'a str,
     pub cursor: Option<String>,
     pub limit: Option<u32>,
+    pub prefix: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

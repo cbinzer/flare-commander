@@ -116,7 +116,11 @@ impl KvService {
             .http_client
             .get(&url)
             .bearer_auth(token)
-            .query(&[("limit", limit), ("cursor", input.cursor), ("prefix", None)])
+            .query(&[
+                ("limit", limit),
+                ("cursor", input.cursor),
+                ("prefix", input.prefix),
+            ])
             .send()
             .await?;
         let api_response = response.json::<ApiSuccess<Option<Vec<KvKey>>>>().await?;
@@ -525,6 +529,7 @@ mod test {
                 namespace_id: namespace,
                 limit: None,
                 cursor: None,
+                prefix: None,
             };
 
             let keys = kv_service.get_keys(&credentials, get_keys_input).await?;
@@ -583,10 +588,57 @@ mod test {
                 namespace_id: namespace,
                 limit: None,
                 cursor: Some(cursor.to_string()),
+                prefix: None,
             };
 
             let keys = kv_service.get_keys(&credentials, get_keys_input).await?;
 
+            assert_eq!(keys.keys, expected_kv_keys);
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_get_keys_with_given_prefix() -> Result<(), KvError> {
+            let expected_kv_keys = vec![KvKey {
+                name: "key1".to_string(),
+                expiration: None,
+                metadata: None,
+            }];
+            let credentials = Credentials::UserAuthToken {
+                account_id: "my_account_id".to_string(),
+                token: "my_token".to_string(),
+            };
+            let namespace = "my_namespace";
+            let prefix = "key";
+
+            let mock_server = MockServer::start().await;
+            let response_template =
+                ResponseTemplate::new(200).set_body_json(ApiSuccess::<Vec<KvKey>> {
+                    result: expected_kv_keys.clone(),
+                    errors: vec![],
+                    result_info: None,
+                });
+            Mock::given(method("GET"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/keys",
+                    credentials.account_id(),
+                    namespace
+                )))
+                .and(query_param("prefix", prefix))
+                .respond_with(response_template)
+                .mount(&mock_server)
+                .await;
+
+            let kv_service = create_kv_service(mock_server.uri());
+            let get_keys_input = GetKeysInput {
+                namespace_id: namespace,
+                limit: None,
+                cursor: None,
+                prefix: Some(prefix.to_string()),
+            };
+
+            let keys = kv_service.get_keys(&credentials, get_keys_input).await?;
             assert_eq!(keys.keys, expected_kv_keys);
 
             Ok(())
@@ -629,6 +681,7 @@ mod test {
                         namespace_id,
                         limit: None,
                         cursor: None,
+                        prefix: None,
                     },
                 )
                 .await;
