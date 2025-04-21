@@ -11,7 +11,16 @@ import { ColumnDef, getCoreRowModel, useReactTable } from '@tanstack/react-table
 import { format } from 'date-fns';
 import { FunctionComponent, useEffect, useMemo, useState } from 'react';
 import KvItemUpdateSheet from '../kv-item-update-sheet.tsx';
-import { ArrowDown, EditIcon, MoreVerticalIcon, PlusIcon, RefreshCcwIcon, Trash2Icon, TrashIcon } from 'lucide-react';
+import {
+  ArrowDown,
+  EditIcon,
+  MoreVerticalIcon,
+  PlusIcon,
+  RefreshCcwIcon,
+  Search,
+  Trash2Icon,
+  TrashIcon,
+} from 'lucide-react';
 import KvItemCreateSheet from '@/kv/kv-item-create-sheet.tsx';
 import {
   DropdownMenu,
@@ -28,6 +37,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog.tsx';
+import { Input } from '@/components/ui/input.tsx';
 
 interface KvTableProps {
   namespace: KvNamespace;
@@ -211,17 +221,18 @@ export function KvTable({ namespace }: KvTableProps) {
   const deleteButtonEnabled = table.getIsAllPageRowsSelected() || table.getIsSomePageRowsSelected();
   return (
     <div>
-      <div className="w-full grid grid-cols-[auto_1fr] align-items-right py-4">
+      <div className="w-full grid grid-cols-[1fr_auto] gap-2 align-items-right py-4">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-2 top-1/2 size-4 -translate-y-1/2 select-none opacity-50" />
+          <Input
+            type="search"
+            placeholder="Search keys by prefix..."
+            className="pl-8 max-w-[250px] h-8"
+            disabled={isInitialLoading || isRefreshing}
+          />
+        </div>
+
         <div className="grid grid-cols-[auto_auto_auto] gap-2">
-          <Button variant="outline" size="sm" disabled={isRefreshing} onClick={refreshKeys}>
-            <RefreshCcwIcon className={isRefreshing ? 'animate-spin' : ''} />
-          </Button>
-          <KvItemCreateSheet namespaceId={namespace.id} onCreate={async () => await reloadKeys()}>
-            <Button variant="outline" size="sm" disabled={isRefreshing}>
-              <PlusIcon />
-              <span className="hidden lg:inline">Add Item</span>
-            </Button>
-          </KvItemCreateSheet>
           <Button
             variant="outline"
             size="sm"
@@ -231,12 +242,20 @@ export function KvTable({ namespace }: KvTableProps) {
             <Trash2Icon />
             <span className="hidden lg:inline">Delete</span>
           </Button>
+          <KvItemCreateSheet namespaceId={namespace.id} onCreate={async () => await reloadKeys()}>
+            <Button variant="outline" size="sm" disabled={isRefreshing}>
+              <PlusIcon />
+              <span className="hidden lg:inline">Add Item</span>
+            </Button>
+          </KvItemCreateSheet>
+          <Button variant="outline" size="sm" disabled={isRefreshing} onClick={refreshKeys}>
+            <RefreshCcwIcon className={isRefreshing ? 'animate-spin' : ''} />
+          </Button>
         </div>
-        <div />
       </div>
 
       <div className="rounded-md border">
-        <Table className="table-fixed" onSelect={(e) => console.log(e)}>
+        <Table className="table-fixed">
           <KvTableHeader headerGroups={table.getHeaderGroups()} />
 
           {isInitialLoading || isRefreshing ? (
