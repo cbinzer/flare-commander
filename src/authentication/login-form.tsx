@@ -1,39 +1,20 @@
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ComponentPropsWithoutRef, FormEvent, useState } from 'react';
 import { useAuth } from '@/authentication/use-auth.ts';
 import { LoadingSpinner } from '@/components/ui/loading-spinner.tsx';
-import {
-  AuthenticationError,
-  CredentialsType,
-  UserAuthTokenCredentials,
-} from '@/authentication/auth-models.ts';
+import { AuthenticationError, CredentialsType, UserAuthTokenCredentials } from '@/authentication/auth-models.ts';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert.tsx';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, GalleryVerticalEnd } from 'lucide-react';
 
-export function LoginForm({
-  className,
-  ...props
-}: ComponentPropsWithoutRef<'div'>) {
+export function LoginForm({ className, ...props }: ComponentPropsWithoutRef<'div'>) {
   const { verifyCredentials } = useAuth();
-  const [accountIdErrorMessage, setAccountIdErrorMessage] = useState<
-    string | null
-  >(null);
-  const [tokenErrorMessage, setTokenErrorMessage] = useState<string | null>(
-    null,
-  );
-  const [unknownErrorMessage, setUnknownErrorMessage] = useState<string | null>(
-    null,
-  );
+  const [accountIdErrorMessage, setAccountIdErrorMessage] = useState<string | null>(null);
+  const [tokenErrorMessage, setTokenErrorMessage] = useState<string | null>(null);
+  const [unknownErrorMessage, setUnknownErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const doLogin = async (event: FormEvent) => {
@@ -79,6 +60,15 @@ export function LoginForm({
 
   return (
     <div className={cn('flex flex-col gap-6', className)} {...props}>
+      <div className="flex w-full max-w-sm flex-col gap-6">
+        <div className="flex items-center gap-2 self-center font-medium text-lg">
+          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <GalleryVerticalEnd className="size-4" />
+          </div>
+          FlareCommander
+        </div>
+      </div>
+
       <Card>
         <CardHeader>
           {unknownErrorMessage ? (
@@ -90,9 +80,7 @@ export function LoginForm({
           ) : null}
 
           <CardTitle className="text-2xl">Login</CardTitle>
-          <CardDescription>
-            Enter your Account ID below to login
-          </CardDescription>
+          <CardDescription>Enter your Account ID below to login</CardDescription>
         </CardHeader>
 
         <CardContent>
@@ -109,18 +97,8 @@ export function LoginForm({
                     Find your Account ID
                   </a>
                 </div>
-                <Input
-                  id="account-id"
-                  name="accountId"
-                  type="text"
-                  required={true}
-                />
-                <p
-                  className={cn(
-                    'text-[0.8rem] font-medium text-destructive',
-                    accountIdErrorMessage ? '' : 'hidden',
-                  )}
-                >
+                <Input id="account-id" name="accountId" type="text" required={true} />
+                <p className={cn('text-[0.8rem] font-medium text-destructive', accountIdErrorMessage ? '' : 'hidden')}>
                   {accountIdErrorMessage}
                 </p>
               </div>
@@ -136,32 +114,24 @@ export function LoginForm({
                     Create an API token
                   </a>
                 </div>
-                <Input
-                  id="api-token"
-                  name="apiToken"
-                  type="password"
-                  required={true}
-                />
-                <p
-                  className={cn(
-                    'text-[0.8rem] font-medium text-destructive',
-                    tokenErrorMessage ? '' : 'hidden',
-                  )}
-                >
+                <Input id="api-token" name="apiToken" type="password" required={true} />
+                <p className={cn('text-[0.8rem] font-medium text-destructive', tokenErrorMessage ? '' : 'hidden')}>
                   {tokenErrorMessage}
                 </p>
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? <LoadingSpinner /> : null} Login
+                {loading ? (
+                  <>
+                    <LoadingSpinner /> Login...
+                  </>
+                ) : (
+                  'Login'
+                )}
               </Button>
             </div>
             <div className="mt-4 text-center text-sm">
               Don&apos;t have an account?{' '}
-              <a
-                href="https://dash.cloudflare.com/sign-up"
-                className="underline underline-offset-4"
-                target="_blank"
-              >
+              <a href="https://dash.cloudflare.com/sign-up" className="underline underline-offset-4" target="_blank">
                 Sign up
               </a>
             </div>
