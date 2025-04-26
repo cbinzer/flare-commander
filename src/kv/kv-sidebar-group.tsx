@@ -1,14 +1,10 @@
 'use client';
 
-import { ChevronRight, FolderKey } from 'lucide-react';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+import { FolderKey, RefreshCcwIcon } from 'lucide-react';
 import {
   SidebarGroup,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
@@ -17,21 +13,26 @@ import {
 } from '@/components/ui/sidebar';
 import { useNamespaces } from '@/kv/kv-hooks.ts';
 import { Skeleton } from '@/components/ui/skeleton.tsx';
-import { FunctionComponent, MouseEvent, useState } from 'react';
+import { FunctionComponent, MouseEvent, useEffect, useState } from 'react';
 import { KvNamespace } from '@/kv/kv-models.ts';
 import { useError } from '@/common/common-hooks.ts';
 import { useNavigate } from 'react-router';
 
 export function KvSidebarGroup() {
-  const { loading, namespaces, getNamespaces, setNamespaces } = useNamespaces();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const { loading, namespaces, getNamespaces } = useNamespaces();
   const { handleError } = useError();
 
-  const loadNamespacesOnOpen = async (open: boolean) => {
-    if (!open) {
-      setNamespaces(null);
-      return;
-    }
+  // const loadNamespacesOnOpen = async (open: boolean) => {
+  //   if (!open) {
+  //     setNamespaces(null);
+  //     return;
+  //   }
+  //
+  //   await loadNamespaces();
+  // };
 
+  const loadNamespaces = async () => {
     try {
       await getNamespaces();
     } catch (error) {
@@ -39,51 +40,59 @@ export function KvSidebarGroup() {
     }
   };
 
+  const refreshNamespaces = async () => {
+    setIsRefreshing(true);
+    await loadNamespaces();
+    setIsRefreshing(false);
+  };
+
+  useEffect(() => {
+    loadNamespaces().then();
+  }, []);
+
   return (
     <SidebarGroup>
       <SidebarMenu>
-        <Collapsible
-          key="KV"
-          asChild
-          defaultOpen={false}
-          className="group/collapsible"
-          onOpenChange={loadNamespacesOnOpen}
-        >
-          <SidebarMenuItem>
-            <CollapsibleTrigger asChild>
-              <SidebarMenuButton tooltip="KV tooltip">
-                <FolderKey />
-                <span>KV</span>
-                <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-              </SidebarMenuButton>
-            </CollapsibleTrigger>
+        {/*<Collapsible*/}
+        {/*  key="KV"*/}
+        {/*  asChild*/}
+        {/*  defaultOpen={false}*/}
+        {/*  className="group/collapsible"*/}
+        {/*  onOpenChange={loadNamespacesOnOpen}*/}
+        {/*>*/}
+        <SidebarMenuItem>
+          {/*<CollapsibleTrigger asChild>*/}
+          <SidebarMenuButton tooltip="KV tooltip" unselectable="on" className="">
+            <FolderKey />
+            <span>KV</span>
+            {/*<ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />*/}
+          </SidebarMenuButton>
+          <SidebarMenuAction
+            onClick={refreshNamespaces}
+            showOnHover={!isRefreshing}
+            disabled={loading}
+            className="rounded-sm data-[state=open]:bg-accent"
+          >
+            <RefreshCcwIcon className={isRefreshing ? 'animate-spin' : ''} />
+            <span className="sr-only">More</span>
+          </SidebarMenuAction>
+          {/*</CollapsibleTrigger>*/}
 
-            <CollapsibleContent>
-              {loading || !namespaces ? (
-                <KvSidebarMenuSkeleton />
-              ) : (
-                <KvSidebarMenu namespaces={namespaces} />
-              )}
-            </CollapsibleContent>
-          </SidebarMenuItem>
-        </Collapsible>
+          {/*<CollapsibleContent>*/}
+          {loading || !namespaces ? <KvSidebarMenuSkeleton /> : <KvSidebarMenu namespaces={namespaces} />}
+          {/*</CollapsibleContent>*/}
+        </SidebarMenuItem>
+        {/*</Collapsible>*/}
       </SidebarMenu>
     </SidebarGroup>
   );
 }
 
-const KvSidebarMenu: FunctionComponent<{ namespaces: KvNamespace[] }> = ({
-  namespaces = [],
-}) => {
+const KvSidebarMenu: FunctionComponent<{ namespaces: KvNamespace[] }> = ({ namespaces = [] }) => {
   const navigate = useNavigate();
-  const [activeNamespace, setActiveNamespace] = useState<KvNamespace | null>(
-    null,
-  );
+  const [activeNamespace, setActiveNamespace] = useState<KvNamespace | null>(null);
 
-  const openKvSection = (
-    event: MouseEvent<HTMLAnchorElement>,
-    namespace: KvNamespace,
-  ) => {
+  const openKvSection = (event: MouseEvent<HTMLAnchorElement>, namespace: KvNamespace) => {
     event.preventDefault();
     setActiveNamespace(namespace);
     navigate(`namespaces/${namespace.id}`, { state: namespace });
@@ -93,10 +102,7 @@ const KvSidebarMenu: FunctionComponent<{ namespaces: KvNamespace[] }> = ({
     <SidebarMenuSub>
       {namespaces.map((namespace) => (
         <SidebarMenuSubItem key={namespace.id}>
-          <SidebarMenuSubButton
-            asChild
-            isActive={activeNamespace?.id === namespace.id}
-          >
+          <SidebarMenuSubButton asChild isActive={activeNamespace?.id === namespace.id}>
             <a href="#" onClick={(event) => openKvSection(event, namespace)}>
               <span>{namespace.title}</span>
             </a>
@@ -111,25 +117,13 @@ const KvSidebarMenuSkeleton: FunctionComponent = () => {
   return (
     <SidebarMenuSub>
       <SidebarMenuSubItem key="skeleton-1">
-        <SidebarMenuSubButton asChild>
-          <a href="#">
-            <Skeleton className="h-4 w-[120px]" />
-          </a>
-        </SidebarMenuSubButton>
+        <Skeleton className="ml-2 my-1 h-4 w-[120px]" />
       </SidebarMenuSubItem>
       <SidebarMenuSubItem key="skeleton-2">
-        <SidebarMenuSubButton asChild>
-          <a href="#">
-            <Skeleton className="h-4 w-[150px]" />
-          </a>
-        </SidebarMenuSubButton>
+        <Skeleton className="ml-2 my-1 h-4 w-[150px]" />
       </SidebarMenuSubItem>
       <SidebarMenuSubItem key="skeleton-3">
-        <SidebarMenuSubButton asChild>
-          <a href="#">
-            <Skeleton className="h-4 w-[130px]" />
-          </a>
-        </SidebarMenuSubButton>
+        <Skeleton className="ml-2 my-1 h-4 w-[130px]" />
       </SidebarMenuSubItem>
     </SidebarMenuSub>
   );
