@@ -17,6 +17,7 @@ import { useAuth } from '@/authentication/use-auth.ts';
 export function AccountSidebarMenu() {
   const { isMobile } = useSidebar();
   const { resetCredentials, account } = useAuth();
+  const beginningLetters = getBeginningLetters(account?.name ?? '');
 
   return (
     <SidebarMenu>
@@ -28,7 +29,7 @@ export function AccountSidebarMenu() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                <AvatarFallback className="rounded-lg">{beginningLetters}</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">{account?.name}</span>
@@ -39,7 +40,7 @@ export function AccountSidebarMenu() {
           </DropdownMenuTrigger>
 
           <DropdownMenuContent
-            className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+            className="w-[--radix-dropdown-menu-trigger-width] min-w-72 rounded-lg"
             side={isMobile ? 'bottom' : 'right'}
             align="end"
             sideOffset={4}
@@ -47,7 +48,7 @@ export function AccountSidebarMenu() {
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                  <AvatarFallback className="rounded-lg">{beginningLetters}</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">{account?.name}</span>
@@ -65,4 +66,21 @@ export function AccountSidebarMenu() {
       </SidebarMenuItem>
     </SidebarMenu>
   );
+}
+
+function getBeginningLetters(name: string) {
+  if (!name) {
+    return 'XX';
+  }
+
+  const words = name.split(' ');
+  if (words.length > 1) {
+    const firstLetter = words[0][0]?.toUpperCase() ?? 'X';
+    const secondLetter = words[1][0]?.toUpperCase() ?? 'X';
+    return firstLetter + secondLetter;
+  }
+
+  const firstLetter = words[0][0]?.toUpperCase() ?? 'X';
+  const secondLetter = words[0][1]?.toUpperCase() ?? 'X';
+  return firstLetter + secondLetter;
 }
