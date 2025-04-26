@@ -17,6 +17,7 @@ import { FunctionComponent, MouseEvent, useEffect, useState } from 'react';
 import { KvNamespace } from '@/kv/kv-models.ts';
 import { useError } from '@/common/common-hooks.ts';
 import { useNavigate } from 'react-router';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export function KvSidebarGroup() {
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -101,13 +102,22 @@ const KvSidebarMenu: FunctionComponent<{ namespaces: KvNamespace[] }> = ({ names
   return (
     <SidebarMenuSub>
       {namespaces.map((namespace) => (
-        <SidebarMenuSubItem key={namespace.id}>
-          <SidebarMenuSubButton asChild isActive={activeNamespace?.id === namespace.id}>
-            <a href="#" onClick={(event) => openKvSection(event, namespace)}>
-              <span>{namespace.title}</span>
-            </a>
-          </SidebarMenuSubButton>
-        </SidebarMenuSubItem>
+        <TooltipProvider delayDuration={1000} key={namespace.id}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <SidebarMenuSubItem>
+                <SidebarMenuSubButton asChild isActive={activeNamespace?.id === namespace.id}>
+                  <a href="#" onClick={(event) => openKvSection(event, namespace)}>
+                    <span>{namespace.title}</span>
+                  </a>
+                </SidebarMenuSubButton>
+              </SidebarMenuSubItem>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{namespace.title}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       ))}
     </SidebarMenuSub>
   );
