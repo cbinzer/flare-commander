@@ -12,6 +12,7 @@ import {
 import { KvSidebarGroup } from '@/kv/kv-sidebar-group.tsx';
 import { Outlet } from 'react-router';
 import { GalleryVerticalEnd } from 'lucide-react';
+import { AccountSidebarMenu } from '@/common/account-sidebar-menu.tsx';
 
 export default function MainPage() {
   return (
@@ -37,7 +38,9 @@ export default function MainPage() {
         <SidebarContent>
           <KvSidebarGroup />
         </SidebarContent>
-        <SidebarFooter></SidebarFooter>
+        <SidebarFooter>
+          <AccountSidebarMenu />
+        </SidebarFooter>
       </Sidebar>
 
       <SidebarInset>
