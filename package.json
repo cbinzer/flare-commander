@@ -1,5 +1,6 @@
 {
   "name": "flare-commander",
+  "description": "A simple GUI tool to manage Cloudflare KV namespaces and keys.",
   "private": true,
   "version": "0.1.0",
   "type": "module",
