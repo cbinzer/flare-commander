@@ -97,7 +97,7 @@ export function LoginForm({ className, ...props }: ComponentPropsWithoutRef<'div
                     Find your Account ID
                   </a>
                 </div>
-                <Input id="account-id" name="accountId" type="text" required={true} />
+                <Input id="account-id" name="accountId" type="text" required={true} disabled={loading} />
                 <p className={cn('text-[0.8rem] font-medium text-destructive', accountIdErrorMessage ? '' : 'hidden')}>
                   {accountIdErrorMessage}
                 </p>
@@ -114,7 +114,7 @@ export function LoginForm({ className, ...props }: ComponentPropsWithoutRef<'div
                     Create an API token
                   </a>
                 </div>
-                <Input id="api-token" name="apiToken" type="password" required={true} />
+                <Input id="api-token" name="apiToken" type="password" required={true} disabled={loading} />
                 <p className={cn('text-[0.8rem] font-medium text-destructive', tokenErrorMessage ? '' : 'hidden')}>
                   {tokenErrorMessage}
                 </p>
