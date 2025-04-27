@@ -14,7 +14,9 @@
       {
         "title": "FlareCommander",
         "width": 1200,
-        "height": 800
+        "minWidth": 900,
+        "height": 800,
+        "minHeight": 710
       }
     ],
     "security": {
