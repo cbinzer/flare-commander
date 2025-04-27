@@ -27,6 +27,7 @@ jobs:
         run: cd src-tauri && cargo test
 
   create-draft-release:
+    needs: run-backend-tests
     permissions:
       contents: write
     strategy:
