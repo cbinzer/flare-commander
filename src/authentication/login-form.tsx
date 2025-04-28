@@ -8,7 +8,8 @@ import { useAuth } from '@/authentication/use-auth.ts';
 import { LoadingSpinner } from '@/components/ui/loading-spinner.tsx';
 import { AuthenticationError, CredentialsType, UserAuthTokenCredentials } from '@/authentication/auth-models.ts';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert.tsx';
-import { AlertCircle, GalleryVerticalEnd } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
+import logoUrl from '../assets/logo.svg';
 
 export function LoginForm({ className, ...props }: ComponentPropsWithoutRef<'div'>) {
   const { verifyCredentials } = useAuth();
@@ -59,14 +60,12 @@ export function LoginForm({ className, ...props }: ComponentPropsWithoutRef<'div
   };
 
   return (
-    <div className={cn('flex flex-col gap-6', className)} {...props}>
-      <div className="flex w-full max-w-sm flex-col gap-6">
-        <div className="flex items-center gap-2 self-center font-medium text-lg">
-          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <GalleryVerticalEnd className="size-4" />
-          </div>
-          FlareCommander
+    <div className={cn('flex flex-col gap-5', className)} {...props}>
+      <div className="grid grid-cols-1 grid-rows-2 justify-center font-medium text-lg">
+        <div className="h-12 w-12 align-middle">
+          <img src={logoUrl} className="mt-[12px]" />
         </div>
+        <div className="text-center">FlareCommander</div>
       </div>
 
       <Card>
