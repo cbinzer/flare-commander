@@ -28,7 +28,7 @@ export default function MainPage() {
                   </div>
                   <div className="flex flex-col gap-0.5 leading-none">
                     <span className="font-semibold">FlareCommander</span>
-                    <span className="">v0.1.0</span>
+                    <span>v0.1.0</span>
                   </div>
                 </div>
               </SidebarMenuButton>
