@@ -61,9 +61,9 @@ export function LoginForm({ className, ...props }: ComponentPropsWithoutRef<'div
 
   return (
     <div className={cn('flex flex-col gap-5', className)} {...props}>
-      <div className="grid grid-cols-1 grid-rows-2 justify-center font-medium text-lg">
-        <div className="h-12 w-12 align-middle">
-          <img src={logoUrl} className="mt-[12px]" />
+      <div className="grid grid-cols-1 grid-rows-2 justify-items-center font-medium text-lg">
+        <div className="h-11 w-11 justify-center">
+          <img src={logoUrl} />
         </div>
         <div className="text-center">FlareCommander</div>
       </div>

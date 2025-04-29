@@ -23,7 +23,7 @@ export default function MainPage() {
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" asChild>
                 <div>
-                  <div className="flex aspect-square size-10 items-center justify-center rounded-lg text-sidebar-primary-foreground">
+                  <div className="flex aspect-square size-9 items-center justify-center rounded-lg text-sidebar-primary-foreground">
                     <img src={logoUrl} alt="FlareCommander logo" />
                   </div>
                   <div className="flex flex-col gap-0.5 leading-none">
