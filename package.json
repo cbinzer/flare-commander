@@ -7,7 +7,6 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "generate-icons": "node scripts/generate-icons.js",
     "preview": "vite preview",
     "tauri": "tauri"
   },
