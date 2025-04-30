@@ -1,5 +1,5 @@
 use crate::authentication::authentication_models::{AuthenticationError, ResponseInfo};
-use chrono::serde::ts_milliseconds_option;
+use chrono::serde::ts_seconds_option;
 use chrono::{DateTime, Utc};
 use cloudflare::framework::response::{ApiError, ApiFailure};
 use serde::{Deserialize, Serialize};
@@ -100,7 +100,7 @@ pub struct KvItem {
     #[serde(default)]
     pub metadata: Option<Value>,
 
-    #[serde(with = "ts_milliseconds_option")]
+    #[serde(with = "ts_seconds_option")]
     pub expiration: Option<DateTime<Utc>>,
 }
 
@@ -118,7 +118,7 @@ pub struct KvKey {
     pub metadata: Option<Value>,
 
     #[serde(default)]
-    #[serde(with = "ts_milliseconds_option")]
+    #[serde(with = "ts_seconds_option")]
     pub expiration: Option<DateTime<Utc>>,
 }
 

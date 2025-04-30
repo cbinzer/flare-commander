@@ -176,7 +176,7 @@ impl KvService {
         let token = credentials.token().unwrap_or_default();
         let expiration = input
             .expiration
-            .map(|expiration_date| expiration_date.timestamp_millis().to_string());
+            .map(|expiration_date| expiration_date.timestamp().to_string());
         let request = self
             .http_client
             .put(url)
@@ -891,11 +891,7 @@ mod test {
                 )))
                 .and(query_param(
                     "expiration",
-                    expected_kv_item
-                        .expiration
-                        .unwrap()
-                        .timestamp_millis()
-                        .to_string(),
+                    expected_kv_item.expiration.unwrap().timestamp().to_string(),
                 ))
                 .respond_with(response_template)
                 .mount(&mock_server)
@@ -1036,11 +1032,7 @@ mod test {
                 )))
                 .and(query_param(
                     "expiration",
-                    expected_kv_item
-                        .expiration
-                        .unwrap()
-                        .timestamp_millis()
-                        .to_string(),
+                    expected_kv_item.expiration.unwrap().timestamp().to_string(),
                 ))
                 .respond_with(response_template_write)
                 .mount(&mock_server)

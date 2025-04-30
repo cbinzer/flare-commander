@@ -4,10 +4,12 @@ import {
   CreateKvItemInput,
   KvError,
   KvItem,
+  KvItemDTO,
   KvItemsDeletionInput,
   KvItemsDeletionResult,
   KvKey,
   KvKeys,
+  KvKeysDTO,
   KvNamespace,
   WriteKvItemInput,
 } from '@/kv/kv-models.ts';
@@ -270,7 +272,7 @@ export async function getKvKeys(
       prefix: input.prefix,
     };
 
-    const kvKeys = await invoke<KvKeys>('get_kv_keys', {
+    const kvKeys = await invoke<KvKeysDTO>('get_kv_keys', {
       input: invokeInput,
       credentials,
     });
@@ -279,7 +281,7 @@ export async function getKvKeys(
       ...kvKeys,
       keys: kvKeys.keys.map((key) => ({
         ...key,
-        expiration: key.expiration ? new Date(key.expiration) : undefined,
+        expiration: key.expiration ? new Date(key.expiration * 1000) : undefined,
       })),
     };
   } catch (e) {
@@ -302,14 +304,14 @@ export async function getKvItem(
       key: input.key,
     };
 
-    const kvItem = await invoke<KvItem>('get_kv_item', {
+    const kvItem = await invoke<KvItemDTO>('get_kv_item', {
       input: invokeInput,
       credentials,
     });
 
     return {
       ...kvItem,
-      expiration: kvItem.expiration ? new Date(kvItem.expiration) : undefined,
+      expiration: kvItem.expiration ? new Date(kvItem.expiration * 1000) : undefined,
     };
   } catch (e) {
     const kvError = e as KvError;
@@ -328,14 +330,14 @@ export async function createKvItem(input: CreateKvItemInput, credentials: UserAu
       metadata: input.metadata,
     };
 
-    const kvItem = await invoke<KvItem>('create_kv_item', {
+    const kvItem = await invoke<KvItemDTO>('create_kv_item', {
       input: invokeInput,
       credentials,
     });
 
     return {
       ...kvItem,
-      expiration: kvItem.expiration ? new Date(kvItem.expiration) : undefined,
+      expiration: kvItem.expiration ? new Date(kvItem.expiration * 1000) : undefined,
     };
   } catch (e) {
     const kvError = e as KvError;
@@ -354,14 +356,14 @@ export async function writeKvItem(input: WriteKvItemInput, credentials: UserAuth
       metadata: input.metadata,
     };
 
-    const kvItem = await invoke<KvItem>('write_kv_item', {
+    const kvItem = await invoke<KvItemDTO>('write_kv_item', {
       input: invokeInput,
       credentials,
     });
 
     return {
       ...kvItem,
-      expiration: kvItem.expiration ? new Date(kvItem.expiration) : undefined,
+      expiration: kvItem.expiration ? new Date(kvItem.expiration * 1000) : undefined,
     };
   } catch (e) {
     const kvError = e as KvError;

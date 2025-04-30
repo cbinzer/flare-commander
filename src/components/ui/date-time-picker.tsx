@@ -50,7 +50,6 @@ const DateTimePicker: FunctionComponent<DateTimePickerProps> = ({
   };
 
   const resetDate = (event: MouseEvent) => {
-    console.log('resetDate');
     event.preventDefault();
     setDate(undefined);
     onChange(undefined);
@@ -100,7 +99,7 @@ const DateTimePicker: FunctionComponent<DateTimePickerProps> = ({
 
             <ScrollArea className="w-64 sm:w-auto">
               <div className="flex sm:flex-col p-2">
-                {Array.from({ length: 12 }, (_, i) => i * 5).map((minute) => (
+                {Array.from({ length: 60 }, (_, i) => i).map((minute) => (
                   <Button
                     key={minute}
                     size="icon"
