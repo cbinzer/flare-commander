@@ -20,6 +20,7 @@ export function useNamespaces() {
   const { account } = useAuth();
   const [namespaces, setNamespaces] = useState<KvNamespace[] | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
   const getNamespaces = async () => {
     setLoading(true);
@@ -30,25 +31,58 @@ export function useNamespaces() {
         account_id: account?.id ?? '',
         token: (account?.credentials as UserAuthTokenCredentials).token,
       };
-      const namespaces = await invoke<KvNamespace[]>('get_namespaces', {
-        credentials,
-      });
+      const namespaces = await invokeListNamespaces(credentials);
       setNamespaces(namespaces);
-    } catch (e) {
-      const kvError = e as KvError;
-      console.error(kvError);
-      throw new KvError(kvError.message, kvError.kind);
     } finally {
       setLoading(false);
     }
   };
 
+  const createNamespace = async (title: string) => {
+    setIsCreating(true);
+
+    try {
+      const credentials: UserAuthTokenCredentials = {
+        type: CredentialsType.UserAuthToken,
+        account_id: account?.id ?? '',
+        token: (account?.credentials as UserAuthTokenCredentials).token,
+      };
+      await invokeCreateNamespace(title, credentials);
+      await invokeListNamespaces(credentials);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   return {
     loading,
+    isCreating,
     namespaces,
     getNamespaces,
+    createNamespace,
     setNamespaces,
   };
+}
+
+export function invokeListNamespaces(credentials: UserAuthTokenCredentials): Promise<KvNamespace[]> {
+  try {
+    return invoke<KvNamespace[]>('get_namespaces', {
+      credentials,
+    });
+  } catch (e) {
+    throw convertPlainToKvErrorClass(e as KvError);
+  }
+}
+
+export function invokeCreateNamespace(title: string, credentials: UserAuthTokenCredentials): Promise<KvNamespace> {
+  try {
+    return invoke<KvNamespace>('create_namespace', {
+      title,
+      credentials,
+    });
+  } catch (e) {
+    throw convertPlainToKvErrorClass(e as KvError);
+  }
 }
 
 export function useKvKeys(namespaceId: string) {
@@ -382,8 +416,11 @@ export async function deleteKvItems(
       credentials,
     });
   } catch (e) {
-    const kvError = e as KvError;
-    console.error(kvError);
-    throw new KvError(kvError.message, kvError.kind);
+    throw convertPlainToKvErrorClass(e as KvError);
   }
+}
+
+function convertPlainToKvErrorClass(kvError: KvError): KvError {
+  console.error(kvError);
+  return new KvError(kvError.message, kvError.kind);
 }
