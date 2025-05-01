@@ -11,11 +11,13 @@ use std::fmt;
 pub struct KvNamespace {
     pub id: String,
     pub title: String,
+    pub beta: Option<bool>,
     pub supports_url_encoding: Option<bool>,
 }
 
 #[derive(Debug)]
 pub enum KvError {
+    NamespaceAlreadyExists(String),
     NamespaceNotFound,
     KeyNotFound,
     KeyAlreadyExists(String),
@@ -65,6 +67,7 @@ pub fn map_api_errors(errors: Vec<ApiError>) -> KvError {
         10001 => KvError::Authentication(AuthenticationError::InvalidToken),
         10009 => KvError::KeyNotFound,
         10013 => KvError::NamespaceNotFound,
+        10014 => KvError::NamespaceAlreadyExists(error.message.clone()),
         _ => KvError::Unknown(error.message.clone()),
     }
 }

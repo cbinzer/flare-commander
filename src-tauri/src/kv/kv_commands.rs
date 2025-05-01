@@ -85,6 +85,10 @@ pub enum KvCommandErrorKind {
 impl From<KvError> for KvCommandError {
     fn from(error: KvError) -> Self {
         match error {
+            KvError::NamespaceAlreadyExists(message) => KvCommandError {
+                kind: KvCommandErrorKind::NamespaceNotFound,
+                message,
+            },
             KvError::NamespaceNotFound => KvCommandError {
                 kind: KvCommandErrorKind::NamespaceNotFound,
                 message: "Namespace not found".to_string(),
