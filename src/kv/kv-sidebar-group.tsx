@@ -20,6 +20,7 @@ import { useNavigate } from 'react-router';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export function KvSidebarGroup() {
+  const [activeNamespaceId, setActiveNamespaceId] = useState<string | undefined>();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { loading, namespaces, getNamespaces } = useNamespaces();
   const { handleError } = useError();
@@ -80,7 +81,15 @@ export function KvSidebarGroup() {
           {/*</CollapsibleTrigger>*/}
 
           {/*<CollapsibleContent>*/}
-          {loading || !namespaces ? <KvSidebarMenuSkeleton /> : <KvSidebarMenu namespaces={namespaces} />}
+          {loading || !namespaces ? (
+            <KvSidebarMenuSkeleton />
+          ) : (
+            <KvSidebarMenu
+              namespaces={namespaces}
+              activeNamespaceId={activeNamespaceId}
+              onSelectNamespace={(namespace) => setActiveNamespaceId(namespace.id)}
+            />
+          )}
           {/*</CollapsibleContent>*/}
         </SidebarMenuItem>
         {/*</Collapsible>*/}
@@ -89,13 +98,28 @@ export function KvSidebarGroup() {
   );
 }
 
-const KvSidebarMenu: FunctionComponent<{ namespaces: KvNamespace[] }> = ({ namespaces = [] }) => {
+interface KvSidebarMenuProps {
+  namespaces: KvNamespace[];
+  activeNamespaceId?: String;
+  onSelectNamespace?: (namespace: KvNamespace) => void;
+}
+
+const KvSidebarMenu: FunctionComponent<KvSidebarMenuProps> = ({
+  namespaces = [],
+  activeNamespaceId,
+  onSelectNamespace = () => {},
+}) => {
   const navigate = useNavigate();
-  const [activeNamespace, setActiveNamespace] = useState<KvNamespace | null>(null);
+  const [activeNamespace, setActiveNamespace] = useState<KvNamespace | undefined>();
+
+  useEffect(() => {
+    setActiveNamespace(namespaces.find((namespace) => namespace.id === activeNamespaceId));
+  }, [activeNamespaceId]);
 
   const openKvSection = (event: MouseEvent<HTMLAnchorElement>, namespace: KvNamespace) => {
     event.preventDefault();
     setActiveNamespace(namespace);
+    onSelectNamespace(namespace);
     navigate(`namespaces/${namespace.id}`, { state: namespace });
   };
 
