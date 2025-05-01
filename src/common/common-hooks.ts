@@ -6,15 +6,10 @@ export function useLocalStorage<T>(
   storageKey: string,
   fallbackState: T | null = null,
 ): [T | null, Dispatch<SetStateAction<T | null>>] {
-  const [value, setValue] = useState<T | null>(
-    getItemFromLocalStorage<T>(storageKey) ?? fallbackState,
-  );
+  const [value, setValue] = useState<T | null>(getItemFromLocalStorage<T>(storageKey) ?? fallbackState);
 
-  useEffect(() => {
-    if (value) {
-      localStorage.setItem(storageKey, JSON.stringify(value));
-    }
-  }, [value, storageKey]);
+  useEffect(() => localStorage.setItem(storageKey, JSON.stringify(value)), [value]);
+  useEffect(() => setValue(getItemFromLocalStorage<T>(storageKey) ?? fallbackState), [storageKey]);
 
   return [value, setValue];
 }
