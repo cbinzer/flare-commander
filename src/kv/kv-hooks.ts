@@ -18,9 +18,11 @@ import { useEffect, useState } from 'react';
 
 export function useNamespaces() {
   const { account } = useAuth();
-  const [namespaces, setNamespaces] = useState<KvNamespace[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [namespaces, setNamespaces] = useState<KvNamespace[] | null>(null);
+  const [namespace, setNamespace] = useState<KvNamespace | null>(null);
+  const [error, setError] = useState<KvError | null>(null);
 
   const getNamespaces = async () => {
     setLoading(true);
@@ -33,6 +35,8 @@ export function useNamespaces() {
       };
       const namespaces = await invokeListNamespaces(credentials);
       setNamespaces(namespaces);
+    } catch (e) {
+      setError(e as KvError);
     } finally {
       setLoading(false);
     }
@@ -47,8 +51,12 @@ export function useNamespaces() {
         account_id: account?.id ?? '',
         token: (account?.credentials as UserAuthTokenCredentials).token,
       };
-      await invokeCreateNamespace(title, credentials);
+      const createdNamespace = await invokeCreateNamespace(title, credentials);
       await invokeListNamespaces(credentials);
+
+      setNamespace(createdNamespace);
+    } catch (e) {
+      setError(e as KvError);
     } finally {
       setIsCreating(false);
     }
@@ -57,7 +65,9 @@ export function useNamespaces() {
   return {
     loading,
     isCreating,
+    namespace,
     namespaces,
+    error,
     getNamespaces,
     createNamespace,
     setNamespaces,
