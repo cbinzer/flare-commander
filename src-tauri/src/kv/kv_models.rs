@@ -15,12 +15,21 @@ pub struct KvNamespace {
     pub supports_url_encoding: Option<bool>,
 }
 
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+pub struct KvNamespaceUpdateInput {
+    pub id: String,
+    pub title: String,
+}
+
 #[derive(Debug)]
 pub enum KvError {
     NamespaceAlreadyExists(String),
     NamespaceNotFound,
+    NamespaceTitleMissing(String),
+
     KeyNotFound,
     KeyAlreadyExists(String),
+
     Authentication(AuthenticationError),
     Reqwest(reqwest::Error),
     Unknown(String),
@@ -68,6 +77,7 @@ pub fn map_api_errors(errors: Vec<ApiError>) -> KvError {
         10009 => KvError::KeyNotFound,
         10013 => KvError::NamespaceNotFound,
         10014 => KvError::NamespaceAlreadyExists(error.message.clone()),
+        10019 => KvError::NamespaceTitleMissing(error.message.clone()),
         _ => KvError::Unknown(error.message.clone()),
     }
 }
