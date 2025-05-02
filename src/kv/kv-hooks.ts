@@ -18,14 +18,15 @@ import { useEffect, useState } from 'react';
 
 export function useNamespaces() {
   const { account } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const [isListing, setIsListing] = useState(false);
+  const [isRelisting, setIsRelisting] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [namespaces, setNamespaces] = useState<KvNamespace[] | null>(null);
   const [namespace, setNamespace] = useState<KvNamespace | null>(null);
   const [error, setError] = useState<KvError | null>(null);
 
-  const getNamespaces = async () => {
-    setLoading(true);
+  const listNamespaces = async () => {
+    setIsListing(true);
 
     try {
       const credentials: UserAuthTokenCredentials = {
@@ -38,7 +39,25 @@ export function useNamespaces() {
     } catch (e) {
       setError(e as KvError);
     } finally {
-      setLoading(false);
+      setIsListing(false);
+    }
+  };
+
+  const relistNamespaces = async () => {
+    setIsRelisting(true);
+
+    try {
+      const credentials: UserAuthTokenCredentials = {
+        type: CredentialsType.UserAuthToken,
+        account_id: account?.id ?? '',
+        token: (account?.credentials as UserAuthTokenCredentials).token,
+      };
+      const namespaces = await invokeListNamespaces(credentials);
+      setNamespaces(namespaces);
+    } catch (e) {
+      setError(e as KvError);
+    } finally {
+      setIsRelisting(false);
     }
   };
 
@@ -52,8 +71,6 @@ export function useNamespaces() {
         token: (account?.credentials as UserAuthTokenCredentials).token,
       };
       const createdNamespace = await invokeCreateNamespace(title, credentials);
-      await invokeListNamespaces(credentials);
-
       setNamespace(createdNamespace);
     } catch (e) {
       setError(e as KvError);
@@ -63,12 +80,14 @@ export function useNamespaces() {
   };
 
   return {
-    loading,
+    isListing,
+    isRelisting,
     isCreating,
     namespace,
     namespaces,
     error,
-    getNamespaces,
+    listNamespaces,
+    relistNamespaces,
     createNamespace,
     setNamespaces,
   };

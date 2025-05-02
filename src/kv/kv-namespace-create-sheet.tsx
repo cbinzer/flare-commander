@@ -18,13 +18,17 @@ import { Save } from 'lucide-react';
 import { cn } from '@/lib/utils.ts';
 
 export interface KvNamespaceCreateSheetProps {
+  open?: boolean;
   onCreate?: (namespace: KvNamespace) => Promise<void>;
   children?: ReactNode;
+  onOpenChange?: (open: boolean) => void;
 }
 
 const KvNamespaceCreateSheet: FunctionComponent<KvNamespaceCreateSheetProps> = ({
+  open = false,
   children,
   onCreate = () => Promise.resolve(),
+  onOpenChange = () => {},
 }) => {
   const { createNamespace, namespace, error } = useNamespaces();
 
@@ -38,6 +42,8 @@ const KvNamespaceCreateSheet: FunctionComponent<KvNamespaceCreateSheetProps> = (
   const isSaveButtonDisabled = isSaving || !title || !!errors.title;
 
   const setFocusOnOpenChange = (open: boolean) => {
+    onOpenChange(open);
+
     setIsOpen(open);
     if (!open) {
       return;
@@ -64,7 +70,10 @@ const KvNamespaceCreateSheet: FunctionComponent<KvNamespaceCreateSheetProps> = (
   useEffect(() => {
     if (namespace) {
       onCreate(namespace)
-        .then(() => setIsOpen(false))
+        .then(() => {
+          setIsOpen(false);
+          onOpenChange(false);
+        })
         .finally(() => setIsSaving(false));
     }
   }, [namespace]);
@@ -88,6 +97,8 @@ const KvNamespaceCreateSheet: FunctionComponent<KvNamespaceCreateSheetProps> = (
       }
     }
   }, [error]);
+
+  useEffect(() => setFocusOnOpenChange(open), [open]);
 
   return (
     <Sheet open={isOpen} onOpenChange={setFocusOnOpenChange}>
