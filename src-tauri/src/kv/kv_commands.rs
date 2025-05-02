@@ -87,6 +87,7 @@ pub struct KvCommandError {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum KvCommandErrorKind {
+    NamespaceAlreadyExists,
     NamespaceNotFound,
     KeyNotFound,
     KeyAlreadyExists,
@@ -98,7 +99,7 @@ impl From<KvError> for KvCommandError {
     fn from(error: KvError) -> Self {
         match error {
             KvError::NamespaceAlreadyExists(message) => KvCommandError {
-                kind: KvCommandErrorKind::NamespaceNotFound,
+                kind: KvCommandErrorKind::NamespaceAlreadyExists,
                 message,
             },
             KvError::NamespaceNotFound => KvCommandError {

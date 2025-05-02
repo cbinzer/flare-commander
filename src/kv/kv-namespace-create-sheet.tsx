@@ -14,8 +14,9 @@ import {
 import { ChangeEvent, FunctionComponent, ReactNode, useEffect, useRef, useState } from 'react';
 import { useNamespaces } from './kv-hooks';
 import { KvNamespace } from './kv-models';
-import { Save } from 'lucide-react';
+import { PlusIcon } from 'lucide-react';
 import { cn } from '@/lib/utils.ts';
+import { useError } from '@/common/common-hooks.ts';
 
 export interface KvNamespaceCreateSheetProps {
   open?: boolean;
@@ -31,6 +32,7 @@ const KvNamespaceCreateSheet: FunctionComponent<KvNamespaceCreateSheetProps> = (
   onOpenChange = () => {},
 }) => {
   const { createNamespace, namespace, error } = useNamespaces();
+  const { handleError } = useError();
 
   const titleInputRef = useRef<HTMLInputElement>(null);
 
@@ -59,12 +61,7 @@ const KvNamespaceCreateSheet: FunctionComponent<KvNamespaceCreateSheetProps> = (
 
   const handleSaveClick = async () => {
     setIsCreating(true);
-
-    try {
-      await createNamespace(title ?? '');
-    } catch (e) {
-      setErrors((prev) => ({ ...prev, title: e as Error }));
-    }
+    await createNamespace(title ?? '');
   };
 
   const createOnEnter = async (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -99,7 +96,7 @@ const KvNamespaceCreateSheet: FunctionComponent<KvNamespaceCreateSheetProps> = (
           title: error,
         }));
       } else {
-        console.error('Error creating KV namespace:', error);
+        handleError(error);
       }
     }
   }, [error]);
@@ -147,7 +144,7 @@ const KvNamespaceCreateSheet: FunctionComponent<KvNamespaceCreateSheetProps> = (
               </>
             ) : (
               <>
-                <Save /> Create
+                <PlusIcon /> Create
               </>
             )}
           </Button>
