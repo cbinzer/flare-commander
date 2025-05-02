@@ -35,11 +35,11 @@ const KvNamespaceCreateSheet: FunctionComponent<KvNamespaceCreateSheetProps> = (
   const titleInputRef = useRef<HTMLInputElement>(null);
 
   const [isOpen, setIsOpen] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [title, setTitle] = useState<string | undefined>(undefined);
   const [errors, setErrors] = useState<{ title?: Error }>({});
 
-  const isSaveButtonDisabled = isSaving || !title || !!errors.title;
+  const isSaveButtonDisabled = isCreating || !title || !!errors.title;
 
   const setFocusOnOpenChange = (open: boolean) => {
     onOpenChange(open);
@@ -58,12 +58,18 @@ const KvNamespaceCreateSheet: FunctionComponent<KvNamespaceCreateSheetProps> = (
   };
 
   const handleSaveClick = async () => {
-    setIsSaving(true);
+    setIsCreating(true);
 
     try {
       await createNamespace(title ?? '');
     } catch (e) {
       setErrors((prev) => ({ ...prev, title: e as Error }));
+    }
+  };
+
+  const createOnEnter = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !isSaveButtonDisabled && title) {
+      await handleSaveClick();
     }
   };
 
@@ -74,7 +80,7 @@ const KvNamespaceCreateSheet: FunctionComponent<KvNamespaceCreateSheetProps> = (
           setIsOpen(false);
           onOpenChange(false);
         })
-        .finally(() => setIsSaving(false));
+        .finally(() => setIsCreating(false));
     }
   }, [namespace]);
 
@@ -85,7 +91,7 @@ const KvNamespaceCreateSheet: FunctionComponent<KvNamespaceCreateSheetProps> = (
 
   useEffect(() => {
     if (error) {
-      setIsSaving(false);
+      setIsCreating(false);
 
       if (error.kind === 'NamespaceAlreadyExists') {
         setErrors((prev) => ({
@@ -103,7 +109,7 @@ const KvNamespaceCreateSheet: FunctionComponent<KvNamespaceCreateSheetProps> = (
   return (
     <Sheet open={isOpen} onOpenChange={setFocusOnOpenChange}>
       <SheetTrigger asChild>{children}</SheetTrigger>
-      <SheetContent closeDisabled={isSaving} className="w-[500px] sm:max-w-[500px]">
+      <SheetContent closeDisabled={isCreating} className="w-[500px] sm:max-w-[500px]">
         <SheetHeader>
           <SheetTitle>Create KV Namespace</SheetTitle>
           <SheetDescription>Set title to create a namespace</SheetDescription>
@@ -119,8 +125,9 @@ const KvNamespaceCreateSheet: FunctionComponent<KvNamespaceCreateSheetProps> = (
                 id="title"
                 value={title}
                 ref={titleInputRef}
-                disabled={isSaving}
+                disabled={isCreating}
                 onChange={handleTitleChange}
+                onKeyDown={createOnEnter}
                 className={cn(errors.title && 'border-red-500 focus-visible:ring-red-500')}
               />
               {errors.title && (
@@ -134,13 +141,13 @@ const KvNamespaceCreateSheet: FunctionComponent<KvNamespaceCreateSheetProps> = (
 
         <SheetFooter>
           <Button type="submit" disabled={isSaveButtonDisabled} onClick={handleSaveClick}>
-            {isSaving ? (
+            {isCreating ? (
               <>
-                <LoadingSpinner /> Saving...
+                <LoadingSpinner /> Creating...
               </>
             ) : (
               <>
-                <Save /> Save
+                <Save /> Create
               </>
             )}
           </Button>
