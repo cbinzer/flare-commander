@@ -607,6 +607,39 @@ mod test {
             Ok(())
         }
 
+        #[tokio::test]
+        async fn should_respond_with_namespace_title_missing_error() -> Result<(), KvError> {
+            let credentials = Credentials::UserAuthToken {
+                account_id: "my_account_id".to_string(),
+                token: "my_token".to_string(),
+            };
+            let expected_error_message = "request is missing a title definition";
+            let mock_server = create_mock_server(
+                credentials.account_id(),
+                None,
+                vec![ApiError {
+                    code: 10019,
+                    message: expected_error_message.to_string(),
+                    other: Default::default(),
+                }],
+                400,
+            )
+            .await;
+
+            let kv_service = create_kv_service(mock_server.uri());
+            let created_namespace_result = kv_service
+                .create_namespace(&credentials, "MyNamespace".to_string())
+                .await;
+            assert!(created_namespace_result.is_err());
+
+            let error = created_namespace_result.unwrap_err();
+            assert!(
+                matches!(error, KvError::NamespaceTitleMissing(ref error_message) if error_message == expected_error_message)
+            );
+
+            Ok(())
+        }
+
         async fn create_mock_server(
             account_id: &str,
             result: Option<KvNamespace>,
