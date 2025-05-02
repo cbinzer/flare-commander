@@ -61,7 +61,7 @@ const KvNamespaceCreateSheet: FunctionComponent<KvNamespaceCreateSheetProps> = (
 
   const handleSaveClick = async () => {
     setIsCreating(true);
-    await createNamespace(title ?? '');
+    await createNamespace({ title: title ?? '' });
   };
 
   const createOnEnter = async (e: React.KeyboardEvent<HTMLInputElement>) => {

@@ -3,7 +3,8 @@ use crate::common::common_models::Credentials;
 use crate::common::common_utils::get_cloudflare_env;
 use crate::kv::kv_models::{
     map_api_errors, CreateKvItemInput, GetKeysInput, KvError, KvItem, KvItemsDeletionInput,
-    KvItemsDeletionResult, KvKey, KvKeys, KvNamespace, KvNamespaceUpdateInput,
+    KvItemsDeletionResult, KvKey, KvKeys, KvNamespace, KvNamespaceCreateInput,
+    KvNamespaceUpdateInput,
 };
 use chrono::DateTime;
 use cloudflare::endpoints::workerskv::list_namespaces::{ListNamespaces, ListNamespacesParams};
@@ -54,7 +55,7 @@ impl KvService {
     pub async fn create_namespace(
         &self,
         credentials: &Credentials,
-        title: String,
+        input: KvNamespaceCreateInput,
     ) -> Result<KvNamespace, KvError> {
         let base_url: Url = (&get_cloudflare_env(&self.api_url)).into();
         let url = format!(
@@ -68,7 +69,7 @@ impl KvService {
             .http_client
             .post(&url)
             .bearer_auth(token)
-            .json(&HashMap::from([("title", title)]))
+            .json(&HashMap::from([("title", input.title)]))
             .send()
             .await?;
 
@@ -536,7 +537,7 @@ mod test {
 
     mod create_namespace {
         use crate::common::common_models::Credentials;
-        use crate::kv::kv_models::{KvError, KvNamespace};
+        use crate::kv::kv_models::{KvError, KvNamespace, KvNamespaceCreateInput};
         use crate::kv::kv_service::test::create_kv_service;
         use crate::test::test_models::ApiSuccess;
         use cloudflare::framework::response::ApiError;
@@ -563,9 +564,12 @@ mod test {
             )
             .await;
 
+            let create_input = KvNamespaceCreateInput {
+                title: expected_namespace.title.clone(),
+            };
             let kv_service = create_kv_service(mock_server.uri());
             let created_namespace = kv_service
-                .create_namespace(&credentials, expected_namespace.title.clone())
+                .create_namespace(&credentials, create_input)
                 .await?;
 
             assert_eq!(created_namespace, expected_namespace);
@@ -593,9 +597,12 @@ mod test {
             )
             .await;
 
+            let create_input = KvNamespaceCreateInput {
+                title: "MyNamespace".to_string(),
+            };
             let kv_service = create_kv_service(mock_server.uri());
             let created_namespace_result = kv_service
-                .create_namespace(&credentials, "MyNamespace".to_string())
+                .create_namespace(&credentials, create_input)
                 .await;
             assert!(created_namespace_result.is_err());
 
@@ -626,9 +633,12 @@ mod test {
             )
             .await;
 
+            let create_input = KvNamespaceCreateInput {
+                title: "".to_string(),
+            };
             let kv_service = create_kv_service(mock_server.uri());
             let created_namespace_result = kv_service
-                .create_namespace(&credentials, "MyNamespace".to_string())
+                .create_namespace(&credentials, create_input)
                 .await;
             assert!(created_namespace_result.is_err());
 

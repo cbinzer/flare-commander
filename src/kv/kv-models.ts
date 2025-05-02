@@ -3,9 +3,8 @@ export interface KvNamespace {
   title: string;
 }
 
-export interface KvItems {
-  items: KvItem[];
-  cursor?: string;
+export interface KvNamespaceCreateInput {
+  title: string;
 }
 
 export interface KvItem {

@@ -21,6 +21,11 @@ pub struct KvNamespaceUpdateInput {
     pub title: String,
 }
 
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+pub struct KvNamespaceCreateInput {
+    pub title: String,
+}
+
 #[derive(Debug)]
 pub enum KvError {
     NamespaceAlreadyExists(String),

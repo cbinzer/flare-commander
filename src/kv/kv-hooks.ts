@@ -11,6 +11,7 @@ import {
   KvKeys,
   KvKeysDTO,
   KvNamespace,
+  KvNamespaceCreateInput,
   WriteKvItemInput,
 } from '@/kv/kv-models.ts';
 import { invoke } from '@tauri-apps/api/core';
@@ -61,7 +62,7 @@ export function useNamespaces() {
     }
   };
 
-  const createNamespace = async (title: string) => {
+  const createNamespace = async (input: KvNamespaceCreateInput) => {
     setIsCreating(true);
 
     try {
@@ -70,7 +71,7 @@ export function useNamespaces() {
         account_id: account?.id ?? '',
         token: (account?.credentials as UserAuthTokenCredentials).token,
       };
-      const createdNamespace = await invokeCreateNamespace(title, credentials);
+      const createdNamespace = await invokeCreateNamespace(input, credentials);
       setNamespace(createdNamespace);
     } catch (e) {
       setError(e as KvError);
@@ -103,10 +104,13 @@ export function invokeListNamespaces(credentials: UserAuthTokenCredentials): Pro
   }
 }
 
-export function invokeCreateNamespace(title: string, credentials: UserAuthTokenCredentials): Promise<KvNamespace> {
+export function invokeCreateNamespace(
+  input: KvNamespaceCreateInput,
+  credentials: UserAuthTokenCredentials,
+): Promise<KvNamespace> {
   try {
     return invoke<KvNamespace>('create_namespace', {
-      title,
+      input,
       credentials,
     });
   } catch (e) {

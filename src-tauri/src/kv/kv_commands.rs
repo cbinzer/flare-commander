@@ -2,7 +2,7 @@ use crate::app_state::AppState;
 use crate::common::common_models::Credentials;
 use crate::kv::kv_models::{
     CreateKvItemInput, GetKeysInput, KvError, KvItem, KvItemsDeletionInput, KvItemsDeletionResult,
-    KvKeys, KvNamespace, KvNamespaceUpdateInput,
+    KvKeys, KvNamespace, KvNamespaceCreateInput, KvNamespaceUpdateInput,
 };
 use cloudflare::endpoints::workerskv::WorkersKvNamespace;
 use log::error;
@@ -22,12 +22,12 @@ pub async fn get_namespaces(
 #[tauri::command]
 pub async fn create_namespace(
     credentials: Credentials,
-    title: String,
+    input: KvNamespaceCreateInput,
     state: State<'_, AppState>,
 ) -> Result<KvNamespace, KvCommandError> {
     Ok(state
         .kv_service
-        .create_namespace(&credentials, title)
+        .create_namespace(&credentials, input)
         .await?)
 }
 
