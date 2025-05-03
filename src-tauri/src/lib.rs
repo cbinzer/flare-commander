@@ -1,7 +1,7 @@
 use crate::app_state::AppState;
 use crate::authentication::authentication_commands::verify_credentials;
 use crate::kv::kv_commands::{
-    create_kv_item, create_namespace, delete_kv_items, get_kv_keys, get_namespaces,
+    create_kv_item, create_namespace, delete_kv_items, get_kv_keys, get_namespace, get_namespaces,
     update_namespace,
 };
 use kv::kv_commands::{get_kv_item, write_kv_item};
@@ -28,6 +28,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             verify_credentials,
             get_namespaces,
+            get_namespace,
             create_namespace,
             update_namespace,
             get_kv_item,
