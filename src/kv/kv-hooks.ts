@@ -12,6 +12,7 @@ import {
   KvKeysDTO,
   KvNamespace,
   KvNamespaceCreateInput,
+  KvNamespaceUpdateInput,
   WriteKvItemInput,
 } from '@/kv/kv-models.ts';
 import { invoke } from '@tauri-apps/api/core';
@@ -21,7 +22,9 @@ export function useNamespaces() {
   const { account } = useAuth();
   const [isListing, setIsListing] = useState(false);
   const [isRelisting, setIsRelisting] = useState(false);
+  const [isLoadingOne, setIsLoadingOne] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [namespaces, setNamespaces] = useState<KvNamespace[] | null>(null);
   const [namespace, setNamespace] = useState<KvNamespace | null>(null);
   const [error, setError] = useState<KvError | null>(null);
@@ -62,6 +65,24 @@ export function useNamespaces() {
     }
   };
 
+  const getNamespace = async (namespaceId: string) => {
+    setIsLoadingOne(true);
+
+    try {
+      const credentials: UserAuthTokenCredentials = {
+        type: CredentialsType.UserAuthToken,
+        account_id: account?.id ?? '',
+        token: (account?.credentials as UserAuthTokenCredentials).token,
+      };
+      const namespace = await invokeGetNamespace(namespaceId, credentials);
+      setNamespace(namespace);
+    } catch (e) {
+      setError(e as KvError);
+    } finally {
+      setIsLoadingOne(false);
+    }
+  };
+
   const createNamespace = async (input: KvNamespaceCreateInput) => {
     setIsCreating(true);
 
@@ -80,16 +101,38 @@ export function useNamespaces() {
     }
   };
 
+  const updateNamespace = async (input: KvNamespaceUpdateInput) => {
+    setIsUpdating(true);
+
+    try {
+      const credentials: UserAuthTokenCredentials = {
+        type: CredentialsType.UserAuthToken,
+        account_id: account?.id ?? '',
+        token: (account?.credentials as UserAuthTokenCredentials).token,
+      };
+      const updatedNamespace = await invokeUpdateNamespace(input, credentials);
+      setNamespace(updatedNamespace);
+    } catch (e) {
+      setError(e as KvError);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   return {
     isListing,
     isRelisting,
+    isLoadingOne,
     isCreating,
+    isUpdating,
     namespace,
     namespaces,
     error,
     listNamespaces,
     relistNamespaces,
+    getNamespace,
     createNamespace,
+    updateNamespace,
     setNamespaces,
   };
 }
@@ -104,12 +147,37 @@ export function invokeListNamespaces(credentials: UserAuthTokenCredentials): Pro
   }
 }
 
+export function invokeGetNamespace(namespaceId: string, credentials: UserAuthTokenCredentials): Promise<KvNamespace> {
+  try {
+    return invoke<KvNamespace>('get_namespace', {
+      credentials,
+      namespace_id: namespaceId,
+    });
+  } catch (e) {
+    throw convertPlainToKvErrorClass(e as KvError);
+  }
+}
+
 export function invokeCreateNamespace(
   input: KvNamespaceCreateInput,
   credentials: UserAuthTokenCredentials,
 ): Promise<KvNamespace> {
   try {
     return invoke<KvNamespace>('create_namespace', {
+      input,
+      credentials,
+    });
+  } catch (e) {
+    throw convertPlainToKvErrorClass(e as KvError);
+  }
+}
+
+export function invokeUpdateNamespace(
+  input: KvNamespaceUpdateInput,
+  credentials: UserAuthTokenCredentials,
+): Promise<KvNamespace> {
+  try {
+    return invoke<KvNamespace>('update_namespace', {
       input,
       credentials,
     });

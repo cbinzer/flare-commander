@@ -7,6 +7,10 @@ export interface KvNamespaceCreateInput {
   title: string;
 }
 
+export interface KvNamespaceUpdateInput extends KvNamespaceCreateInput {
+  id: string;
+}
+
 export interface KvItem {
   key: string;
   value?: string;

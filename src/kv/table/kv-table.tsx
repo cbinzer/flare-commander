@@ -287,7 +287,7 @@ export function KvTable({ namespace }: KvTableProps) {
           <KvTableHeader headerGroups={table.getHeaderGroups()} />
 
           {isInitialLoading || isRefreshing ? (
-            <LoadingTableBody pageSize={25} columns={columns} />
+            <LoadingTableBody pageSize={18} columns={columns} />
           ) : table.getRowModel().rows?.length ? (
             <KvTableBody rows={table.getRowModel().rows} />
           ) : (
