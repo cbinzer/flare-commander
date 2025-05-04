@@ -397,7 +397,7 @@ mod test {
         use crate::authentication::authentication_models::{AuthenticationError, ResponseInfo};
         use crate::common::common_models::Credentials;
         use crate::kv::kv_models::KvError::Authentication;
-        use crate::kv::kv_models::{KvError, KvNamespace, PagePaginationArray, PaginationInfo};
+        use crate::kv::kv_models::{KvError, PagePaginationArray, PaginationInfo};
         use crate::kv::kv_service::test::create_kv_service;
         use cloudflare::endpoints::workerskv::WorkersKvNamespace;
         use wiremock::matchers::{method, path};
@@ -421,26 +421,9 @@ mod test {
             ];
             let account_id = "account_id".to_string();
 
-            let mock_server = MockServer::start().await;
-            let response_template = ResponseTemplate::new(200).set_body_json(PagePaginationArray {
-                success: true,
-                result: Some(expected_namespaces.clone()),
-                errors: vec![],
-                result_info: Some(PaginationInfo {
-                    total_count: Some(3),
-                    count: Some(3),
-                    page: Some(1),
-                    per_page: Some(20),
-                }),
-            });
-            Mock::given(method("GET"))
-                .and(path(format!(
-                    "/client/v4/accounts/{account_id}/storage/kv/namespaces"
-                )))
-                .respond_with(response_template)
-                .mount(&mock_server)
-                .await;
-
+            let mock_server =
+                create_mock_server(&account_id, Some(expected_namespaces.clone()), vec![], 200)
+                    .await;
             let kv_service = create_kv_service(mock_server.uri());
             let namespaces = kv_service
                 .get_namespaces(&Credentials::UserAuthToken {
@@ -460,24 +443,16 @@ mod test {
         ) -> Result<(), AuthenticationError> {
             let account_id = "account_id".to_string();
             let unknown_error_message = "Unknown error.";
-            let mock_server = MockServer::start().await;
-            let response_template =
-                ResponseTemplate::new(400).set_body_json(PagePaginationArray::<Vec<KvNamespace>> {
-                    success: false,
-                    result: None,
-                    errors: vec![ResponseInfo {
-                        code: 1111,
-                        message: unknown_error_message.to_string(),
-                    }],
-                    result_info: None,
-                });
-            Mock::given(method("GET"))
-                .and(path(format!(
-                    "/client/v4/accounts/{account_id}/storage/kv/namespaces"
-                )))
-                .respond_with(response_template)
-                .mount(&mock_server)
-                .await;
+            let mock_server = create_mock_server(
+                &account_id,
+                None,
+                vec![ResponseInfo {
+                    code: 1111,
+                    message: unknown_error_message.to_string(),
+                }],
+                400,
+            )
+            .await;
 
             let kv_service = create_kv_service(mock_server.uri());
             let namespaces_result = kv_service
@@ -505,21 +480,7 @@ mod test {
         async fn should_respond_with_an_unknown_error_if_no_errors_are_available(
         ) -> Result<(), AuthenticationError> {
             let account_id = "account_id".to_string();
-            let mock_server = MockServer::start().await;
-            let response_template =
-                ResponseTemplate::new(400).set_body_json(PagePaginationArray::<Vec<KvNamespace>> {
-                    success: false,
-                    result: None,
-                    errors: vec![],
-                    result_info: None,
-                });
-            Mock::given(method("GET"))
-                .and(path(format!(
-                    "/client/v4/accounts/{account_id}/storage/kv/namespaces"
-                )))
-                .respond_with(response_template)
-                .mount(&mock_server)
-                .await;
+            let mock_server = create_mock_server(&account_id, None, vec![], 400).await;
 
             let kv_service = create_kv_service(mock_server.uri());
             let namespaces_result = kv_service
@@ -548,24 +509,16 @@ mod test {
         ) -> Result<(), AuthenticationError> {
             let account_id = "account_id".to_string();
             let error_message = "Unable to authenticate request";
-            let mock_server = MockServer::start().await;
-            let response_template =
-                ResponseTemplate::new(400).set_body_json(PagePaginationArray::<Vec<KvNamespace>> {
-                    success: false,
-                    result: None,
-                    errors: vec![ResponseInfo {
-                        code: 10001,
-                        message: error_message.to_string(),
-                    }],
-                    result_info: None,
-                });
-            Mock::given(method("GET"))
-                .and(path(format!(
-                    "/client/v4/accounts/{account_id}/storage/kv/namespaces"
-                )))
-                .respond_with(response_template)
-                .mount(&mock_server)
-                .await;
+            let mock_server = create_mock_server(
+                &account_id,
+                None,
+                vec![ResponseInfo {
+                    code: 10001,
+                    message: error_message.to_string(),
+                }],
+                400,
+            )
+            .await;
 
             let kv_service = create_kv_service(mock_server.uri());
             let namespaces_result = kv_service
@@ -590,6 +543,37 @@ mod test {
             ));
 
             Ok(())
+        }
+
+        async fn create_mock_server(
+            account_id: &str,
+            namespaces: Option<Vec<WorkersKvNamespace>>,
+            errors: Vec<ResponseInfo>,
+            code: u16,
+        ) -> MockServer {
+            let mock_server = MockServer::start().await;
+            let response_template =
+                ResponseTemplate::new(code).set_body_json(PagePaginationArray {
+                    success: true,
+                    result: namespaces,
+                    errors,
+                    result_info: Some(PaginationInfo {
+                        total_count: Some(3),
+                        count: Some(3),
+                        page: Some(1),
+                        per_page: Some(20),
+                    }),
+                });
+
+            Mock::given(method("GET"))
+                .and(path(format!(
+                    "/client/v4/accounts/{account_id}/storage/kv/namespaces"
+                )))
+                .respond_with(response_template)
+                .mount(&mock_server)
+                .await;
+
+            mock_server
         }
     }
 
