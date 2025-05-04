@@ -607,7 +607,7 @@ SidebarMenuSub.displayName = 'SidebarMenuSub';
 
 const SidebarMenuSubItem = React.forwardRef<HTMLLIElement, React.ComponentProps<'li'>>(
   ({ className, ...props }, ref) => (
-    <li data-sidebar="menu-sub-item" ref={ref} className={cn('relative', className)} {...props} />
+    <li data-sidebar="menu-sub-item" ref={ref} className={cn('group/menu-sub-item relative', className)} {...props} />
   ),
 );
 SidebarMenuSubItem.displayName = 'SidebarMenuSubItem';
