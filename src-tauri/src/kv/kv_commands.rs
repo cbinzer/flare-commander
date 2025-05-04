@@ -4,7 +4,6 @@ use crate::kv::kv_models::{
     CreateKvItemInput, GetKeysInput, KvError, KvItem, KvItemsDeletionInput, KvItemsDeletionResult,
     KvKeys, KvNamespace, KvNamespaceCreateInput, KvNamespaceUpdateInput,
 };
-use cloudflare::endpoints::workerskv::WorkersKvNamespace;
 use log::error;
 use serde::{Deserialize, Serialize};
 use tauri::State;
@@ -15,7 +14,7 @@ use super::kv_models::{GetKvItemInput, WriteKvItemInput};
 pub async fn get_namespaces(
     credentials: Credentials,
     state: State<'_, AppState>,
-) -> Result<Vec<WorkersKvNamespace>, KvCommandError> {
+) -> Result<Vec<KvNamespace>, KvCommandError> {
     Ok(state.kv_service.get_namespaces(&credentials).await?)
 }
 

@@ -7,13 +7,9 @@ use crate::kv::kv_models::{
     KvNamespaceUpdateInput,
 };
 use chrono::DateTime;
-use cloudflare::endpoints::workerskv::list_namespaces::{ListNamespaces, ListNamespacesParams};
-use cloudflare::endpoints::workerskv::WorkersKvNamespace;
-use cloudflare::framework::async_api::Client;
 use std::collections::HashMap;
 
 use cloudflare::framework::response::ApiSuccess;
-use cloudflare::framework::HttpApiClientConfig;
 use log::error;
 use reqwest::multipart::Form;
 use reqwest::StatusCode;
@@ -40,15 +36,26 @@ impl KvService {
     pub async fn get_namespaces(
         &self,
         credentials: &Credentials,
-    ) -> Result<Vec<WorkersKvNamespace>, KvError> {
-        let http_client = self.create_http_client(credentials)?;
-        let list_namespaces_endpoint =
-            Self::create_list_namespaces_endpoint(credentials.account_id());
-        let response = http_client.request(&list_namespaces_endpoint).await;
+    ) -> Result<Vec<KvNamespace>, KvError> {
+        let base_url: Url = (&get_cloudflare_env(&self.api_url)).into();
+        let url = format!(
+            "{}accounts/{}/storage/kv/namespaces",
+            base_url,
+            credentials.account_id(),
+        );
 
-        match response {
-            Ok(api_success) => Ok(api_success.result),
-            Err(api_failure) => Err(api_failure.into()),
+        let token = credentials.token().unwrap_or_default();
+        let response = self.http_client.get(&url).bearer_auth(token).send().await?;
+
+        match response.status() {
+            StatusCode::OK => {
+                let api_result: ApiSuccess<Vec<KvNamespace>> = response.json().await?;
+                Ok(api_result.result)
+            }
+            _ => {
+                let api_response = response.json::<ApiSuccess<()>>().await?;
+                Err(map_api_errors(api_response.errors))
+            }
         }
     }
 
@@ -368,24 +375,6 @@ impl KvService {
             }
         }
     }
-
-    fn create_http_client(&self, credentials: &Credentials) -> Result<Client, KvError> {
-        Ok(Client::new(
-            credentials.into(),
-            HttpApiClientConfig::default(),
-            get_cloudflare_env(&self.api_url),
-        )?)
-    }
-
-    fn create_list_namespaces_endpoint(account_id: &str) -> ListNamespaces {
-        ListNamespaces {
-            account_identifier: account_id,
-            params: ListNamespacesParams {
-                page: None,
-                per_page: Some(100),
-            },
-        }
-    }
 }
 
 #[cfg(test)]
@@ -397,26 +386,31 @@ mod test {
         use crate::authentication::authentication_models::{AuthenticationError, ResponseInfo};
         use crate::common::common_models::Credentials;
         use crate::kv::kv_models::KvError::Authentication;
-        use crate::kv::kv_models::{KvError, PagePaginationArray, PaginationInfo};
+        use crate::kv::kv_models::{KvError, KvNamespace, PagePaginationArray, PaginationInfo};
         use crate::kv::kv_service::test::create_kv_service;
-        use cloudflare::endpoints::workerskv::WorkersKvNamespace;
         use wiremock::matchers::{method, path};
         use wiremock::{Mock, MockServer, ResponseTemplate};
 
         #[tokio::test]
         async fn should_get_namespaces() -> Result<(), KvError> {
             let expected_namespaces = vec![
-                WorkersKvNamespace {
+                KvNamespace {
                     id: "namespace_id_1".to_string(),
                     title: "namespace_title_1".to_string(),
+                    beta: Some(false),
+                    supports_url_encoding: Some(true),
                 },
-                WorkersKvNamespace {
+                KvNamespace {
                     id: "namespace_id_2".to_string(),
                     title: "namespace_title_2".to_string(),
+                    beta: Some(false),
+                    supports_url_encoding: Some(true),
                 },
-                WorkersKvNamespace {
+                KvNamespace {
                     id: "namespace_id_3".to_string(),
                     title: "namespace_title_3".to_string(),
+                    beta: Some(false),
+                    supports_url_encoding: Some(true),
                 },
             ];
             let account_id = "account_id".to_string();
@@ -547,7 +541,7 @@ mod test {
 
         async fn create_mock_server(
             account_id: &str,
-            namespaces: Option<Vec<WorkersKvNamespace>>,
+            namespaces: Option<Vec<KvNamespace>>,
             errors: Vec<ResponseInfo>,
             code: u16,
         ) -> MockServer {
