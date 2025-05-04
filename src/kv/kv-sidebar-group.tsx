@@ -28,6 +28,16 @@ import {
 import { useIsMobile } from '@/hooks/use-mobile.tsx';
 import KvNamespaceCreateSheet from '@/kv/kv-namespace-create-sheet.tsx';
 import KvNamespaceUpdateSheet from '@/kv/kv-namespace-update-sheet.tsx';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog.tsx';
+import { Button } from '@/components/ui/button.tsx';
+import { LoadingSpinner } from '@/components/ui/loading-spinner.tsx';
 
 export function KvSidebarGroup() {
   const [activeNamespaceId, setActiveNamespaceId] = useState<string | undefined>();
@@ -150,7 +160,9 @@ const KvSidebarMenu: FunctionComponent<KvSidebarMenuProps> = ({
 
   const [activeNamespace, setActiveNamespace] = useState<KvNamespace | undefined>();
   const [isUpdateSheetOpen, setIsUpdateSheetOpen] = useState<boolean>(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [namespaceIdToUpdate, setNamespaceIdToUpdate] = useState<string | undefined>(undefined);
+  const [namespaceToDelete, setNamespaceToDelete] = useState<KvNamespace | undefined>(undefined);
 
   useEffect(() => {
     setActiveNamespace(namespaces.find((namespace) => namespace.id === activeNamespaceId));
@@ -166,6 +178,11 @@ const KvSidebarMenu: FunctionComponent<KvSidebarMenuProps> = ({
   const openUpdateSheet = (namespaceId: string) => {
     setNamespaceIdToUpdate(namespaceId);
     setIsUpdateSheetOpen(true);
+  };
+
+  const openDeleteDialog = (namespace: KvNamespace) => {
+    setNamespaceToDelete(namespace);
+    setIsDeleteDialogOpen(true);
   };
 
   return (
@@ -195,7 +212,7 @@ const KvSidebarMenu: FunctionComponent<KvSidebarMenuProps> = ({
                       <EditIcon />
                       <span>Edit</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => openDeleteDialog(namespace)}>
                       <TrashIcon />
                       <span>Delete</span>
                     </DropdownMenuItem>
@@ -215,6 +232,14 @@ const KvSidebarMenu: FunctionComponent<KvSidebarMenuProps> = ({
         onOpenChange={setIsUpdateSheetOpen}
         onUpdate={onNamespaceChanged}
       />
+      {namespaceToDelete && (
+        <KvNamespaceDeleteDialog
+          namespace={namespaceToDelete}
+          open={isDeleteDialogOpen}
+          onDelete={() => onNamespaceChanged(namespaceToDelete)}
+          onOpenChange={setIsDeleteDialogOpen}
+        />
+      )}
     </SidebarMenuSub>
   );
 };
@@ -232,5 +257,76 @@ const KvSidebarMenuSkeleton: FunctionComponent = () => {
         <Skeleton className="ml-2 my-1 h-4 w-[130px]" />
       </SidebarMenuSubItem>
     </SidebarMenuSub>
+  );
+};
+
+interface KvNamespaceDeleteDialogProps {
+  namespace: KvNamespace;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  onDelete?: () => Promise<void>;
+}
+
+const KvNamespaceDeleteDialog: FunctionComponent<KvNamespaceDeleteDialogProps> = ({
+  namespace,
+  open = false,
+  onOpenChange = () => {},
+  onDelete = () => Promise.resolve(),
+}) => {
+  const { deleteNamespace } = useNamespaces();
+
+  const [isDialogOpen, setIsDialogOpen] = useState(open);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleOnOpenChange = (open: boolean) => {
+    setIsDialogOpen(open);
+    onOpenChange(open);
+  };
+
+  const closeDialog = () => handleOnOpenChange(false);
+
+  const deleteNamespaceAndCloseDialog = async () => {
+    setIsDeleting(true);
+
+    try {
+      await deleteNamespace(namespace.id);
+      await onDelete();
+      handleOnOpenChange(false);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  useEffect(() => {
+    setIsDialogOpen(open);
+  }, [open]);
+
+  return (
+    <Dialog open={isDialogOpen} onOpenChange={handleOnOpenChange}>
+      <DialogContent closeDisabled={isDeleting}>
+        <DialogHeader>
+          <DialogTitle>Are you sure?</DialogTitle>
+          <DialogDescription>
+            Do you really want to delete the namespace <b>{namespace.title}</b>? This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="secondary" disabled={isDeleting} onClick={closeDialog}>
+            Cancel
+          </Button>
+          <Button variant="destructive" disabled={isDeleting} onClick={deleteNamespaceAndCloseDialog}>
+            {isDeleting ? (
+              <>
+                <LoadingSpinner /> Deleting...
+              </>
+            ) : (
+              <>
+                <TrashIcon /> Delete
+              </>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };

@@ -25,6 +25,7 @@ export function useNamespaces() {
   const [isLoadingOne, setIsLoadingOne] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [namespaces, setNamespaces] = useState<KvNamespace[] | null>(null);
   const [namespace, setNamespace] = useState<KvNamespace | null>(null);
   const [error, setError] = useState<KvError | null>(null);
@@ -110,12 +111,28 @@ export function useNamespaces() {
         account_id: account?.id ?? '',
         token: (account?.credentials as UserAuthTokenCredentials).token,
       };
-      const updatedNamespace = await invokeUpdateNamespace(input, credentials);
-      setNamespace(updatedNamespace);
+      await invokeUpdateNamespace(input, credentials);
     } catch (e) {
       setError(e as KvError);
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const deleteNamespace = async (namespaceId: string) => {
+    setIsDeleting(true);
+
+    try {
+      const credentials: UserAuthTokenCredentials = {
+        type: CredentialsType.UserAuthToken,
+        account_id: account?.id ?? '',
+        token: (account?.credentials as UserAuthTokenCredentials).token,
+      };
+      await invokeDeleteNamespace(namespaceId, credentials);
+    } catch (e) {
+      setError(e as KvError);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -125,6 +142,7 @@ export function useNamespaces() {
     isLoadingOne,
     isCreating,
     isUpdating,
+    isDeleting,
     namespace,
     namespaces,
     error,
@@ -133,6 +151,7 @@ export function useNamespaces() {
     getNamespace,
     createNamespace,
     updateNamespace,
+    deleteNamespace,
     setNamespaces,
   };
 }
@@ -178,10 +197,21 @@ export async function invokeCreateNamespace(
 export async function invokeUpdateNamespace(
   input: KvNamespaceUpdateInput,
   credentials: UserAuthTokenCredentials,
-): Promise<KvNamespace> {
+): Promise<void> {
   try {
-    return await invoke<KvNamespace>('update_namespace', {
+    await invoke<void>('update_namespace', {
       input,
+      credentials,
+    });
+  } catch (e) {
+    throw convertPlainToKvErrorClass(e as KvError);
+  }
+}
+
+async function invokeDeleteNamespace(namespaceId: string, credentials: UserAuthTokenCredentials) {
+  try {
+    return await invoke<KvNamespace>('delete_namespace', {
+      namespaceId,
       credentials,
     });
   } catch (e) {
