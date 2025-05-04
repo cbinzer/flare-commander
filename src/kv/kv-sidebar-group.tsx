@@ -1,6 +1,6 @@
 'use client';
 
-import { FolderKey, MoreHorizontal, PlusIcon, RefreshCcwIcon } from 'lucide-react';
+import { EditIcon, FolderKey, MoreHorizontal, PlusIcon, RefreshCcwIcon, TrashIcon } from 'lucide-react';
 import {
   SidebarGroup,
   SidebarMenu,
@@ -8,6 +8,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
+  SidebarMenuSubAction,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
@@ -76,7 +77,7 @@ export function KvSidebarGroup() {
           {/*>*/}
           <SidebarMenuItem>
             {/*<CollapsibleTrigger asChild>*/}
-            <SidebarMenuButton tooltip="KV tooltip" unselectable="on" className="">
+            <SidebarMenuButton tooltip="KV tooltip" unselectable="on">
               <FolderKey />
               <span>KV</span>
               {/*<ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />*/}
@@ -141,6 +142,7 @@ const KvSidebarMenu: FunctionComponent<KvSidebarMenuProps> = ({
   onSelectNamespace = () => {},
 }) => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [activeNamespace, setActiveNamespace] = useState<KvNamespace | undefined>();
 
   useEffect(() => {
@@ -166,6 +168,28 @@ const KvSidebarMenu: FunctionComponent<KvSidebarMenuProps> = ({
                     <span>{namespace.title}</span>
                   </a>
                 </SidebarMenuSubButton>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <SidebarMenuSubAction showOnHover>
+                      <MoreHorizontal />
+                      <span className="sr-only">More</span>
+                    </SidebarMenuSubAction>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    className="w-48 rounded-lg"
+                    side={isMobile ? 'bottom' : 'right'}
+                    align={isMobile ? 'end' : 'start'}
+                  >
+                    <DropdownMenuItem>
+                      <EditIcon />
+                      <span>Edit</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <TrashIcon />
+                      <span>Delete</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </SidebarMenuSubItem>
             </TooltipTrigger>
             <TooltipContent>
