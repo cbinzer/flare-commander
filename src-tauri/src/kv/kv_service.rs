@@ -144,6 +144,36 @@ impl KvService {
         }
     }
 
+    pub async fn delete_namespace(
+        &self,
+        credentials: &Credentials,
+        namespace_id: &str,
+    ) -> Result<(), KvError> {
+        let basic_url: Url = (&get_cloudflare_env(&self.api_url)).into();
+        let url = format!(
+            "{}accounts/{}/storage/kv/namespaces/{}",
+            basic_url,
+            credentials.account_id(),
+            namespace_id,
+        );
+
+        let token = credentials.token().unwrap_or_default();
+        let response = self
+            .http_client
+            .delete(&url)
+            .bearer_auth(token)
+            .send()
+            .await?;
+
+        match response.status() {
+            StatusCode::OK => Ok(()),
+            _ => {
+                let api_response = response.json::<ApiSuccess<()>>().await?;
+                Err(map_api_errors(api_response.errors))
+            }
+        }
+    }
+
     pub async fn get_kv_item<'a>(
         &self,
         credentials: &Credentials,
@@ -974,6 +1004,91 @@ mod test {
                 });
 
             Mock::given(method("PUT"))
+                .and(path(format!(
+                    "/client/v4/accounts/{account_id}/storage/kv/namespaces/{namespace_id}",
+                )))
+                .respond_with(response_template_value)
+                .mount(&mock_server)
+                .await;
+
+            mock_server
+        }
+    }
+
+    mod delete_namespace {
+        use crate::common::common_models::Credentials;
+        use crate::kv::kv_models::{KvError, KvNamespace};
+        use crate::kv::kv_service::test::create_kv_service;
+        use crate::test::test_models::ApiSuccess;
+        use cloudflare::framework::response::ApiError;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        #[tokio::test]
+        async fn should_delete_namespace() -> Result<(), KvError> {
+            let credentials = Credentials::UserAuthToken {
+                account_id: "my_account_id".to_string(),
+                token: "my_token".to_string(),
+            };
+            let namespace_id = "12345";
+            let mock_server =
+                create_mock_server(credentials.account_id(), namespace_id, vec![], 200).await;
+
+            let kv_service = create_kv_service(mock_server.uri());
+            kv_service
+                .delete_namespace(&credentials, namespace_id)
+                .await?;
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_respond_with_namespace_not_found_error() -> Result<(), KvError> {
+            let credentials = Credentials::UserAuthToken {
+                account_id: "my_account_id".to_string(),
+                token: "my_token".to_string(),
+            };
+            let namespace_id = "12345";
+            let mock_server = create_mock_server(
+                credentials.account_id(),
+                namespace_id,
+                vec![ApiError {
+                    code: 10013,
+                    message: "remove namespace: 'namespace not found'".to_string(),
+                    other: Default::default(),
+                }],
+                404,
+            )
+            .await;
+
+            let kv_service = create_kv_service(mock_server.uri());
+            let delete_namespace_result = kv_service
+                .delete_namespace(&credentials, namespace_id)
+                .await;
+
+            assert!(delete_namespace_result.is_err());
+
+            let error = delete_namespace_result.unwrap_err();
+            assert!(matches!(error, KvError::NamespaceNotFound));
+
+            Ok(())
+        }
+
+        async fn create_mock_server(
+            account_id: &str,
+            namespace_id: &str,
+            errors: Vec<ApiError>,
+            code: u16,
+        ) -> MockServer {
+            let mock_server = MockServer::start().await;
+            let response_template_value =
+                ResponseTemplate::new(code).set_body_json(ApiSuccess::<Option<KvNamespace>> {
+                    result: None,
+                    errors,
+                    result_info: None,
+                });
+
+            Mock::given(method("DELETE"))
                 .and(path(format!(
                     "/client/v4/accounts/{account_id}/storage/kv/namespaces/{namespace_id}",
                 )))

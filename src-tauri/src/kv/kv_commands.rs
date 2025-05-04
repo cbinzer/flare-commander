@@ -56,6 +56,18 @@ pub async fn update_namespace(
 }
 
 #[tauri::command]
+pub async fn delete_namespace(
+    credentials: Credentials,
+    namespace_id: String,
+    state: State<'_, AppState>,
+) -> Result<(), KvCommandError> {
+    Ok(state
+        .kv_service
+        .delete_namespace(&credentials, &namespace_id)
+        .await?)
+}
+
+#[tauri::command]
 pub async fn get_kv_item<'a>(
     credentials: Credentials,
     input: GetKvItemInput<'a>,
