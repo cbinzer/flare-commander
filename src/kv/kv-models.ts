@@ -1,6 +1,8 @@
 export interface KvNamespace {
   id: string;
   title: string;
+  beta?: boolean;
+  supports_url_encoding?: boolean;
 }
 
 export interface KvNamespaceCreateInput {

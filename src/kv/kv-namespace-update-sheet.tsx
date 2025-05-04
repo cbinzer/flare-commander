@@ -12,7 +12,6 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Textarea } from '@/components/ui/textarea';
 import { FunctionComponent, ReactNode, useEffect, useRef, useState } from 'react';
 import { useNamespaces } from './kv-hooks';
 import { KvNamespace, KvNamespaceUpdateInput } from './kv-models';
@@ -34,7 +33,7 @@ const KvNamespaceUpdateSheet: FunctionComponent<KvNamespaceUpdateSheetProps> = (
   onOpenChange = () => {},
 }) => {
   const { namespace, getNamespace, updateNamespace, isLoadingOne, isUpdating } = useNamespaces();
-  const titleInputRef = useRef<HTMLTextAreaElement>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   const [isOpen, setIsOpen] = useState(false);
   const [title, setTitle] = useState(namespace?.title);
@@ -51,9 +50,10 @@ const KvNamespaceUpdateSheet: FunctionComponent<KvNamespaceUpdateSheetProps> = (
     }
 
     getNamespace(namespaceId).then(() => {
-      titleInputRef.current?.focus();
-      // Set cursor at the end
-      titleInputRef.current?.setSelectionRange(titleInputRef.current.value.length, titleInputRef.current.value.length);
+      setTimeout(() => {
+        titleInputRef.current?.focus();
+        titleInputRef.current?.setSelectionRange(0, titleInputRef.current.value.length);
+      }, 100);
     });
   };
 
@@ -64,6 +64,7 @@ const KvNamespaceUpdateSheet: FunctionComponent<KvNamespaceUpdateSheetProps> = (
         title: title ?? '',
       };
       await updateNamespace(namespaceUpdateInput);
+      await onUpdate({ ...(namespace as KvNamespace), title: title ?? '' });
 
       setIsOpen(false);
       onOpenChange(false);
@@ -74,12 +75,6 @@ const KvNamespaceUpdateSheet: FunctionComponent<KvNamespaceUpdateSheetProps> = (
 
   useEffect(() => {
     setTitle(namespace?.title);
-  }, [namespace]);
-
-  useEffect(() => {
-    if (namespace) {
-      onUpdate(namespace);
-    }
   }, [namespace]);
 
   useEffect(() => loadKvNamespaceOnOpenChange(open), [open]);
@@ -95,32 +90,53 @@ const KvNamespaceUpdateSheet: FunctionComponent<KvNamespaceUpdateSheetProps> = (
         </SheetHeader>
 
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-12 items-center gap-4">
-            <Label htmlFor="id" className="col-span-2 text-right">
+          <div className="grid grid-cols-[95px_1fr] items-center gap-4">
+            <Label htmlFor="id" className="text-right">
               Id *
             </Label>
             {isLoadingOne ? (
-              <Skeleton id="id" className="w-full h-[36px] rounded-md col-span-10" />
+              <Skeleton id="id" className="w-full h-[36px] rounded-md" />
             ) : (
-              <Input id="id" value={namespace?.id} className="col-span-10" disabled={true} />
+              <Input id="id" value={namespace?.id} disabled={true} />
             )}
           </div>
 
-          <div className="grid grid-cols-12 items-start gap-4">
-            <Label htmlFor="title" className="col-span-2 text-right pt-2">
+          <div className="grid grid-cols-[95px_1fr] items-center gap-4">
+            <Label htmlFor="title" className="text-right">
               Title *
             </Label>
             {isLoadingOne ? (
-              <Skeleton id="title" className="w-full h-[200px] rounded-md col-span-10" />
+              <Skeleton id="title" className="w-full h-[36px] rounded-md" />
             ) : (
-              <Textarea
+              <Input
                 id="title"
                 value={title}
-                className="col-span-10 min-h-[200px]"
+                disabled={isUpdating}
                 onChange={(e) => setTitle(e.target.value)}
                 ref={titleInputRef}
-                disabled={isUpdating}
               />
+            )}
+          </div>
+
+          <div className="grid grid-cols-[95px_1fr] items-center gap-4">
+            <Label htmlFor="beta" className="text-right">
+              Beta
+            </Label>
+            {isLoadingOne ? (
+              <Skeleton id="beta" className="w-full h-[36px] rounded-md" />
+            ) : (
+              <Input id="beta" value={namespace?.beta?.toString()} disabled={true} />
+            )}
+          </div>
+
+          <div className="grid grid-cols-[95px_1fr] items-center gap-4">
+            <Label htmlFor="supportsUrlEncoding" className=" text-right">
+              URL Encoding
+            </Label>
+            {isLoadingOne ? (
+              <Skeleton id="supportsUrlEncoding" className="w-full h-[36px] rounded-md" />
+            ) : (
+              <Input id="supportsUrlEncoding" value={namespace?.supports_url_encoding?.toString()} disabled={true} />
             )}
           </div>
         </div>

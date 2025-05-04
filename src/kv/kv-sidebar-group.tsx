@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useIsMobile } from '@/hooks/use-mobile.tsx';
 import KvNamespaceCreateSheet from '@/kv/kv-namespace-create-sheet.tsx';
+import KvNamespaceUpdateSheet from '@/kv/kv-namespace-update-sheet.tsx';
 
 export function KvSidebarGroup() {
   const [activeNamespaceId, setActiveNamespaceId] = useState<string | undefined>();
@@ -114,6 +115,7 @@ export function KvSidebarGroup() {
                 namespaces={namespaces}
                 activeNamespaceId={activeNamespaceId}
                 onSelectNamespace={(namespace) => setActiveNamespaceId(namespace.id)}
+                onNamespaceChanged={relistNamespaces}
               />
             )}
             {/*</CollapsibleContent>*/}
@@ -134,16 +136,21 @@ interface KvSidebarMenuProps {
   namespaces: KvNamespace[];
   activeNamespaceId?: String;
   onSelectNamespace?: (namespace: KvNamespace) => void;
+  onNamespaceChanged?: (namespace: KvNamespace) => Promise<void>;
 }
 
 const KvSidebarMenu: FunctionComponent<KvSidebarMenuProps> = ({
   namespaces = [],
   activeNamespaceId,
   onSelectNamespace = () => {},
+  onNamespaceChanged = () => Promise.resolve(),
 }) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+
   const [activeNamespace, setActiveNamespace] = useState<KvNamespace | undefined>();
+  const [isUpdateSheetOpen, setIsUpdateSheetOpen] = useState<boolean>(false);
+  const [namespaceIdToUpdate, setNamespaceIdToUpdate] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     setActiveNamespace(namespaces.find((namespace) => namespace.id === activeNamespaceId));
@@ -154,6 +161,11 @@ const KvSidebarMenu: FunctionComponent<KvSidebarMenuProps> = ({
     setActiveNamespace(namespace);
     onSelectNamespace(namespace);
     navigate(`namespaces/${namespace.id}`, { state: namespace });
+  };
+
+  const openUpdateSheet = (namespaceId: string) => {
+    setNamespaceIdToUpdate(namespaceId);
+    setIsUpdateSheetOpen(true);
   };
 
   return (
@@ -172,7 +184,6 @@ const KvSidebarMenu: FunctionComponent<KvSidebarMenuProps> = ({
                   <DropdownMenuTrigger asChild>
                     <SidebarMenuSubAction showOnHover>
                       <MoreHorizontal />
-                      <span className="sr-only">More</span>
                     </SidebarMenuSubAction>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
@@ -180,7 +191,7 @@ const KvSidebarMenu: FunctionComponent<KvSidebarMenuProps> = ({
                     side={isMobile ? 'bottom' : 'right'}
                     align={isMobile ? 'end' : 'start'}
                   >
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => openUpdateSheet(namespace.id)}>
                       <EditIcon />
                       <span>Edit</span>
                     </DropdownMenuItem>
@@ -198,6 +209,12 @@ const KvSidebarMenu: FunctionComponent<KvSidebarMenuProps> = ({
           </Tooltip>
         </TooltipProvider>
       ))}
+      <KvNamespaceUpdateSheet
+        namespaceId={namespaceIdToUpdate ?? ''}
+        open={isUpdateSheetOpen}
+        onOpenChange={setIsUpdateSheetOpen}
+        onUpdate={onNamespaceChanged}
+      />
     </SidebarMenuSub>
   );
 };

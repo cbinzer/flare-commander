@@ -137,9 +137,9 @@ export function useNamespaces() {
   };
 }
 
-export function invokeListNamespaces(credentials: UserAuthTokenCredentials): Promise<KvNamespace[]> {
+export async function invokeListNamespaces(credentials: UserAuthTokenCredentials): Promise<KvNamespace[]> {
   try {
-    return invoke<KvNamespace[]>('get_namespaces', {
+    return await invoke<KvNamespace[]>('get_namespaces', {
       credentials,
     });
   } catch (e) {
@@ -147,23 +147,26 @@ export function invokeListNamespaces(credentials: UserAuthTokenCredentials): Pro
   }
 }
 
-export function invokeGetNamespace(namespaceId: string, credentials: UserAuthTokenCredentials): Promise<KvNamespace> {
+export async function invokeGetNamespace(
+  namespaceId: string,
+  credentials: UserAuthTokenCredentials,
+): Promise<KvNamespace> {
   try {
-    return invoke<KvNamespace>('get_namespace', {
+    return await invoke<KvNamespace>('get_namespace', {
       credentials,
-      namespace_id: namespaceId,
+      namespaceId,
     });
   } catch (e) {
     throw convertPlainToKvErrorClass(e as KvError);
   }
 }
 
-export function invokeCreateNamespace(
+export async function invokeCreateNamespace(
   input: KvNamespaceCreateInput,
   credentials: UserAuthTokenCredentials,
 ): Promise<KvNamespace> {
   try {
-    return invoke<KvNamespace>('create_namespace', {
+    return await invoke<KvNamespace>('create_namespace', {
       input,
       credentials,
     });
@@ -172,12 +175,12 @@ export function invokeCreateNamespace(
   }
 }
 
-export function invokeUpdateNamespace(
+export async function invokeUpdateNamespace(
   input: KvNamespaceUpdateInput,
   credentials: UserAuthTokenCredentials,
 ): Promise<KvNamespace> {
   try {
-    return invoke<KvNamespace>('update_namespace', {
+    return await invoke<KvNamespace>('update_namespace', {
       input,
       credentials,
     });
