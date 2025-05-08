@@ -12,6 +12,7 @@ import {
   KvKeysDTO,
   KvNamespace,
   KvNamespaceCreateInput,
+  KvNamespaces,
   KvNamespaceUpdateInput,
   WriteKvItemInput,
 } from '@/kv/kv-models.ts';
@@ -26,7 +27,7 @@ export function useNamespaces() {
   const [isCreating, setIsCreating] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [namespaces, setNamespaces] = useState<KvNamespace[] | null>(null);
+  const [namespaces, setNamespaces] = useState<KvNamespaces | null>(null);
   const [namespace, setNamespace] = useState<KvNamespace | null>(null);
   const [error, setError] = useState<KvError | null>(null);
 
@@ -156,9 +157,9 @@ export function useNamespaces() {
   };
 }
 
-export async function invokeListNamespaces(credentials: UserAuthTokenCredentials): Promise<KvNamespace[]> {
+export async function invokeListNamespaces(credentials: UserAuthTokenCredentials): Promise<KvNamespaces> {
   try {
-    return await invoke<KvNamespace[]>('get_namespaces', {
+    return await invoke<KvNamespaces>('get_namespaces', {
       credentials,
     });
   } catch (e) {

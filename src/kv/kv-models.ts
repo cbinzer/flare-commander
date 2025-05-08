@@ -1,8 +1,20 @@
+export interface KvNamespaces {
+  items: KvNamespace[];
+  page_info: PageInfo;
+}
+
 export interface KvNamespace {
   id: string;
   title: string;
   beta?: boolean;
   supports_url_encoding?: boolean;
+}
+
+export interface PageInfo {
+  count: number;
+  page: number;
+  per_page: number;
+  total_count: number;
 }
 
 export interface KvNamespaceCreateInput {

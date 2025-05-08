@@ -15,7 +15,7 @@ import {
 import { useNamespaces } from '@/kv/kv-hooks.ts';
 import { Skeleton } from '@/components/ui/skeleton.tsx';
 import { FunctionComponent, MouseEvent, useEffect, useState } from 'react';
-import { KvNamespace } from '@/kv/kv-models.ts';
+import { KvNamespace, KvNamespaces } from '@/kv/kv-models.ts';
 import { useError } from '@/common/common-hooks.ts';
 import { useNavigate } from 'react-router';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -143,14 +143,14 @@ export function KvSidebarGroup() {
 }
 
 interface KvSidebarMenuProps {
-  namespaces: KvNamespace[];
+  namespaces: KvNamespaces;
   activeNamespaceId?: String;
   onSelectNamespace?: (namespace: KvNamespace) => void;
   onNamespaceChanged?: (namespace: KvNamespace) => Promise<void>;
 }
 
 const KvSidebarMenu: FunctionComponent<KvSidebarMenuProps> = ({
-  namespaces = [],
+  namespaces,
   activeNamespaceId,
   onSelectNamespace = () => {},
   onNamespaceChanged = () => Promise.resolve(),
@@ -165,7 +165,7 @@ const KvSidebarMenu: FunctionComponent<KvSidebarMenuProps> = ({
   const [namespaceToDelete, setNamespaceToDelete] = useState<KvNamespace | undefined>(undefined);
 
   useEffect(() => {
-    setActiveNamespace(namespaces.find((namespace) => namespace.id === activeNamespaceId));
+    setActiveNamespace(namespaces.items.find((namespace) => namespace.id === activeNamespaceId));
   }, [activeNamespaceId]);
 
   const openKvSection = (event: MouseEvent<HTMLAnchorElement>, namespace: KvNamespace) => {
@@ -187,7 +187,7 @@ const KvSidebarMenu: FunctionComponent<KvSidebarMenuProps> = ({
 
   return (
     <SidebarMenuSub>
-      {namespaces.map((namespace) => (
+      {namespaces.items.map((namespace) => (
         <TooltipProvider delayDuration={1000} key={namespace.id}>
           <Tooltip>
             <TooltipTrigger asChild>
