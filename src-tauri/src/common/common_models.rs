@@ -76,3 +76,28 @@ impl Credentials {
         }
     }
 }
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+pub struct ApiPaginatedResponse<T> {
+    pub result: T,
+    pub result_info: PageInfo,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+pub struct ApiErrorResponse {
+    pub errors: Vec<ApiError>,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+pub struct ApiError {
+    pub code: u16,
+    pub message: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+pub struct PageInfo {
+    pub count: usize,
+    pub page: usize,
+    pub per_page: usize,
+    pub total_count: usize,
+}

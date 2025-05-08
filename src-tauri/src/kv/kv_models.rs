@@ -1,4 +1,5 @@
 use crate::authentication::authentication_models::{AuthenticationError, ResponseInfo};
+use crate::common::common_models::{ApiPaginatedResponse, PageInfo};
 use chrono::serde::ts_seconds_option;
 use chrono::{DateTime, Utc};
 use cloudflare::framework::response::{ApiError, ApiFailure};
@@ -6,6 +7,21 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::error::Error;
 use std::fmt;
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+pub struct KvNamespaces {
+    pub items: Vec<KvNamespace>,
+    pub page_info: PageInfo,
+}
+
+impl From<ApiPaginatedResponse<Vec<KvNamespace>>> for KvNamespaces {
+    fn from(value: ApiPaginatedResponse<Vec<KvNamespace>>) -> Self {
+        Self {
+            items: value.result,
+            page_info: value.result_info,
+        }
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct KvNamespace {
@@ -71,6 +87,23 @@ impl From<ApiFailure> for KvError {
 }
 
 pub fn map_api_errors(errors: Vec<ApiError>) -> KvError {
+    if errors.is_empty() {
+        return KvError::Unknown("No errors in the response.".to_string());
+    }
+
+    let error = &errors[0];
+    match error.code {
+        10000 => KvError::Authentication(AuthenticationError::InvalidToken),
+        10001 => KvError::Authentication(AuthenticationError::InvalidToken),
+        10009 => KvError::KeyNotFound,
+        10013 => KvError::NamespaceNotFound,
+        10014 => KvError::NamespaceAlreadyExists(error.message.clone()),
+        10019 => KvError::NamespaceTitleMissing(error.message.clone()),
+        _ => KvError::Unknown(error.message.clone()),
+    }
+}
+
+pub fn map_api_errors_v2(errors: Vec<crate::common::common_models::ApiError>) -> KvError {
     if errors.is_empty() {
         return KvError::Unknown("No errors in the response.".to_string());
     }

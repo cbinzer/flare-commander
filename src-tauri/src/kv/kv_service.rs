@@ -1,10 +1,10 @@
 use crate::cloudflare::read_key_value::url_encode_key;
-use crate::common::common_models::Credentials;
+use crate::common::common_models::{ApiErrorResponse, ApiPaginatedResponse, Credentials};
 use crate::common::common_utils::get_cloudflare_env;
 use crate::kv::kv_models::{
-    map_api_errors, CreateKvItemInput, GetKeysInput, KvError, KvItem, KvItemsDeletionInput,
-    KvItemsDeletionResult, KvKey, KvKeys, KvNamespace, KvNamespaceCreateInput,
-    KvNamespaceUpdateInput,
+    map_api_errors, map_api_errors_v2, CreateKvItemInput, GetKeysInput, KvError, KvItem,
+    KvItemsDeletionInput, KvItemsDeletionResult, KvKey, KvKeys, KvNamespace,
+    KvNamespaceCreateInput, KvNamespaceUpdateInput, KvNamespaces,
 };
 use chrono::DateTime;
 use std::collections::HashMap;
@@ -33,10 +33,7 @@ impl KvService {
         }
     }
 
-    pub async fn get_namespaces(
-        &self,
-        credentials: &Credentials,
-    ) -> Result<Vec<KvNamespace>, KvError> {
+    pub async fn get_namespaces(&self, credentials: &Credentials) -> Result<KvNamespaces, KvError> {
         let base_url: Url = (&get_cloudflare_env(&self.api_url)).into();
         let url = format!(
             "{}accounts/{}/storage/kv/namespaces",
@@ -49,12 +46,12 @@ impl KvService {
 
         match response.status() {
             StatusCode::OK => {
-                let api_result: ApiSuccess<Vec<KvNamespace>> = response.json().await?;
-                Ok(api_result.result)
+                let api_result: ApiPaginatedResponse<Vec<KvNamespace>> = response.json().await?;
+                Ok(api_result.into())
             }
             _ => {
-                let api_response = response.json::<ApiSuccess<()>>().await?;
-                Err(map_api_errors(api_response.errors))
+                let api_response = response.json::<ApiErrorResponse>().await?;
+                Err(map_api_errors_v2(api_response.errors))
             }
         }
     }
@@ -383,36 +380,46 @@ mod test {
     use url::Url;
 
     mod get_namespaces {
-        use crate::authentication::authentication_models::{AuthenticationError, ResponseInfo};
-        use crate::common::common_models::Credentials;
+        use crate::authentication::authentication_models::AuthenticationError;
+        use crate::common::common_models::{
+            ApiError, ApiErrorResponse, ApiPaginatedResponse, Credentials, PageInfo,
+        };
         use crate::kv::kv_models::KvError::Authentication;
-        use crate::kv::kv_models::{KvError, KvNamespace, PagePaginationArray, PaginationInfo};
+        use crate::kv::kv_models::{KvError, KvNamespace, KvNamespaces};
         use crate::kv::kv_service::test::create_kv_service;
         use wiremock::matchers::{method, path};
         use wiremock::{Mock, MockServer, ResponseTemplate};
 
         #[tokio::test]
         async fn should_get_namespaces() -> Result<(), KvError> {
-            let expected_namespaces = vec![
-                KvNamespace {
-                    id: "namespace_id_1".to_string(),
-                    title: "namespace_title_1".to_string(),
-                    beta: Some(false),
-                    supports_url_encoding: Some(true),
+            let expected_namespaces = KvNamespaces {
+                items: vec![
+                    KvNamespace {
+                        id: "namespace_id_1".to_string(),
+                        title: "namespace_title_1".to_string(),
+                        beta: Some(false),
+                        supports_url_encoding: Some(true),
+                    },
+                    KvNamespace {
+                        id: "namespace_id_2".to_string(),
+                        title: "namespace_title_2".to_string(),
+                        beta: Some(false),
+                        supports_url_encoding: Some(true),
+                    },
+                    KvNamespace {
+                        id: "namespace_id_3".to_string(),
+                        title: "namespace_title_3".to_string(),
+                        beta: Some(false),
+                        supports_url_encoding: Some(true),
+                    },
+                ],
+                page_info: PageInfo {
+                    total_count: 3,
+                    count: 3,
+                    page: 1,
+                    per_page: 20,
                 },
-                KvNamespace {
-                    id: "namespace_id_2".to_string(),
-                    title: "namespace_title_2".to_string(),
-                    beta: Some(false),
-                    supports_url_encoding: Some(true),
-                },
-                KvNamespace {
-                    id: "namespace_id_3".to_string(),
-                    title: "namespace_title_3".to_string(),
-                    beta: Some(false),
-                    supports_url_encoding: Some(true),
-                },
-            ];
+            };
             let account_id = "account_id".to_string();
 
             let mock_server =
@@ -426,7 +433,7 @@ mod test {
                 })
                 .await?;
 
-            assert_eq!(namespaces.len(), 3);
+            assert_eq!(namespaces.items.len(), 3);
             assert_eq!(namespaces, expected_namespaces);
 
             Ok(())
@@ -440,7 +447,7 @@ mod test {
             let mock_server = create_mock_server(
                 &account_id,
                 None,
-                vec![ResponseInfo {
+                vec![ApiError {
                     code: 1111,
                     message: unknown_error_message.to_string(),
                 }],
@@ -459,6 +466,9 @@ mod test {
             assert!(namespaces_result.is_err());
 
             let error = namespaces_result.unwrap_err();
+            if let KvError::Reqwest(err) = &error {
+                println!("Error: {}", err);
+            };
             assert!(matches!(error, KvError::Unknown(_)));
 
             let error_message = match error {
@@ -506,7 +516,7 @@ mod test {
             let mock_server = create_mock_server(
                 &account_id,
                 None,
-                vec![ResponseInfo {
+                vec![ApiError {
                     code: 10001,
                     message: error_message.to_string(),
                 }],
@@ -541,23 +551,26 @@ mod test {
 
         async fn create_mock_server(
             account_id: &str,
-            namespaces: Option<Vec<KvNamespace>>,
-            errors: Vec<ResponseInfo>,
+            namespaces: Option<KvNamespaces>,
+            errors: Vec<ApiError>,
             code: u16,
         ) -> MockServer {
             let mock_server = MockServer::start().await;
-            let response_template =
-                ResponseTemplate::new(code).set_body_json(PagePaginationArray {
-                    success: true,
-                    result: namespaces,
-                    errors,
-                    result_info: Some(PaginationInfo {
-                        total_count: Some(3),
-                        count: Some(3),
-                        page: Some(1),
-                        per_page: Some(20),
-                    }),
-                });
+            let response_template = if let Some(namespaces) = namespaces {
+                ResponseTemplate::new(code).set_body_json(
+                    ApiPaginatedResponse::<Vec<KvNamespace>> {
+                        result: namespaces.clone().items,
+                        result_info: PageInfo {
+                            total_count: namespaces.items.len(),
+                            count: namespaces.items.len(),
+                            page: 1,
+                            per_page: 20,
+                        },
+                    },
+                )
+            } else {
+                ResponseTemplate::new(code).set_body_json(ApiErrorResponse { errors })
+            };
 
             Mock::given(method("GET"))
                 .and(path(format!(

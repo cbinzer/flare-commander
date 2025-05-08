@@ -2,7 +2,7 @@ use crate::app_state::AppState;
 use crate::common::common_models::Credentials;
 use crate::kv::kv_models::{
     CreateKvItemInput, GetKeysInput, KvError, KvItem, KvItemsDeletionInput, KvItemsDeletionResult,
-    KvKeys, KvNamespace, KvNamespaceCreateInput, KvNamespaceUpdateInput,
+    KvKeys, KvNamespace, KvNamespaceCreateInput, KvNamespaceUpdateInput, KvNamespaces,
 };
 use log::error;
 use serde::{Deserialize, Serialize};
@@ -14,7 +14,7 @@ use super::kv_models::{GetKvItemInput, WriteKvItemInput};
 pub async fn get_namespaces(
     credentials: Credentials,
     state: State<'_, AppState>,
-) -> Result<Vec<KvNamespace>, KvCommandError> {
+) -> Result<KvNamespaces, KvCommandError> {
     Ok(state.kv_service.get_namespaces(&credentials).await?)
 }
 
