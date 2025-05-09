@@ -393,16 +393,18 @@ mod test {
     mod list_namespaces {
         use crate::authentication::authentication_models::AuthenticationError;
         use crate::common::common_models::{
-            ApiError, ApiErrorResponse, ApiPaginatedResponse, Credentials, PageInfo,
+            ApiError, ApiErrorResponse, ApiPaginatedResponse, Credentials, OrderDirection, PageInfo,
         };
         use crate::kv::kv_models::KvError::Authentication;
-        use crate::kv::kv_models::{KvError, KvNamespace, KvNamespaces};
+        use crate::kv::kv_models::{
+            KvError, KvNamespace, KvNamespaces, KvNamespacesListInput, KvNamespacesOrderBy,
+        };
         use crate::kv::kv_service::test::create_kv_service;
-        use wiremock::matchers::{method, path};
+        use wiremock::matchers::{method, path, query_param};
         use wiremock::{Mock, MockServer, ResponseTemplate};
 
         #[tokio::test]
-        async fn should_get_namespaces() -> Result<(), KvError> {
+        async fn should_list_namespaces() -> Result<(), KvError> {
             let expected_namespaces = KvNamespaces {
                 items: vec![
                     KvNamespace {
@@ -433,9 +435,20 @@ mod test {
             };
             let account_id = "account_id".to_string();
 
-            let mock_server =
-                create_mock_server(&account_id, Some(expected_namespaces.clone()), vec![], 200)
-                    .await;
+            let list_namespaces_input = Some(KvNamespacesListInput {
+                order_by: Some(KvNamespacesOrderBy::Title),
+                order_direction: Some(OrderDirection::Ascending),
+                page: Some(1),
+                per_page: Some(10),
+            });
+            let mock_server = create_mock_server(
+                &account_id,
+                Some(expected_namespaces.clone()),
+                vec![],
+                200,
+                list_namespaces_input.clone(),
+            )
+            .await;
             let kv_service = create_kv_service(mock_server.uri());
             let namespaces = kv_service
                 .list_namespaces(
@@ -443,7 +456,7 @@ mod test {
                         account_id,
                         token: "token".to_string(),
                     },
-                    None,
+                    list_namespaces_input,
                 )
                 .await?;
 
@@ -466,6 +479,7 @@ mod test {
                     message: unknown_error_message.to_string(),
                 }],
                 400,
+                None,
             )
             .await;
 
@@ -501,7 +515,7 @@ mod test {
         async fn should_respond_with_an_unknown_error_if_no_errors_are_available(
         ) -> Result<(), AuthenticationError> {
             let account_id = "account_id".to_string();
-            let mock_server = create_mock_server(&account_id, None, vec![], 400).await;
+            let mock_server = create_mock_server(&account_id, None, vec![], 400, None).await;
 
             let kv_service = create_kv_service(mock_server.uri());
             let namespaces_result = kv_service
@@ -541,6 +555,7 @@ mod test {
                     message: error_message.to_string(),
                 }],
                 400,
+                None,
             )
             .await;
 
@@ -577,6 +592,7 @@ mod test {
             namespaces: Option<KvNamespaces>,
             errors: Vec<ApiError>,
             code: u16,
+            input: Option<KvNamespacesListInput>,
         ) -> MockServer {
             let mock_server = MockServer::start().await;
             let response_template = if let Some(namespaces) = namespaces {
@@ -595,10 +611,27 @@ mod test {
                 ResponseTemplate::new(code).set_body_json(ApiErrorResponse { errors })
             };
 
-            Mock::given(method("GET"))
-                .and(path(format!(
-                    "/client/v4/accounts/{account_id}/storage/kv/namespaces"
-                )))
+            let mut mock_builder = Mock::given(method("GET")).and(path(format!(
+                "/client/v4/accounts/{account_id}/storage/kv/namespaces"
+            )));
+
+            if let Some(input) = input {
+                if let Some(order_by) = input.order_by {
+                    mock_builder = mock_builder.and(query_param("order", order_by.to_string()));
+                }
+                if let Some(order_direction) = input.order_direction {
+                    mock_builder =
+                        mock_builder.and(query_param("direction", order_direction.to_string()));
+                }
+                if let Some(page) = input.page {
+                    mock_builder = mock_builder.and(query_param("page", page.to_string()));
+                }
+                if let Some(per_page) = input.per_page {
+                    mock_builder = mock_builder.and(query_param("per_page", per_page.to_string()));
+                }
+            }
+
+            mock_builder
                 .respond_with(response_template)
                 .mount(&mock_server)
                 .await;
