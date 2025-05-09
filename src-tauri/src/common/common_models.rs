@@ -1,5 +1,6 @@
 use cloudflare::framework::auth::Credentials as CloudflareCredentials;
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(tag = "type")]
@@ -100,4 +101,20 @@ pub struct PageInfo {
     pub page: usize,
     pub per_page: usize,
     pub total_count: usize,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum OrderDirection {
+    Ascending,
+    Descending,
+}
+
+impl Display for OrderDirection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
+            OrderDirection::Ascending => "asc".to_string(),
+            OrderDirection::Descending => "desc".to_string(),
+        };
+        write!(f, "{}", str)
+    }
 }

@@ -4,7 +4,7 @@ use crate::common::common_utils::get_cloudflare_env;
 use crate::kv::kv_models::{
     map_api_errors, map_api_errors_v2, CreateKvItemInput, GetKeysInput, KvError, KvItem,
     KvItemsDeletionInput, KvItemsDeletionResult, KvKey, KvKeys, KvNamespace,
-    KvNamespaceCreateInput, KvNamespaceUpdateInput, KvNamespaces,
+    KvNamespaceCreateInput, KvNamespaceUpdateInput, KvNamespaces, KvNamespacesListInput,
 };
 use chrono::DateTime;
 use std::collections::HashMap;
@@ -33,7 +33,11 @@ impl KvService {
         }
     }
 
-    pub async fn get_namespaces(&self, credentials: &Credentials) -> Result<KvNamespaces, KvError> {
+    pub async fn list_namespaces(
+        &self,
+        credentials: &Credentials,
+        input: Option<KvNamespacesListInput>,
+    ) -> Result<KvNamespaces, KvError> {
         let base_url: Url = (&get_cloudflare_env(&self.api_url)).into();
         let url = format!(
             "{}accounts/{}/storage/kv/namespaces",
@@ -42,7 +46,14 @@ impl KvService {
         );
 
         let token = credentials.token().unwrap_or_default();
-        let response = self.http_client.get(&url).bearer_auth(token).send().await?;
+        let query_parameters: HashMap<String, String> = input.unwrap_or_default().into();
+        let response = self
+            .http_client
+            .get(&url)
+            .query(&query_parameters)
+            .bearer_auth(token)
+            .send()
+            .await?;
 
         match response.status() {
             StatusCode::OK => {
@@ -379,7 +390,7 @@ mod test {
     use crate::kv::kv_service::KvService;
     use url::Url;
 
-    mod get_namespaces {
+    mod list_namespaces {
         use crate::authentication::authentication_models::AuthenticationError;
         use crate::common::common_models::{
             ApiError, ApiErrorResponse, ApiPaginatedResponse, Credentials, PageInfo,
@@ -427,10 +438,13 @@ mod test {
                     .await;
             let kv_service = create_kv_service(mock_server.uri());
             let namespaces = kv_service
-                .get_namespaces(&Credentials::UserAuthToken {
-                    account_id,
-                    token: "token".to_string(),
-                })
+                .list_namespaces(
+                    &Credentials::UserAuthToken {
+                        account_id,
+                        token: "token".to_string(),
+                    },
+                    None,
+                )
                 .await?;
 
             assert_eq!(namespaces.items.len(), 3);
@@ -457,10 +471,13 @@ mod test {
 
             let kv_service = create_kv_service(mock_server.uri());
             let namespaces_result = kv_service
-                .get_namespaces(&Credentials::UserAuthToken {
-                    account_id,
-                    token: "token".to_string(),
-                })
+                .list_namespaces(
+                    &Credentials::UserAuthToken {
+                        account_id,
+                        token: "token".to_string(),
+                    },
+                    None,
+                )
                 .await;
 
             assert!(namespaces_result.is_err());
@@ -488,10 +505,13 @@ mod test {
 
             let kv_service = create_kv_service(mock_server.uri());
             let namespaces_result = kv_service
-                .get_namespaces(&Credentials::UserAuthToken {
-                    account_id,
-                    token: "token".to_string(),
-                })
+                .list_namespaces(
+                    &Credentials::UserAuthToken {
+                        account_id,
+                        token: "token".to_string(),
+                    },
+                    None,
+                )
                 .await;
 
             assert!(namespaces_result.is_err());
@@ -526,10 +546,13 @@ mod test {
 
             let kv_service = create_kv_service(mock_server.uri());
             let namespaces_result = kv_service
-                .get_namespaces(&Credentials::UserAuthToken {
-                    account_id,
-                    token: "token".to_string(),
-                })
+                .list_namespaces(
+                    &Credentials::UserAuthToken {
+                        account_id,
+                        token: "token".to_string(),
+                    },
+                    None,
+                )
                 .await;
 
             assert!(namespaces_result.is_err());

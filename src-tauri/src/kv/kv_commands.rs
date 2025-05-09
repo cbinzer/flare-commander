@@ -15,7 +15,7 @@ pub async fn get_namespaces(
     credentials: Credentials,
     state: State<'_, AppState>,
 ) -> Result<KvNamespaces, KvCommandError> {
-    Ok(state.kv_service.get_namespaces(&credentials).await?)
+    Ok(state.kv_service.list_namespaces(&credentials, None).await?)
 }
 
 #[tauri::command]
