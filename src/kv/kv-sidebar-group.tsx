@@ -1,6 +1,6 @@
 'use client';
 
-import { EditIcon, FolderKey, MoreHorizontal, PlusIcon, RefreshCcwIcon, TrashIcon } from 'lucide-react';
+import { ArrowDown, EditIcon, FolderKey, MoreHorizontal, PlusIcon, RefreshCcwIcon, TrashIcon } from 'lucide-react';
 import {
   SidebarGroup,
   SidebarMenu,
@@ -15,7 +15,7 @@ import {
 import { useNamespaces } from '@/kv/kv-hooks.ts';
 import { Skeleton } from '@/components/ui/skeleton.tsx';
 import { FunctionComponent, MouseEvent, useEffect, useState } from 'react';
-import { KvNamespace, KvNamespaces } from '@/kv/kv-models.ts';
+import { KvNamespace } from '@/kv/kv-models.ts';
 import { useError } from '@/common/common-hooks.ts';
 import { useNavigate } from 'react-router';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -43,10 +43,13 @@ export function KvSidebarGroup() {
   const [activeNamespaceId, setActiveNamespaceId] = useState<string | undefined>();
   const [isReloading, setIsReloading] = useState(false);
   const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false);
-  const { isListing, namespaces, listNamespaces, relistNamespaces } = useNamespaces();
+  const { isListing, isLoadingNext, namespaces, listNamespaces, listNextNamespaces, relistNamespaces, totalCount } =
+    useNamespaces();
   const { handleError } = useError();
   const isMobile = useIsMobile();
+
   const isLoading = isListing || isReloading;
+  const isLoadMoreVisible = (namespaces?.length ?? 0) < totalCount && !isLoading;
 
   // const loadNamespacesOnOpen = async (open: boolean) => {
   //   if (!open) {
@@ -131,6 +134,26 @@ export function KvSidebarGroup() {
             {/*</CollapsibleContent>*/}
           </SidebarMenuItem>
           {/*</Collapsible>*/}
+          {isLoadMoreVisible && (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                className="text-sidebar-foreground/70"
+                onClick={listNextNamespaces}
+                disabled={isLoadingNext}
+              >
+                {isLoadingNext ? (
+                  <>
+                    <LoadingSpinner /> ...Loading
+                  </>
+                ) : (
+                  <>
+                    <ArrowDown />
+                    <span>Load more</span>
+                  </>
+                )}
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
         </SidebarMenu>
       </SidebarGroup>
       <KvNamespaceCreateSheet
@@ -143,7 +166,7 @@ export function KvSidebarGroup() {
 }
 
 interface KvSidebarMenuProps {
-  namespaces: KvNamespaces;
+  namespaces: KvNamespace[];
   activeNamespaceId?: String;
   onSelectNamespace?: (namespace: KvNamespace) => void;
   onNamespaceChanged?: (namespace: KvNamespace) => Promise<void>;
@@ -165,7 +188,7 @@ const KvSidebarMenu: FunctionComponent<KvSidebarMenuProps> = ({
   const [namespaceToDelete, setNamespaceToDelete] = useState<KvNamespace | undefined>(undefined);
 
   useEffect(() => {
-    setActiveNamespace(namespaces.items.find((namespace) => namespace.id === activeNamespaceId));
+    setActiveNamespace(namespaces.find((namespace) => namespace.id === activeNamespaceId));
   }, [activeNamespaceId]);
 
   const openKvSection = (event: MouseEvent<HTMLAnchorElement>, namespace: KvNamespace) => {
@@ -187,7 +210,7 @@ const KvSidebarMenu: FunctionComponent<KvSidebarMenuProps> = ({
 
   return (
     <SidebarMenuSub>
-      {namespaces.items.map((namespace) => (
+      {namespaces.map((namespace) => (
         <TooltipProvider delayDuration={1000} key={namespace.id}>
           <Tooltip>
             <TooltipTrigger asChild>

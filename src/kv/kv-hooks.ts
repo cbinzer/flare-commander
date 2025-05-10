@@ -26,11 +26,14 @@ export function useNamespaces() {
   const [isListing, setIsListing] = useState(false);
   const [isRelisting, setIsRelisting] = useState(false);
   const [isLoadingOne, setIsLoadingOne] = useState(false);
+  const [isLoadingNext, setIsLoadingNext] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [namespaces, setNamespaces] = useState<KvNamespaces | null>(null);
+  const [namespaces, setNamespaces] = useState<KvNamespace[] | null>(null);
   const [namespace, setNamespace] = useState<KvNamespace | null>(null);
+  const [page, setPage] = useState<number>(1);
+  const [totalCount, setTotalCount] = useState<number>(0);
   const [error, setError] = useState<KvError | null>(null);
 
   const listNamespaces = async () => {
@@ -45,11 +48,38 @@ export function useNamespaces() {
       const namespaces = await invokeListNamespaces(credentials, {
         order_by: KvNamespacesOrderBy.TITLE,
       });
-      setNamespaces(namespaces);
+
+      setPage(namespaces.page_info.page);
+      setTotalCount(namespaces.page_info.total_count);
+      setNamespaces(namespaces.items);
     } catch (e) {
       setError(e as KvError);
     } finally {
       setIsListing(false);
+    }
+  };
+
+  const listNextNamespaces = async () => {
+    setIsLoadingNext(true);
+
+    try {
+      const credentials: UserAuthTokenCredentials = {
+        type: CredentialsType.UserAuthToken,
+        account_id: account?.id ?? '',
+        token: (account?.credentials as UserAuthTokenCredentials).token,
+      };
+      const nextNamespaces = await invokeListNamespaces(credentials, {
+        order_by: KvNamespacesOrderBy.TITLE,
+        page: page + 1,
+      });
+
+      setPage(nextNamespaces.page_info.page);
+      setTotalCount(nextNamespaces.page_info.total_count);
+      setNamespaces([...(namespaces ?? []), ...nextNamespaces.items]);
+    } catch (e) {
+      setError(e as KvError);
+    } finally {
+      setIsLoadingNext(false);
     }
   };
 
@@ -62,10 +92,13 @@ export function useNamespaces() {
         account_id: account?.id ?? '',
         token: (account?.credentials as UserAuthTokenCredentials).token,
       };
-      const namespaces = await invokeListNamespaces(credentials, {
+      const reloadedNamespaces = await invokeListNamespaces(credentials, {
         order_by: KvNamespacesOrderBy.TITLE,
       });
-      setNamespaces(namespaces);
+
+      setPage(reloadedNamespaces.page_info.page);
+      setTotalCount(reloadedNamespaces.page_info.total_count);
+      setNamespaces(reloadedNamespaces.items);
     } catch (e) {
       setError(e as KvError);
     } finally {
@@ -145,6 +178,7 @@ export function useNamespaces() {
 
   return {
     isListing,
+    isLoadingNext,
     isRelisting,
     isLoadingOne,
     isCreating,
@@ -152,8 +186,10 @@ export function useNamespaces() {
     isDeleting,
     namespace,
     namespaces,
+    totalCount,
     error,
     listNamespaces,
+    listNextNamespaces,
     relistNamespaces,
     getNamespace,
     createNamespace,
