@@ -103,17 +103,20 @@ pub struct PageInfo {
     pub total_count: usize,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum OrderDirection {
-    Ascending,
-    Descending,
+    #[serde(rename = "asc")]
+    Asc,
+
+    #[serde(rename = "desc")]
+    Desc,
 }
 
 impl Display for OrderDirection {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
-            OrderDirection::Ascending => "asc".to_string(),
-            OrderDirection::Descending => "desc".to_string(),
+            OrderDirection::Asc => "asc".to_string(),
+            OrderDirection::Desc => "desc".to_string(),
         };
         write!(f, "{}", str)
     }

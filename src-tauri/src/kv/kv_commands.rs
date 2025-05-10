@@ -3,6 +3,7 @@ use crate::common::common_models::Credentials;
 use crate::kv::kv_models::{
     CreateKvItemInput, GetKeysInput, KvError, KvItem, KvItemsDeletionInput, KvItemsDeletionResult,
     KvKeys, KvNamespace, KvNamespaceCreateInput, KvNamespaceUpdateInput, KvNamespaces,
+    KvNamespacesListInput,
 };
 use log::error;
 use serde::{Deserialize, Serialize};
@@ -11,11 +12,15 @@ use tauri::State;
 use super::kv_models::{GetKvItemInput, WriteKvItemInput};
 
 #[tauri::command]
-pub async fn get_namespaces(
+pub async fn list_namespaces(
     credentials: Credentials,
+    input: Option<KvNamespacesListInput>,
     state: State<'_, AppState>,
 ) -> Result<KvNamespaces, KvCommandError> {
-    Ok(state.kv_service.list_namespaces(&credentials, None).await?)
+    Ok(state
+        .kv_service
+        .list_namespaces(&credentials, input)
+        .await?)
 }
 
 #[tauri::command]

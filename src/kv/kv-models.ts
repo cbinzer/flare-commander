@@ -3,6 +3,23 @@ export interface KvNamespaces {
   page_info: PageInfo;
 }
 
+export interface KvNamespacesListInput {
+  order_by?: KvNamespacesOrderBy;
+  order_direction?: OrderDirection;
+  page?: number;
+  per_page?: number;
+}
+
+export enum KvNamespacesOrderBy {
+  ID = 'id',
+  TITLE = 'title',
+}
+
+export enum OrderDirection {
+  ASC = 'asc',
+  DESC = 'desc',
+}
+
 export interface KvNamespace {
   id: string;
   title: string;

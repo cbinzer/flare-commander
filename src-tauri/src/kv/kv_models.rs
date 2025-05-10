@@ -44,7 +44,7 @@ pub struct KvNamespaceCreateInput {
     pub title: String,
 }
 
-#[derive(Debug, PartialEq, Clone, Default)]
+#[derive(Debug, PartialEq, Clone, Default, Serialize, Deserialize)]
 pub struct KvNamespacesListInput {
     pub order_by: Option<KvNamespacesOrderBy>,
     pub order_direction: Option<OrderDirection>,
@@ -75,9 +75,12 @@ impl From<KvNamespacesListInput> for HashMap<String, String> {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum KvNamespacesOrderBy {
+    #[serde(rename = "id")]
     Id,
+
+    #[serde(rename = "title")]
     Title,
 }
 

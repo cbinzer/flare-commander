@@ -437,7 +437,7 @@ mod test {
 
             let list_namespaces_input = Some(KvNamespacesListInput {
                 order_by: Some(KvNamespacesOrderBy::Title),
-                order_direction: Some(OrderDirection::Ascending),
+                order_direction: Some(OrderDirection::Asc),
                 page: Some(1),
                 per_page: Some(10),
             });

@@ -13,6 +13,8 @@ import {
   KvNamespace,
   KvNamespaceCreateInput,
   KvNamespaces,
+  KvNamespacesListInput,
+  KvNamespacesOrderBy,
   KvNamespaceUpdateInput,
   WriteKvItemInput,
 } from '@/kv/kv-models.ts';
@@ -40,7 +42,9 @@ export function useNamespaces() {
         account_id: account?.id ?? '',
         token: (account?.credentials as UserAuthTokenCredentials).token,
       };
-      const namespaces = await invokeListNamespaces(credentials);
+      const namespaces = await invokeListNamespaces(credentials, {
+        order_by: KvNamespacesOrderBy.TITLE,
+      });
       setNamespaces(namespaces);
     } catch (e) {
       setError(e as KvError);
@@ -58,7 +62,9 @@ export function useNamespaces() {
         account_id: account?.id ?? '',
         token: (account?.credentials as UserAuthTokenCredentials).token,
       };
-      const namespaces = await invokeListNamespaces(credentials);
+      const namespaces = await invokeListNamespaces(credentials, {
+        order_by: KvNamespacesOrderBy.TITLE,
+      });
       setNamespaces(namespaces);
     } catch (e) {
       setError(e as KvError);
@@ -157,10 +163,14 @@ export function useNamespaces() {
   };
 }
 
-export async function invokeListNamespaces(credentials: UserAuthTokenCredentials): Promise<KvNamespaces> {
+export async function invokeListNamespaces(
+  credentials: UserAuthTokenCredentials,
+  input?: KvNamespacesListInput,
+): Promise<KvNamespaces> {
   try {
-    return await invoke<KvNamespaces>('get_namespaces', {
+    return await invoke<KvNamespaces>('list_namespaces', {
       credentials,
+      input,
     });
   } catch (e) {
     throw convertPlainToKvErrorClass(e as KvError);
