@@ -2,8 +2,8 @@ use crate::cloudflare::read_key_value::url_encode_key;
 use crate::common::common_models::{ApiErrorResponse, ApiPaginatedResponse, Credentials};
 use crate::common::common_utils::get_cloudflare_env;
 use crate::kv::kv_models::{
-    map_api_errors, map_api_errors_v2, CreateKvItemInput, GetKeysInput, KvError, KvItem,
-    KvItemsDeletionInput, KvItemsDeletionResult, KvKey, KvKeys, KvNamespace,
+    map_api_errors, map_api_errors_v2, GetKeysInput, KvError, KvItem, KvItemsDeletionInput,
+    KvItemsDeletionResult, KvKey, KvKeyPairCreateInput, KvKeys, KvNamespace,
     KvNamespaceCreateInput, KvNamespaceUpdateInput, KvNamespaces, KvNamespacesListInput,
 };
 use chrono::DateTime;
@@ -16,7 +16,7 @@ use reqwest::StatusCode;
 use serde_json::Value;
 use url::Url;
 
-use super::kv_models::{GetKvItemInput, WriteKvItemInput};
+use super::kv_models::{GetKvItemInput, KvKeyPairUpsertInput};
 
 pub struct KvService {
     api_url: Option<Url>,
@@ -285,7 +285,7 @@ impl KvService {
     pub async fn create_kv_item(
         &self,
         credentials: &Credentials,
-        input: &CreateKvItemInput,
+        input: &KvKeyPairCreateInput,
     ) -> Result<KvItem, KvError> {
         // Check if the item already exists
         let kv_item_result = self.get_kv_item(credentials, input.into()).await;
@@ -301,7 +301,7 @@ impl KvService {
     pub async fn write_kv_item(
         &self,
         credentials: &Credentials,
-        input: WriteKvItemInput,
+        input: KvKeyPairUpsertInput,
     ) -> Result<KvItem, KvError> {
         let base_url: Url = (&get_cloudflare_env(&self.api_url)).into();
         let url = format!(
@@ -316,11 +316,11 @@ impl KvService {
         let expiration = input
             .expiration
             .map(|expiration_date| expiration_date.timestamp().to_string());
-        let request = self
-            .http_client
-            .put(url)
-            .bearer_auth(token)
-            .query(&[("expiration", expiration)]);
+        let expiration_ttl = input.expiration_ttl.map(|ttl| ttl.to_string());
+        let request = self.http_client.put(url).bearer_auth(token).query(&[
+            ("expiration", expiration),
+            ("expiration_ttl", expiration_ttl),
+        ]);
 
         let value = input.value.unwrap_or_default();
         let mut metadata = String::from("null");
@@ -1531,7 +1531,7 @@ mod test {
 
         use crate::{
             common::common_models::Credentials,
-            kv::kv_models::{KvError, KvItem, WriteKvItemInput},
+            kv::kv_models::{KvError, KvItem, KvKeyPairUpsertInput},
             test::test_models::ApiSuccess,
         };
 
@@ -1571,6 +1571,7 @@ mod test {
                     "expiration",
                     expected_kv_item.expiration.unwrap().timestamp().to_string(),
                 ))
+                .and(query_param("expiration_ttl", "60"))
                 .respond_with(response_template)
                 .mount(&mock_server)
                 .await;
@@ -1579,11 +1580,12 @@ mod test {
             let updated_kv_item = kv_service
                 .write_kv_item(
                     &credentials,
-                    WriteKvItemInput {
+                    KvKeyPairUpsertInput {
                         namespace_id: namespace.to_string(),
                         key: expected_kv_item.key.clone(),
                         value: Some(expected_kv_item.value.clone()),
                         expiration: expected_kv_item.expiration,
+                        expiration_ttl: Some(60),
                         metadata: expected_kv_item.metadata.clone(),
                     },
                 )
@@ -1628,11 +1630,12 @@ mod test {
             let result = kv_service
                 .write_kv_item(
                     &credentials,
-                    WriteKvItemInput {
+                    KvKeyPairUpsertInput {
                         namespace_id: namespace_id.to_string(),
                         key: key.to_string(),
                         value: Some("value".to_string()),
                         expiration: None,
+                        expiration_ttl: None,
                         metadata: None,
                     },
                 )
@@ -1649,7 +1652,7 @@ mod test {
 
     mod create_kv_item {
         use crate::common::common_models::Credentials;
-        use crate::kv::kv_models::{CreateKvItemInput, KvError, KvItem};
+        use crate::kv::kv_models::{KvError, KvItem, KvKeyPairCreateInput};
         use crate::kv::kv_service::test::create_kv_service;
         use crate::test::test_models::ApiSuccess;
         use chrono::{DateTime, Utc};
@@ -1720,11 +1723,12 @@ mod test {
             let updated_kv_item = kv_service
                 .create_kv_item(
                     &credentials,
-                    &CreateKvItemInput {
+                    &KvKeyPairCreateInput {
                         namespace_id: namespace.to_string(),
                         key: expected_kv_item.key.clone(),
                         value: Some(expected_kv_item.value.clone()),
                         expiration: expected_kv_item.expiration,
+                        expiration_ttl: None,
                         metadata: expected_kv_item.metadata.clone(),
                     },
                 )
@@ -1756,11 +1760,12 @@ mod test {
                 .await;
 
             let kv_service = create_kv_service(mock_server.uri());
-            let input = CreateKvItemInput {
+            let input = KvKeyPairCreateInput {
                 namespace_id: namespace_id.to_string(),
                 key: key.to_string(),
                 value: None,
                 expiration: None,
+                expiration_ttl: None,
                 metadata: None,
             };
 

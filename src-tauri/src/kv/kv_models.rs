@@ -240,37 +240,40 @@ pub struct GetKeysInput<'a> {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct WriteKvItemInput {
+pub struct KvKeyPairUpsertInput {
     pub namespace_id: String,
     pub key: String,
     pub value: Option<String>,
     pub expiration: Option<DateTime<Utc>>,
+    pub expiration_ttl: Option<u32>,
     pub metadata: Option<Value>,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct CreateKvItemInput {
+pub struct KvKeyPairCreateInput {
     pub namespace_id: String,
     pub key: String,
     pub value: Option<String>,
     pub expiration: Option<DateTime<Utc>>,
+    pub expiration_ttl: Option<u32>,
     pub metadata: Option<Value>,
 }
 
-impl From<&CreateKvItemInput> for WriteKvItemInput {
-    fn from(value: &CreateKvItemInput) -> Self {
-        WriteKvItemInput {
+impl From<&KvKeyPairCreateInput> for KvKeyPairUpsertInput {
+    fn from(value: &KvKeyPairCreateInput) -> Self {
+        KvKeyPairUpsertInput {
             namespace_id: value.namespace_id.clone(),
             key: value.key.clone(),
             value: value.value.clone(),
             expiration: value.expiration,
+            expiration_ttl: value.expiration_ttl,
             metadata: value.metadata.clone(),
         }
     }
 }
 
-impl<'a> From<&'a CreateKvItemInput> for GetKvItemInput<'a> {
-    fn from(value: &'a CreateKvItemInput) -> Self {
+impl<'a> From<&'a KvKeyPairCreateInput> for GetKvItemInput<'a> {
+    fn from(value: &'a KvKeyPairCreateInput) -> Self {
         GetKvItemInput {
             namespace_id: &value.namespace_id,
             key: &value.key,

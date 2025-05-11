@@ -1,15 +1,15 @@
 use crate::app_state::AppState;
 use crate::common::common_models::Credentials;
 use crate::kv::kv_models::{
-    CreateKvItemInput, GetKeysInput, KvError, KvItem, KvItemsDeletionInput, KvItemsDeletionResult,
-    KvKeys, KvNamespace, KvNamespaceCreateInput, KvNamespaceUpdateInput, KvNamespaces,
-    KvNamespacesListInput,
+    GetKeysInput, KvError, KvItem, KvItemsDeletionInput, KvItemsDeletionResult,
+    KvKeyPairCreateInput, KvKeys, KvNamespace, KvNamespaceCreateInput, KvNamespaceUpdateInput,
+    KvNamespaces, KvNamespacesListInput,
 };
 use log::error;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
-use super::kv_models::{GetKvItemInput, WriteKvItemInput};
+use super::kv_models::{GetKvItemInput, KvKeyPairUpsertInput};
 
 #[tauri::command]
 pub async fn list_namespaces(
@@ -83,7 +83,7 @@ pub async fn get_kv_item<'a>(
 #[tauri::command]
 pub async fn write_kv_item(
     credentials: Credentials,
-    input: WriteKvItemInput,
+    input: KvKeyPairUpsertInput,
     state: State<'_, AppState>,
 ) -> Result<KvItem, KvCommandError> {
     Ok(state.kv_service.write_kv_item(&credentials, input).await?)
@@ -92,7 +92,7 @@ pub async fn write_kv_item(
 #[tauri::command]
 pub async fn create_kv_item(
     credentials: Credentials,
-    input: CreateKvItemInput,
+    input: KvKeyPairCreateInput,
     state: State<'_, AppState>,
 ) -> Result<KvItem, KvCommandError> {
     Ok(state
