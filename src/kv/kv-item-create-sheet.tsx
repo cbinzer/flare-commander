@@ -15,7 +15,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { ChangeEvent, FunctionComponent, ReactNode, useEffect, useRef, useState } from 'react';
 import { useKvItem } from './kv-hooks';
-import { KvItem } from './kv-models';
+import { KvItem, KvKeyPairCreateInput } from './kv-models';
 import { parseMetadataJSON, validateMetadata } from '@/kv/kv-utils.ts';
 import { Save } from 'lucide-react';
 import { cn } from '@/lib/utils.ts';
@@ -42,8 +42,9 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
   const [key, setKey] = useState<string | undefined>(undefined);
   const [value, setValue] = useState<string | undefined>(undefined);
   const [metadata, setMetadata] = useState('');
-  const [errors, setErrors] = useState<{ key?: Error; metadata?: Error }>({});
+  const [errors, setErrors] = useState<{ key?: Error; metadata?: Error; expirationTTL?: Error }>({});
   const [expiration, setExpiration] = useState<Date | undefined>(undefined);
+  const [expirationTTL, setExpirationTTL] = useState<number | undefined>(undefined);
 
   const isSaveButtonDisabled = isSaving || !key || !!errors.key || !!errors.metadata;
 
@@ -64,6 +65,16 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
     setErrors((prev) => ({ ...prev, key: undefined }));
   };
 
+  const handleExpirationTTLChange = (e: ChangeEvent<HTMLInputElement>) => {
+    let expirationTTLValue: number | undefined = undefined;
+    if (e.target.value) {
+      expirationTTLValue = Number(e.target.value);
+    }
+
+    setExpirationTTL(expirationTTLValue);
+    setErrors((prev) => ({ ...prev, expirationTTL: undefined }));
+  };
+
   const validateAndSetMetadata = (value: string) => {
     setMetadata(value);
     setErrors((prev) => ({ ...prev, metadata: validateMetadata(value) ? undefined : new Error('Invalid JSON') }));
@@ -74,16 +85,15 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
 
     try {
       const parsedMetadata = parseMetadataJSON(metadata);
-      const item: KvItem = {
+      const createInput: KvKeyPairCreateInput = {
+        namespaceId,
         key: key ?? '',
         value,
         expiration,
+        expiration_ttl: expirationTTL,
         metadata: parsedMetadata,
       };
-      await createKvItem({
-        namespaceId,
-        ...item,
-      });
+      await createKvItem(createInput);
     } catch (e) {
       console.error('Error parsing metadata:', e);
       setErrors((prev) => ({ ...prev, metadata: e as Error }));
@@ -103,6 +113,7 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
     setValue(undefined);
     setMetadata('');
     setExpiration(undefined);
+    setExpirationTTL(undefined);
     setErrors({});
   }, [isOpen]);
 
@@ -193,6 +204,28 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
                 disabled={isSaving}
                 onChange={(date) => setExpiration(date)}
               />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-12 items-start gap-4">
+            <Label htmlFor="expirationTTL" className="col-span-2 text-right pt-3">
+              Expiration TTL
+            </Label>
+            <div className="col-span-10 space-y-2">
+              <Input
+                id="expirationTTL"
+                type="number"
+                min="60"
+                value={expirationTTL?.toString()}
+                disabled={isSaving}
+                onChange={handleExpirationTTLChange}
+                className={cn(errors.expirationTTL && 'border-red-500 focus-visible:ring-red-500')}
+              />
+              {errors.key && (
+                <p className={cn('text-[0.8rem] font-medium text-destructive')}>
+                  Expiration TTL have to be at least 60 seconds
+                </p>
+              )}
             </div>
           </div>
         </div>
