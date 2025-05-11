@@ -213,7 +213,7 @@ impl KvService {
                     .get("expiration")
                     .and_then(|header_val| header_val.to_str().ok())
                     .and_then(|str_val| str_val.parse::<i64>().ok())
-                    .and_then(DateTime::from_timestamp_millis);
+                    .and_then(|timestamp| DateTime::from_timestamp(timestamp, 0));
                 let value = response.text().await?;
 
                 Ok(KvItem {
@@ -1390,7 +1390,7 @@ mod test {
             let expected_kv_item = KvItem {
                 key: "key1".to_string(),
                 value: "value".to_string(),
-                expiration: DateTime::from_timestamp_millis(Utc::now().timestamp_millis()),
+                expiration: DateTime::from_timestamp(Utc::now().timestamp(), 0),
                 metadata: None,
             };
             let credentials = Credentials::UserAuthToken {
@@ -1404,7 +1404,7 @@ mod test {
                 .set_body_string(&expected_kv_item.value)
                 .append_header(
                     "expiration",
-                    expected_kv_item.expiration.unwrap().timestamp_millis(),
+                    expected_kv_item.expiration.unwrap().timestamp(),
                 );
             Mock::given(method("GET"))
                 .and(path(format!(
@@ -1542,7 +1542,7 @@ mod test {
             let expected_kv_item = KvItem {
                 key: "key1".to_string(),
                 value: "value".to_string(),
-                expiration: DateTime::from_timestamp_millis(Utc::now().timestamp_millis()),
+                expiration: DateTime::from_timestamp(Utc::now().timestamp(), 0),
                 metadata: Some(json!({
                     "key": "value"
                 })),
@@ -1666,7 +1666,7 @@ mod test {
             let expected_kv_item = KvItem {
                 key: "key1".to_string(),
                 value: "value".to_string(),
-                expiration: DateTime::from_timestamp_millis(Utc::now().timestamp_millis()),
+                expiration: DateTime::from_timestamp(Utc::now().timestamp(), 0),
                 metadata: Some(json!({
                     "key": "value"
                 })),

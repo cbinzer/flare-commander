@@ -38,3 +38,13 @@ export function validateMetadata(value: string): boolean {
     return false;
   }
 }
+
+export function validateExpirationTTL(value: string): boolean {
+  const expirationTTL = Number(value);
+  console.log(expirationTTL);
+  if (isNaN(expirationTTL)) {
+    return false;
+  }
+
+  return expirationTTL === 0 || expirationTTL >= 60;
+}

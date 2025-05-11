@@ -60,7 +60,6 @@ export function KvTable({ namespace }: KvTableProps) {
     hasNextKeys,
     loadNextKeys,
     reloadKeys,
-    setKey,
     setPrefix,
     deleteKeys,
   } = useKvKeys(namespace.id);
@@ -317,7 +316,7 @@ export function KvTable({ namespace }: KvTableProps) {
         itemKey={kvKeyToEdit?.name ?? ''}
         itemMetadata={kvKeyToEdit?.metadata ?? null}
         open={isUpdateSheetOpen}
-        onUpdate={(kvItem) => setKey({ name: kvItem.key, expiration: kvItem.expiration, metadata: kvItem.metadata })}
+        onUpdate={reloadKeys}
         onOpenChange={setIsUpdateSheetOpen}
       />
 

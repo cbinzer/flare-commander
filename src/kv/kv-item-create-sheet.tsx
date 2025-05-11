@@ -16,7 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ChangeEvent, FunctionComponent, ReactNode, useEffect, useRef, useState } from 'react';
 import { useKvItem } from './kv-hooks';
 import { KvItem, KvKeyPairCreateInput } from './kv-models';
-import { parseMetadataJSON, validateMetadata } from '@/kv/kv-utils.ts';
+import { parseMetadataJSON, validateExpirationTTL, validateMetadata } from '@/kv/kv-utils.ts';
 import { Save } from 'lucide-react';
 import { cn } from '@/lib/utils.ts';
 
@@ -42,11 +42,11 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
   const [key, setKey] = useState<string | undefined>(undefined);
   const [value, setValue] = useState<string | undefined>(undefined);
   const [metadata, setMetadata] = useState('');
-  const [errors, setErrors] = useState<{ key?: Error; metadata?: Error; expirationTTL?: Error }>({});
   const [expiration, setExpiration] = useState<Date | undefined>(undefined);
-  const [expirationTTL, setExpirationTTL] = useState<number | undefined>(undefined);
+  const [expirationTTL, setExpirationTTL] = useState('0');
+  const [errors, setErrors] = useState<{ key?: Error; metadata?: Error; expirationTTL?: Error }>({});
 
-  const isSaveButtonDisabled = isSaving || !key || !!errors.key || !!errors.metadata;
+  const isSaveButtonDisabled = isSaving || !key || !!errors.key || !!errors.metadata || !!errors.expirationTTL;
 
   const setContainerOnOpenChange = (open: boolean) => {
     setIsOpen(open);
@@ -65,19 +65,19 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
     setErrors((prev) => ({ ...prev, key: undefined }));
   };
 
-  const handleExpirationTTLChange = (e: ChangeEvent<HTMLInputElement>) => {
-    let expirationTTLValue: number | undefined = undefined;
-    if (e.target.value) {
-      expirationTTLValue = Number(e.target.value);
-    }
-
-    setExpirationTTL(expirationTTLValue);
-    setErrors((prev) => ({ ...prev, expirationTTL: undefined }));
-  };
-
   const validateAndSetMetadata = (value: string) => {
     setMetadata(value);
     setErrors((prev) => ({ ...prev, metadata: validateMetadata(value) ? undefined : new Error('Invalid JSON') }));
+  };
+
+  const validateAndSetExpirationTTL = (value: string) => {
+    setExpirationTTL(value);
+    setErrors((prev) => ({
+      ...prev,
+      expirationTTL: validateExpirationTTL(value)
+        ? undefined
+        : new Error('Expiration TTL must be 0 or at least 60 seconds'),
+    }));
   };
 
   const handleSaveClick = async () => {
@@ -90,7 +90,7 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
         key: key ?? '',
         value,
         expiration,
-        expiration_ttl: expirationTTL,
+        expiration_ttl: Number(expirationTTL),
         metadata: parsedMetadata,
       };
       await createKvItem(createInput);
@@ -113,7 +113,7 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
     setValue(undefined);
     setMetadata('');
     setExpiration(undefined);
-    setExpirationTTL(undefined);
+    setExpirationTTL('0');
     setErrors({});
   }, [isOpen]);
 
@@ -214,17 +214,14 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
             <div className="col-span-10 space-y-2">
               <Input
                 id="expirationTTL"
-                type="number"
-                min="60"
-                value={expirationTTL?.toString()}
+                type="text"
+                value={expirationTTL}
                 disabled={isSaving}
-                onChange={handleExpirationTTLChange}
+                onChange={(e) => validateAndSetExpirationTTL(e.target.value)}
                 className={cn(errors.expirationTTL && 'border-red-500 focus-visible:ring-red-500')}
               />
-              {errors.key && (
-                <p className={cn('text-[0.8rem] font-medium text-destructive')}>
-                  Expiration TTL have to be at least 60 seconds
-                </p>
+              {errors.expirationTTL && (
+                <p className={cn('text-[0.8rem] font-medium text-destructive')}>{errors.expirationTTL.message}</p>
               )}
             </div>
           </div>

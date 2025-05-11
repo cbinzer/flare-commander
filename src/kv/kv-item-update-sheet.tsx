@@ -16,8 +16,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { FunctionComponent, ReactNode, useEffect, useRef, useState } from 'react';
 import { useKvItem } from './kv-hooks';
-import { KvItem, KvMetadata } from './kv-models';
-import { parseMetadataJSON, stringifyMetadataJSON, validateMetadata } from '@/kv/kv-utils.ts';
+import { KvKeyPairUpsertInput, KvMetadata } from './kv-models';
+import { parseMetadataJSON, stringifyMetadataJSON, validateExpirationTTL, validateMetadata } from '@/kv/kv-utils.ts';
 import { Save } from 'lucide-react';
 import { cn } from '@/lib/utils.ts';
 
@@ -26,7 +26,7 @@ export interface KvItemUpdateSheetProps {
   itemKey: string;
   itemMetadata: KvMetadata;
   open?: boolean;
-  onUpdate?: (item: KvItem) => void;
+  onUpdate?: () => Promise<void>;
   onOpenChange?: (open: boolean) => void;
   children?: ReactNode;
 }
@@ -37,10 +37,10 @@ const KvItemUpdateSheet: FunctionComponent<KvItemUpdateSheetProps> = ({
   itemMetadata,
   open = false,
   children,
-  onUpdate = () => {},
+  onUpdate = () => Promise.resolve(),
   onOpenChange = () => {},
 }) => {
-  const { kvItem, loadKvItem, writeKvItem, isLoading, isWriting } = useKvItem();
+  const { kvItem, loadKvItem, writeKvItem, isLoading } = useKvItem();
   const valueInputRef = useRef<HTMLTextAreaElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
@@ -49,10 +49,12 @@ const KvItemUpdateSheet: FunctionComponent<KvItemUpdateSheetProps> = ({
   const [key, setKey] = useState(kvItem?.key);
   const [value, setValue] = useState(kvItem?.value);
   const [metadata, setMetadata] = useState(stringifyMetadataJSON(itemMetadata));
-  const [errors, setErrors] = useState<{ metadata?: Error }>({});
+  const [isSaving, setIsSaving] = useState(false);
   const [expiration, setExpiration] = useState(kvItem?.expiration);
+  const [expirationTTL, setExpirationTTL] = useState('0');
+  const [errors, setErrors] = useState<{ metadata?: Error; expirationTTL?: Error }>({});
 
-  const isSaveButtonDisabled = isLoading || isWriting || !key || !!errors.metadata;
+  const isSaveButtonDisabled = isLoading || isSaving || !key || !!errors.metadata;
 
   const loadKvItemOnOpenChange = (open: boolean) => {
     onOpenChange(open);
@@ -72,24 +74,39 @@ const KvItemUpdateSheet: FunctionComponent<KvItemUpdateSheetProps> = ({
     setErrors((prev) => ({ ...prev, metadata: validateMetadata(value) ? undefined : new Error('Invalid JSON') }));
   };
 
+  const validateAndSetExpirationTTL = (value: string) => {
+    setExpirationTTL(value);
+    setErrors((prev) => ({
+      ...prev,
+      expirationTTL: validateExpirationTTL(value)
+        ? undefined
+        : new Error('Expiration TTL must be 0 or at least 60 seconds'),
+    }));
+  };
+
   const handleSaveClick = async () => {
+    setIsSaving(true);
+
     try {
       const parsedMetadata = parseMetadataJSON(metadata);
-      const item: KvItem = {
+      const upsertInput: KvKeyPairUpsertInput = {
+        namespaceId,
         key: key ?? '',
         value,
         expiration,
+        expiration_ttl: Number(expirationTTL),
         metadata: parsedMetadata,
       };
-      await writeKvItem({
-        namespaceId,
-        ...item,
-      });
+      await writeKvItem(upsertInput);
+      await onUpdate();
+
       setIsOpen(false);
       onOpenChange(false);
     } catch (e) {
       console.error('Error parsing metadata:', e);
       setErrors((prevState) => ({ ...prevState, metadata: e as Error }));
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -103,12 +120,7 @@ const KvItemUpdateSheet: FunctionComponent<KvItemUpdateSheetProps> = ({
     setKey(kvItem?.key);
     setValue(kvItem?.value);
     setExpiration(kvItem?.expiration);
-  }, [kvItem]);
-
-  useEffect(() => {
-    if (kvItem) {
-      onUpdate(kvItem);
-    }
+    setExpirationTTL('0');
   }, [kvItem]);
 
   useEffect(() => loadKvItemOnOpenChange(open), [open]);
@@ -117,7 +129,7 @@ const KvItemUpdateSheet: FunctionComponent<KvItemUpdateSheetProps> = ({
     <Sheet open={isOpen} onOpenChange={loadKvItemOnOpenChange}>
       <SheetTrigger asChild>{children}</SheetTrigger>
 
-      <SheetContent closeDisabled={isWriting} className="w-[500px] sm:max-w-[500px]">
+      <SheetContent closeDisabled={isSaving} className="w-[500px] sm:max-w-[500px]">
         <SheetHeader>
           <SheetTitle>Edit KV Item</SheetTitle>
           <SheetDescription>Edit value, metadata and expiration date</SheetDescription>
@@ -155,7 +167,7 @@ const KvItemUpdateSheet: FunctionComponent<KvItemUpdateSheetProps> = ({
                 onChange={(e) => setValue(e.target.value)}
                 className="col-span-10 min-h-[200px]"
                 ref={valueInputRef}
-                disabled={isWriting}
+                disabled={isSaving}
               />
             )}
           </div>
@@ -173,7 +185,7 @@ const KvItemUpdateSheet: FunctionComponent<KvItemUpdateSheetProps> = ({
                   value={metadata}
                   onChange={(e) => validateAndSetMetadata(e.target.value)}
                   className={cn('min-h-[200px]', errors.metadata && 'border-red-500 focus-visible:ring-red-500')}
-                  disabled={isWriting}
+                  disabled={isSaving}
                 />
                 {errors.metadata && (
                   <p className={cn('text-[0.8rem] font-medium text-destructive')}>Must be a valid JSON</p>
@@ -193,9 +205,33 @@ const KvItemUpdateSheet: FunctionComponent<KvItemUpdateSheetProps> = ({
                 <DateTimePicker
                   container={sheetContainer}
                   value={expiration}
-                  disabled={isWriting}
+                  disabled={isSaving}
                   onChange={(date) => setExpiration(date)}
                 />
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-12 items-start gap-4">
+            <Label htmlFor="expirationTTL" className="col-span-2 text-right pt-3">
+              Expiration TTL
+            </Label>
+            <div className="col-span-10 space-y-2">
+              {isLoading ? (
+                <Skeleton className="w-full h-[36px] rounded-md" />
+              ) : (
+                <>
+                  <Input
+                    id="expirationTTL"
+                    value={expirationTTL}
+                    disabled={isSaving}
+                    onChange={(e) => validateAndSetExpirationTTL(e.target.value)}
+                    className={cn(errors.expirationTTL && 'border-red-500 focus-visible:ring-red-500')}
+                  />
+                  {errors.expirationTTL && (
+                    <p className={cn('text-[0.8rem] font-medium text-destructive')}>{errors.expirationTTL.message}</p>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -203,7 +239,7 @@ const KvItemUpdateSheet: FunctionComponent<KvItemUpdateSheetProps> = ({
 
         <SheetFooter>
           <Button type="submit" disabled={isSaveButtonDisabled} onClick={handleSaveClick}>
-            {isWriting ? (
+            {isSaving ? (
               <>
                 <LoadingSpinner /> Saving...
               </>
