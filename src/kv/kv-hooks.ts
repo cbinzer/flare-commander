@@ -72,10 +72,26 @@ export function useNamespaces() {
         order_by: KvNamespacesOrderBy.TITLE,
         page: page + 1,
       });
+      const allNamespaceIds = new Set(
+        [...(namespaces ?? []), ...nextNamespaces.items].map((namespace) => namespace.id),
+      );
+      const allNamespaces: KvNamespace[] = [];
+      allNamespaceIds.forEach((namespaceId) => {
+        const newNamespace = nextNamespaces.items.find((namespace) => namespace.id === namespaceId);
+        if (newNamespace) {
+          allNamespaces.push(newNamespace);
+          return;
+        }
+
+        const existingNamespace = namespaces?.find((namespace) => namespace.id === namespaceId);
+        if (existingNamespace) {
+          allNamespaces.push(existingNamespace);
+        }
+      });
 
       setPage(nextNamespaces.page_info.page);
       setTotalCount(nextNamespaces.page_info.total_count);
-      setNamespaces([...(namespaces ?? []), ...nextNamespaces.items]);
+      setNamespaces(allNamespaces);
     } catch (e) {
       setError(e as KvError);
     } finally {
@@ -94,6 +110,7 @@ export function useNamespaces() {
       };
       const reloadedNamespaces = await invokeListNamespaces(credentials, {
         order_by: KvNamespacesOrderBy.TITLE,
+        per_page: namespaces?.length ?? 20,
       });
 
       setPage(reloadedNamespaces.page_info.page);

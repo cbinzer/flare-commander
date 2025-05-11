@@ -11,7 +11,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { ChangeEvent, FunctionComponent, ReactNode, useEffect, useRef, useState } from 'react';
+import { ChangeEvent, FunctionComponent, KeyboardEvent, ReactNode, useEffect, useRef, useState } from 'react';
 import { useNamespaces } from './kv-hooks';
 import { KvNamespace } from './kv-models';
 import { PlusIcon } from 'lucide-react';
@@ -64,7 +64,7 @@ const KvNamespaceCreateSheet: FunctionComponent<KvNamespaceCreateSheetProps> = (
     await createNamespace({ title: title ?? '' });
   };
 
-  const createOnEnter = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const createOnEnter = async (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !isSaveButtonDisabled && title) {
       await handleSaveClick();
     }

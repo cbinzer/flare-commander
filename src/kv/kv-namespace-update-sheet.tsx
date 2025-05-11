@@ -12,7 +12,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FunctionComponent, ReactNode, useEffect, useRef, useState } from 'react';
+import { FunctionComponent, KeyboardEvent, ReactNode, useEffect, useRef, useState } from 'react';
 import { useNamespaces } from './kv-hooks';
 import { KvNamespace, KvNamespaceUpdateInput } from './kv-models';
 import { Save } from 'lucide-react';
@@ -32,14 +32,15 @@ const KvNamespaceUpdateSheet: FunctionComponent<KvNamespaceUpdateSheetProps> = (
   onUpdate = () => {},
   onOpenChange = () => {},
 }) => {
-  const { namespace, getNamespace, updateNamespace, isLoadingOne, isUpdating } = useNamespaces();
+  const { namespace, getNamespace, updateNamespace, isLoadingOne } = useNamespaces();
   const titleInputRef = useRef<HTMLInputElement>(null);
 
+  const [isSaving, setIsSaving] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [title, setTitle] = useState(namespace?.title);
   const [errors, setErrors] = useState<{ title?: Error }>({});
 
-  const isSaveButtonDisabled = isLoadingOne || isUpdating || !title || title === namespace?.title || !!errors.title;
+  const isSaveButtonDisabled = isLoadingOne || isSaving || !title || title === namespace?.title || !!errors.title;
 
   const loadKvNamespaceOnOpenChange = (open: boolean) => {
     onOpenChange(open);
@@ -58,6 +59,8 @@ const KvNamespaceUpdateSheet: FunctionComponent<KvNamespaceUpdateSheetProps> = (
   };
 
   const handleSaveClick = async () => {
+    setIsSaving(true);
+
     try {
       const namespaceUpdateInput: KvNamespaceUpdateInput = {
         id: namespaceId,
@@ -70,6 +73,14 @@ const KvNamespaceUpdateSheet: FunctionComponent<KvNamespaceUpdateSheetProps> = (
       onOpenChange(false);
     } catch (e) {
       setErrors((prevState) => ({ ...prevState, title: e as Error }));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const saveOnEnter = async (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !isSaveButtonDisabled && title) {
+      await handleSaveClick();
     }
   };
 
@@ -83,7 +94,7 @@ const KvNamespaceUpdateSheet: FunctionComponent<KvNamespaceUpdateSheetProps> = (
     <Sheet open={isOpen} onOpenChange={loadKvNamespaceOnOpenChange}>
       <SheetTrigger asChild>{children}</SheetTrigger>
 
-      <SheetContent closeDisabled={isUpdating} className="w-[500px] sm:max-w-[500px]">
+      <SheetContent closeDisabled={isSaving} className="w-[500px] sm:max-w-[500px]">
         <SheetHeader>
           <SheetTitle>Edit KV Namespace</SheetTitle>
           <SheetDescription>Edit the title</SheetDescription>
@@ -111,7 +122,8 @@ const KvNamespaceUpdateSheet: FunctionComponent<KvNamespaceUpdateSheetProps> = (
               <Input
                 id="title"
                 value={title}
-                disabled={isUpdating}
+                disabled={isSaving}
+                onKeyDown={saveOnEnter}
                 onChange={(e) => setTitle(e.target.value)}
                 ref={titleInputRef}
               />
@@ -143,7 +155,7 @@ const KvNamespaceUpdateSheet: FunctionComponent<KvNamespaceUpdateSheetProps> = (
 
         <SheetFooter>
           <Button type="submit" disabled={isSaveButtonDisabled} onClick={handleSaveClick}>
-            {isUpdating ? (
+            {isSaving ? (
               <>
                 <LoadingSpinner /> Saving...
               </>
