@@ -143,7 +143,7 @@ export function KvSidebarGroup() {
               >
                 {isLoadingNext ? (
                   <>
-                    <LoadingSpinner /> ...Loading
+                    <LoadingSpinner /> Loading...
                   </>
                 ) : (
                   <>
