@@ -127,69 +127,73 @@ mod test {
                 page: Some(1),
                 per_page: Some(10),
             };
-            let mock_server = create_mock_server(
-                &list_namespaces_input.account_id,
-                Some(expected_namespaces.clone()),
-                vec![],
-                200,
-                Some(list_namespaces_input.clone()),
+            let mock_server = create_succeeding_mock_server(
+                list_namespaces_input.clone(),
+                expected_namespaces.clone(),
             )
             .await;
+
             let kv = create_kv(mock_server.uri().to_string());
             let namespaces = kv.list_namespaces(list_namespaces_input).await?;
-
             assert_eq!(namespaces.items.len(), 3);
             assert_eq!(namespaces, expected_namespaces);
 
             Ok(())
         }
 
-        async fn create_mock_server(
-            account_id: &str,
-            namespaces: Option<KvNamespaces>,
-            errors: Vec<ApiError>,
-            code: u16,
-            input: Option<KvNamespacesListInput>,
+        async fn create_succeeding_mock_server(
+            input: KvNamespacesListInput,
+            namespaces: KvNamespaces,
         ) -> MockServer {
             let mock_server = MockServer::start().await;
-            let response_template = if let Some(namespaces) = namespaces {
-                ResponseTemplate::new(code).set_body_json(
-                    ApiPaginatedResponse::<Vec<KvNamespace>> {
-                        result: namespaces.clone().items,
-                        result_info: crate::common::common_models::PageInfo {
-                            total_count: namespaces.items.len(),
-                            count: namespaces.items.len(),
-                            page: 1,
-                            per_page: 20,
-                        },
+
+            let response_template = ResponseTemplate::new(200).set_body_json(
+                ApiPaginatedResponse::<Vec<KvNamespace>> {
+                    result: namespaces.clone().items,
+                    result_info: crate::common::common_models::PageInfo {
+                        total_count: namespaces.items.len(),
+                        count: namespaces.items.len(),
+                        page: 1,
+                        per_page: 20,
                     },
-                )
-            } else {
-                ResponseTemplate::new(code).set_body_json(ApiErrorResponse { errors })
-            };
+                },
+            );
 
             let mut mock_builder = Mock::given(method("GET")).and(path(format!(
-                "/client/v4/accounts/{account_id}/storage/kv/namespaces"
+                "/client/v4/accounts/{}/storage/kv/namespaces",
+                input.account_id
             )));
 
-            if let Some(input) = input {
-                if let Some(order_by) = input.order_by {
-                    mock_builder = mock_builder.and(query_param("order", order_by.to_string()));
-                }
-                if let Some(order_direction) = input.order_direction {
-                    mock_builder =
-                        mock_builder.and(query_param("direction", order_direction.to_string()));
-                }
-                if let Some(page) = input.page {
-                    mock_builder = mock_builder.and(query_param("page", page.to_string()));
-                }
-                if let Some(per_page) = input.per_page {
-                    mock_builder = mock_builder.and(query_param("per_page", per_page.to_string()));
-                }
+            if let Some(order_by) = input.order_by {
+                mock_builder = mock_builder.and(query_param("order", order_by.to_string()));
+            }
+            if let Some(order_direction) = input.order_direction {
+                mock_builder =
+                    mock_builder.and(query_param("direction", order_direction.to_string()));
+            }
+            if let Some(page) = input.page {
+                mock_builder = mock_builder.and(query_param("page", page.to_string()));
+            }
+            if let Some(per_page) = input.per_page {
+                mock_builder = mock_builder.and(query_param("per_page", per_page.to_string()));
             }
 
             mock_builder
                 .respond_with(response_template)
+                .mount(&mock_server)
+                .await;
+
+            mock_server
+        }
+
+        async fn create_failing_mock_server(account_id: &str, errors: Vec<ApiError>) -> MockServer {
+            let mock_server = MockServer::start().await;
+
+            Mock::given(method("GET"))
+                .and(path(format!(
+                    "/client/v4/accounts/{account_id}/storage/kv/namespaces"
+                )))
+                .respond_with(ResponseTemplate::new(400).set_body_json(ApiErrorResponse { errors }))
                 .mount(&mock_server)
                 .await;
 
