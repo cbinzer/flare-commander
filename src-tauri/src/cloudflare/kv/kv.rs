@@ -1,5 +1,5 @@
 use crate::cloudflare::common::{
-    ApiError, ApiErrorResponse, ApiPaginatedResponse, Credentials, API_URL,
+    ApiError, ApiErrorResponse, ApiPaginatedResponse, Credentials, TokenError, API_URL,
 };
 use crate::cloudflare::kv::{KvError, KvNamespace, KvNamespaces, KvNamespacesListInput};
 use reqwest::StatusCode;
@@ -62,8 +62,8 @@ impl Kv {
 
         let error = &errors[0];
         match error.code {
-            // 10000 => KvError::Authentication(AuthenticationError::InvalidToken),
-            // 10001 => KvError::Authentication(AuthenticationError::InvalidToken),
+            10000 => KvError::Token(TokenError::Invalid),
+            10001 => KvError::Token(TokenError::Invalid),
             10009 => KvError::KeyNotFound,
             10013 => KvError::NamespaceNotFound,
             10014 => KvError::NamespaceAlreadyExists(error.message.clone()),
@@ -80,7 +80,8 @@ mod test {
     use std::sync::Arc;
 
     mod list_namespaces {
-        use crate::cloudflare::common::{OrderDirection, PageInfo};
+        use crate::authentication::authentication_models::AuthenticationError;
+        use crate::cloudflare::common::{OrderDirection, PageInfo, TokenError};
         use crate::cloudflare::kv::kv::test::create_kv;
         use crate::cloudflare::kv::{
             KvError, KvNamespace, KvNamespaces, KvNamespacesListInput, KvNamespacesOrderBy,
@@ -137,6 +138,76 @@ mod test {
             let namespaces = kv.list_namespaces(list_namespaces_input).await?;
             assert_eq!(namespaces.items.len(), 3);
             assert_eq!(namespaces, expected_namespaces);
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_respond_with_an_unknown_error_if_no_errors_are_available(
+        ) -> Result<(), AuthenticationError> {
+            let account_id = "account_id".to_string();
+            let mock_server = create_failing_mock_server(&account_id, vec![]).await;
+
+            let kv = create_kv(mock_server.uri().to_string());
+            let namespaces_result = kv
+                .list_namespaces(KvNamespacesListInput {
+                    account_id: account_id.clone(),
+                    order_by: None,
+                    order_direction: None,
+                    page: None,
+                    per_page: None,
+                })
+                .await;
+
+            assert!(namespaces_result.is_err());
+
+            let error = namespaces_result.unwrap_err();
+            assert!(matches!(error, KvError::Unknown(_)));
+
+            let error_message = match error {
+                KvError::Unknown(message) => message,
+                _ => "".to_string(),
+            };
+            assert_eq!(error_message, "No errors in the response.");
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_respond_with_an_token_error_if_the_request_could_not_be_authenticated(
+        ) -> Result<(), AuthenticationError> {
+            let account_id = "account_id".to_string();
+            let error_message = "Unable to authenticate request";
+            let mock_server = create_failing_mock_server(
+                &account_id,
+                vec![ApiError {
+                    code: 10001,
+                    message: error_message.to_string(),
+                }],
+            )
+            .await;
+
+            let kv = create_kv(mock_server.uri());
+            let namespaces_result = kv
+                .list_namespaces(KvNamespacesListInput {
+                    account_id: account_id.clone(),
+                    order_by: None,
+                    order_direction: None,
+                    page: None,
+                    per_page: None,
+                })
+                .await;
+
+            assert!(namespaces_result.is_err());
+
+            let error = namespaces_result.unwrap_err();
+            assert!(matches!(error, KvError::Token(_)));
+
+            let user_error = match error {
+                KvError::Token(error) => error,
+                _ => TokenError::Unknown("".to_string()),
+            };
+            assert!(matches!(user_error, TokenError::Invalid));
 
             Ok(())
         }

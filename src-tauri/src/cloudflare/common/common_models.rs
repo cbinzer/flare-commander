@@ -1,5 +1,7 @@
 use reqwest::header::{HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
+use std::error::Error;
+use std::fmt;
 use std::fmt::Display;
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
@@ -83,5 +85,21 @@ impl Credentials {
         }
 
         headers
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum TokenError {
+    Expired,
+    Disabled,
+    Invalid,
+    Unknown(String),
+}
+
+impl Error for TokenError {}
+
+impl Display for TokenError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "TokenError: {:?}", self)
     }
 }

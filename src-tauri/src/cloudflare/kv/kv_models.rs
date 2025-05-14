@@ -1,4 +1,4 @@
-use crate::cloudflare::common::{ApiPaginatedResponse, OrderDirection, PageInfo};
+use crate::cloudflare::common::{ApiPaginatedResponse, OrderDirection, PageInfo, TokenError};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::error::Error;
@@ -88,7 +88,8 @@ pub enum KvError {
     KeyNotFound,
     KeyAlreadyExists(String),
 
-    // Authentication(AuthenticationError),
+    Token(TokenError),
+
     Reqwest(reqwest::Error),
     Unknown(String),
 }
