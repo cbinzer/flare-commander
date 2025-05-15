@@ -3,16 +3,12 @@ use crate::cloudflare::kv::Kv;
 use std::sync::Arc;
 
 pub mod account_details;
-mod kv;
+pub(crate) mod kv;
 
-mod common;
+pub(crate) mod common;
 pub mod read_key_value;
 
 pub struct Cloudflare {
-    api_url: String,
-    credentials: Arc<Credentials>,
-    http_client: Arc<reqwest::Client>,
-
     pub kv: Kv,
 }
 
@@ -23,9 +19,6 @@ impl Cloudflare {
         let http_client = Arc::new(reqwest::Client::new());
 
         Self {
-            api_url: api_url.clone(),
-            credentials: credentials.clone(),
-            http_client: http_client.clone(),
             kv: Kv::new(credentials, Some(api_url), Some(http_client)),
         }
     }

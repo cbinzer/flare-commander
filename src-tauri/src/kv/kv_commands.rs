@@ -1,26 +1,25 @@
+use super::kv_models::{GetKvItemInput, KvKeyPairUpsertInput};
 use crate::app_state::AppState;
+use crate::cloudflare::common::Credentials as CloudflareCredentials;
+use crate::cloudflare::kv::{KvError as CloudflareKvError, KvNamespaces, KvNamespacesListInput};
+use crate::cloudflare::Cloudflare;
 use crate::common::common_models::Credentials;
 use crate::kv::kv_models::{
     GetKeysInput, KvError, KvItem, KvItemsDeletionInput, KvItemsDeletionResult,
     KvKeyPairCreateInput, KvKeys, KvNamespace, KvNamespaceCreateInput, KvNamespaceUpdateInput,
-    KvNamespaces, KvNamespacesListInput,
 };
 use log::error;
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
-use super::kv_models::{GetKvItemInput, KvKeyPairUpsertInput};
-
 #[tauri::command]
 pub async fn list_namespaces(
-    credentials: Credentials,
-    input: Option<KvNamespacesListInput>,
-    state: State<'_, AppState>,
+    credentials: CloudflareCredentials,
+    input: KvNamespacesListInput,
 ) -> Result<KvNamespaces, KvCommandError> {
-    Ok(state
-        .kv_service
-        .list_namespaces(&credentials, input)
-        .await?)
+    let cloudflare_client = Cloudflare::new(credentials, None);
+    let kv = cloudflare_client.kv;
+    Ok(kv.list_namespaces(input).await?)
 }
 
 #[tauri::command]
@@ -178,10 +177,64 @@ impl From<KvError> for KvCommandError {
                 );
                 KvCommandError {
                     kind: KvCommandErrorKind::Unknown,
-                    message: "An network error occurred".to_string(),
+                    message: "A network error occurred".to_string(),
                 }
             }
             KvError::Unknown(unknown_err) => {
+                error!("An unknown kv error occurred: {}", unknown_err);
+                KvCommandError {
+                    kind: KvCommandErrorKind::Unknown,
+                    message: "An unknown error occurred".to_string(),
+                }
+            }
+        }
+    }
+}
+
+impl From<CloudflareKvError> for KvCommandError {
+    fn from(error: CloudflareKvError) -> Self {
+        match error {
+            CloudflareKvError::NamespaceAlreadyExists(message) => KvCommandError {
+                kind: KvCommandErrorKind::NamespaceAlreadyExists,
+                message,
+            },
+            CloudflareKvError::NamespaceTitleMissing(message) => KvCommandError {
+                kind: KvCommandErrorKind::NamespaceTitleMissing,
+                message,
+            },
+            CloudflareKvError::NamespaceNotFound => KvCommandError {
+                kind: KvCommandErrorKind::NamespaceNotFound,
+                message: "Namespace not found".to_string(),
+            },
+            CloudflareKvError::KeyNotFound => KvCommandError {
+                kind: KvCommandErrorKind::KeyNotFound,
+                message: "Key not found".to_string(),
+            },
+            CloudflareKvError::KeyAlreadyExists(key) => KvCommandError {
+                kind: KvCommandErrorKind::KeyAlreadyExists,
+                message: format!("An item with the key {} already exists", key),
+            },
+            CloudflareKvError::Token(token_err) => {
+                error!(
+                    "A token error occurred on interacting with kv: {}",
+                    token_err
+                );
+                KvCommandError {
+                    kind: KvCommandErrorKind::Authentication,
+                    message: "Authentication error".to_string(),
+                }
+            }
+            CloudflareKvError::Reqwest(reqwest_err) => {
+                error!(
+                    "A reqwest error occurred on interacting with kv: {}",
+                    reqwest_err
+                );
+                KvCommandError {
+                    kind: KvCommandErrorKind::Unknown,
+                    message: "A network error occurred".to_string(),
+                }
+            }
+            CloudflareKvError::Unknown(unknown_err) => {
                 error!("An unknown kv error occurred: {}", unknown_err);
                 KvCommandError {
                     kind: KvCommandErrorKind::Unknown,

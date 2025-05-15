@@ -4,6 +4,7 @@ export interface KvNamespaces {
 }
 
 export interface KvNamespacesListInput {
+  account_id: string;
   order_by?: KvNamespacesOrderBy;
   order_direction?: OrderDirection;
   page?: number;

@@ -46,6 +46,7 @@ export function useNamespaces() {
         token: (account?.credentials as UserAuthTokenCredentials).token,
       };
       const namespaces = await invokeListNamespaces(credentials, {
+        account_id: account?.id ?? '',
         order_by: KvNamespacesOrderBy.TITLE,
       });
 
@@ -69,6 +70,7 @@ export function useNamespaces() {
         token: (account?.credentials as UserAuthTokenCredentials).token,
       };
       const nextNamespaces = await invokeListNamespaces(credentials, {
+        account_id: account?.id ?? '',
         order_by: KvNamespacesOrderBy.TITLE,
         page: page + 1,
       });
@@ -109,6 +111,7 @@ export function useNamespaces() {
         token: (account?.credentials as UserAuthTokenCredentials).token,
       };
       const reloadedNamespaces = await invokeListNamespaces(credentials, {
+        account_id: account?.id ?? '',
         order_by: KvNamespacesOrderBy.TITLE,
         per_page: namespaces?.length ?? 20,
       });
@@ -218,7 +221,7 @@ export function useNamespaces() {
 
 export async function invokeListNamespaces(
   credentials: UserAuthTokenCredentials,
-  input?: KvNamespacesListInput,
+  input: KvNamespacesListInput,
 ): Promise<KvNamespaces> {
   try {
     return await invoke<KvNamespaces>('list_namespaces', {

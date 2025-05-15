@@ -48,7 +48,8 @@ impl Display for OrderDirection {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(tag = "type")]
 pub enum Credentials {
     UserAuthKey { email: String, key: String },
     UserAuthToken { token: String },
