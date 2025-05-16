@@ -1,4 +1,6 @@
-use crate::cloudflare::common::{ApiPaginatedResponse, OrderDirection, PageInfo, TokenError};
+use crate::cloudflare::common::{
+    ApiPaginatedResponse, ApiResponse, OrderDirection, PageInfo, TokenError,
+};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::error::Error;
@@ -77,6 +79,18 @@ pub struct KvNamespace {
     pub title: String,
     pub beta: Option<bool>,
     pub supports_url_encoding: Option<bool>,
+}
+
+impl From<ApiResponse<KvNamespace>> for KvNamespace {
+    fn from(value: ApiResponse<KvNamespace>) -> Self {
+        value.result
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+pub struct KvNamespaceGetInput {
+    pub account_id: String,
+    pub namespace_id: String,
 }
 
 #[derive(Debug)]

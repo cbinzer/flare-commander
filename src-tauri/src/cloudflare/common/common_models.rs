@@ -11,6 +11,11 @@ pub struct ApiPaginatedResponse<T> {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+pub struct ApiResponse<T> {
+    pub result: T,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct ApiErrorResponse {
     pub errors: Vec<ApiError>,
 }

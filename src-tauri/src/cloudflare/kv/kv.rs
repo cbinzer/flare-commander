@@ -1,8 +1,11 @@
 use crate::cloudflare::common::{
-    ApiError, ApiErrorResponse, ApiPaginatedResponse, Credentials, TokenError, API_URL,
+    ApiError, ApiErrorResponse, ApiPaginatedResponse, ApiResponse, Credentials, TokenError, API_URL,
 };
-use crate::cloudflare::kv::{KvError, KvNamespace, KvNamespaces, KvNamespacesListInput};
-use reqwest::StatusCode;
+use crate::cloudflare::kv::{
+    KvError, KvNamespace, KvNamespaceGetInput, KvNamespaces, KvNamespacesListInput,
+};
+use reqwest::{Response, StatusCode};
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -43,9 +46,34 @@ impl Kv {
             .send()
             .await?;
 
+        self.handle_api_response::<ApiPaginatedResponse<Vec<KvNamespace>>, KvNamespaces>(response)
+            .await
+    }
+
+    pub async fn get_namespace(&self, input: KvNamespaceGetInput) -> Result<KvNamespace, KvError> {
+        let url = format!(
+            "{}/accounts/{}/storage/kv/namespaces/{}",
+            self.api_url, input.account_id, input.namespace_id
+        );
+
+        let response = self
+            .http_client
+            .get(&url)
+            .headers(self.credentials.headers())
+            .send()
+            .await?;
+
+        self.handle_api_response::<ApiResponse<KvNamespace>, KvNamespace>(response)
+            .await
+    }
+
+    async fn handle_api_response<T: for<'a> Deserialize<'a>, R: From<T>>(
+        &self,
+        response: Response,
+    ) -> Result<R, KvError> {
         match response.status() {
             StatusCode::OK => {
-                let api_result: ApiPaginatedResponse<Vec<KvNamespace>> = response.json().await?;
+                let api_result: T = response.json().await?;
                 Ok(api_result.into())
             }
             _ => {
@@ -263,6 +291,106 @@ mod test {
             Mock::given(method("GET"))
                 .and(path(format!(
                     "/client/v4/accounts/{account_id}/storage/kv/namespaces"
+                )))
+                .respond_with(ResponseTemplate::new(400).set_body_json(ApiErrorResponse { errors }))
+                .mount(&mock_server)
+                .await;
+
+            mock_server
+        }
+    }
+
+    mod get_namespace {
+        use crate::cloudflare::common::{ApiError, ApiErrorResponse, ApiResponse};
+        use crate::cloudflare::kv::kv::test::create_kv;
+        use crate::cloudflare::kv::{KvError, KvNamespace, KvNamespaceGetInput};
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        #[tokio::test]
+        async fn should_get_namespace() -> Result<(), KvError> {
+            let expected_namespace = KvNamespace {
+                id: "12345".to_string(),
+                title: "MyNamespace".to_string(),
+                beta: Some(false),
+                supports_url_encoding: Some(false),
+            };
+
+            let input = KvNamespaceGetInput {
+                account_id: "my_account_id".to_string(),
+                namespace_id: expected_namespace.id.clone(),
+            };
+            let mock_server =
+                create_succeeding_mock_server(input.clone(), expected_namespace.clone()).await;
+
+            let kv = create_kv(mock_server.uri());
+            let namespace = kv.get_namespace(input).await?;
+
+            assert_eq!(namespace, expected_namespace);
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_respond_with_namespace_not_found_error() -> Result<(), KvError> {
+            let input = KvNamespaceGetInput {
+                account_id: "my_account_id".to_string(),
+                namespace_id: "12345".to_string(),
+            };
+
+            let mock_server = create_failing_mock_server(
+                input.clone(),
+                vec![ApiError {
+                    code: 10013,
+                    message: "get namespace: 'namespace not found'".to_string(),
+                }],
+            )
+            .await;
+
+            let kv = create_kv(mock_server.uri());
+            let namespace_result = kv.get_namespace(input).await;
+
+            assert!(namespace_result.is_err());
+
+            let error = namespace_result.unwrap_err();
+            assert!(matches!(error, KvError::NamespaceNotFound));
+
+            Ok(())
+        }
+
+        async fn create_succeeding_mock_server(
+            input: KvNamespaceGetInput,
+            namespace: KvNamespace,
+        ) -> MockServer {
+            let mock_server = MockServer::start().await;
+
+            let response_template =
+                ResponseTemplate::new(200).set_body_json(ApiResponse::<KvNamespace> {
+                    result: namespace.clone(),
+                });
+
+            Mock::given(method("GET"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}",
+                    input.account_id, input.namespace_id
+                )))
+                .respond_with(response_template)
+                .mount(&mock_server)
+                .await;
+
+            mock_server
+        }
+
+        async fn create_failing_mock_server(
+            input: KvNamespaceGetInput,
+            errors: Vec<ApiError>,
+        ) -> MockServer {
+            let mock_server = MockServer::start().await;
+
+            Mock::given(method("GET"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}",
+                    input.account_id, input.namespace_id
                 )))
                 .respond_with(ResponseTemplate::new(400).set_body_json(ApiErrorResponse { errors }))
                 .mount(&mock_server)
