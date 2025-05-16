@@ -17,6 +17,7 @@ import {
   KvNamespacesOrderBy,
   KvNamespaceUpdateInput,
   KvKeyPairUpsertInput,
+  KvNamespaceGetInput,
 } from '@/kv/kv-models.ts';
 import { invoke } from '@tauri-apps/api/core';
 import { useEffect, useState } from 'react';
@@ -135,7 +136,11 @@ export function useNamespaces() {
         account_id: account?.id ?? '',
         token: (account?.credentials as UserAuthTokenCredentials).token,
       };
-      const namespace = await invokeGetNamespace(namespaceId, credentials);
+      const input: KvNamespaceGetInput = {
+        account_id: account?.id ?? '',
+        namespace_id: namespaceId,
+      };
+      const namespace = await invokeGetNamespace(input, credentials);
       setNamespace(namespace);
     } catch (e) {
       setError(e as KvError);
@@ -234,13 +239,13 @@ export async function invokeListNamespaces(
 }
 
 export async function invokeGetNamespace(
-  namespaceId: string,
+  input: KvNamespaceGetInput,
   credentials: UserAuthTokenCredentials,
 ): Promise<KvNamespace> {
   try {
     return await invoke<KvNamespace>('get_namespace', {
       credentials,
-      namespaceId,
+      input,
     });
   } catch (e) {
     throw convertPlainToKvErrorClass(e as KvError);

@@ -28,6 +28,11 @@ export interface KvNamespace {
   supports_url_encoding?: boolean;
 }
 
+export interface KvNamespaceGetInput {
+  account_id: string;
+  namespace_id: string;
+}
+
 export interface PageInfo {
   count: number;
   page: number;
