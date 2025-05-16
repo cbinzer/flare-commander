@@ -1,7 +1,10 @@
 use super::kv_models::{GetKvItemInput, KvKeyPairUpsertInput};
 use crate::app_state::AppState;
 use crate::cloudflare::common::Credentials as CloudflareCredentials;
-use crate::cloudflare::kv::{KvError as CloudflareKvError, KvNamespaces, KvNamespacesListInput};
+use crate::cloudflare::kv::{
+    KvError as CloudflareKvError, KvNamespace as CloudflareKvNamespace, KvNamespaceGetInput,
+    KvNamespaces, KvNamespacesListInput,
+};
 use crate::cloudflare::Cloudflare;
 use crate::common::common_models::Credentials;
 use crate::kv::kv_models::{
@@ -24,14 +27,12 @@ pub async fn list_namespaces(
 
 #[tauri::command]
 pub async fn get_namespace(
-    credentials: Credentials,
-    namespace_id: String,
-    state: State<'_, AppState>,
-) -> Result<KvNamespace, KvCommandError> {
-    Ok(state
-        .kv_service
-        .get_namespace(&credentials, &namespace_id)
-        .await?)
+    credentials: CloudflareCredentials,
+    input: KvNamespaceGetInput,
+) -> Result<CloudflareKvNamespace, KvCommandError> {
+    let cloudflare_client = Cloudflare::new(credentials, None);
+    let kv = cloudflare_client.kv;
+    Ok(kv.get_namespace(input).await?)
 }
 
 #[tauri::command]
