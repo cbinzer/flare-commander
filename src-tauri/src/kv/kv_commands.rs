@@ -1,15 +1,16 @@
 use super::kv_models::{GetKvItemInput, KvKeyPairUpsertInput};
 use crate::app_state::AppState;
 use crate::cloudflare::common::Credentials as CloudflareCredentials;
+use crate::cloudflare::kv::KvNamespaceUpdateInput;
 use crate::cloudflare::kv::{
-    KvError as CloudflareKvError, KvNamespace as CloudflareKvNamespace, KvNamespaceCreateInput,
-    KvNamespaceGetInput, KvNamespaces, KvNamespacesListInput,
+    KvError as CloudflareKvError, KvNamespace, KvNamespaceCreateInput, KvNamespaceGetInput,
+    KvNamespaces, KvNamespacesListInput,
 };
 use crate::cloudflare::Cloudflare;
 use crate::common::common_models::Credentials;
 use crate::kv::kv_models::{
     GetKeysInput, KvError, KvItem, KvItemsDeletionInput, KvItemsDeletionResult,
-    KvKeyPairCreateInput, KvKeys, KvNamespaceUpdateInput,
+    KvKeyPairCreateInput, KvKeys,
 };
 use log::error;
 use serde::{Deserialize, Serialize};
@@ -29,7 +30,7 @@ pub async fn list_namespaces(
 pub async fn get_namespace(
     credentials: CloudflareCredentials,
     input: KvNamespaceGetInput,
-) -> Result<CloudflareKvNamespace, KvCommandError> {
+) -> Result<KvNamespace, KvCommandError> {
     let cloudflare_client = Cloudflare::new(credentials, None);
     let kv = cloudflare_client.kv;
     Ok(kv.get_namespace(input).await?)
@@ -39,7 +40,7 @@ pub async fn get_namespace(
 pub async fn create_namespace(
     credentials: CloudflareCredentials,
     input: KvNamespaceCreateInput,
-) -> Result<CloudflareKvNamespace, KvCommandError> {
+) -> Result<KvNamespace, KvCommandError> {
     let cloudflare_client = Cloudflare::new(credentials, None);
     let kv = cloudflare_client.kv;
     Ok(kv.create_namespace(input).await?)
@@ -47,14 +48,12 @@ pub async fn create_namespace(
 
 #[tauri::command]
 pub async fn update_namespace(
-    credentials: Credentials,
+    credentials: CloudflareCredentials,
     input: KvNamespaceUpdateInput,
-    state: State<'_, AppState>,
-) -> Result<(), KvCommandError> {
-    Ok(state
-        .kv_service
-        .update_namespace(&credentials, input)
-        .await?)
+) -> Result<KvNamespace, KvCommandError> {
+    let cloudflare_client = Cloudflare::new(credentials, None);
+    let kv = cloudflare_client.kv;
+    Ok(kv.update_namespace(input).await?)
 }
 
 #[tauri::command]
