@@ -41,6 +41,7 @@ export interface PageInfo {
 }
 
 export interface KvNamespaceCreateInput {
+  account_id: string;
   title: string;
 }
 

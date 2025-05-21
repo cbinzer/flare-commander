@@ -149,7 +149,7 @@ export function useNamespaces() {
     }
   };
 
-  const createNamespace = async (input: KvNamespaceCreateInput) => {
+  const createNamespace = async (input: Omit<KvNamespaceCreateInput, 'account_id'>) => {
     setIsCreating(true);
 
     try {
@@ -158,7 +158,7 @@ export function useNamespaces() {
         account_id: account?.id ?? '',
         token: (account?.credentials as UserAuthTokenCredentials).token,
       };
-      const createdNamespace = await invokeCreateNamespace(input, credentials);
+      const createdNamespace = await invokeCreateNamespace({ ...input, account_id: account?.id ?? '' }, credentials);
       setNamespace(createdNamespace);
     } catch (e) {
       setError(e as KvError);

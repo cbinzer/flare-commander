@@ -2,14 +2,14 @@ use super::kv_models::{GetKvItemInput, KvKeyPairUpsertInput};
 use crate::app_state::AppState;
 use crate::cloudflare::common::Credentials as CloudflareCredentials;
 use crate::cloudflare::kv::{
-    KvError as CloudflareKvError, KvNamespace as CloudflareKvNamespace, KvNamespaceGetInput,
-    KvNamespaces, KvNamespacesListInput,
+    KvError as CloudflareKvError, KvNamespace as CloudflareKvNamespace, KvNamespaceCreateInput,
+    KvNamespaceGetInput, KvNamespaces, KvNamespacesListInput,
 };
 use crate::cloudflare::Cloudflare;
 use crate::common::common_models::Credentials;
 use crate::kv::kv_models::{
     GetKeysInput, KvError, KvItem, KvItemsDeletionInput, KvItemsDeletionResult,
-    KvKeyPairCreateInput, KvKeys, KvNamespace, KvNamespaceCreateInput, KvNamespaceUpdateInput,
+    KvKeyPairCreateInput, KvKeys, KvNamespaceUpdateInput,
 };
 use log::error;
 use serde::{Deserialize, Serialize};
@@ -37,14 +37,12 @@ pub async fn get_namespace(
 
 #[tauri::command]
 pub async fn create_namespace(
-    credentials: Credentials,
+    credentials: CloudflareCredentials,
     input: KvNamespaceCreateInput,
-    state: State<'_, AppState>,
-) -> Result<KvNamespace, KvCommandError> {
-    Ok(state
-        .kv_service
-        .create_namespace(&credentials, input)
-        .await?)
+) -> Result<CloudflareKvNamespace, KvCommandError> {
+    let cloudflare_client = Cloudflare::new(credentials, None);
+    let kv = cloudflare_client.kv;
+    Ok(kv.create_namespace(input).await?)
 }
 
 #[tauri::command]
