@@ -2,7 +2,8 @@ use crate::cloudflare::common::{
     ApiError, ApiErrorResponse, ApiPaginatedResponse, ApiResponse, Credentials, TokenError, API_URL,
 };
 use crate::cloudflare::kv::{
-    KvError, KvNamespace, KvNamespaceGetInput, KvNamespaces, KvNamespacesListInput,
+    KvError, KvNamespace, KvNamespaceCreateInput, KvNamespaceGetInput, KvNamespaces,
+    KvNamespacesListInput,
 };
 use reqwest::{Response, StatusCode};
 use serde::Deserialize;
@@ -60,6 +61,27 @@ impl Kv {
             .http_client
             .get(&url)
             .headers(self.credentials.headers())
+            .send()
+            .await?;
+
+        self.handle_api_response::<ApiResponse<KvNamespace>, KvNamespace>(response)
+            .await
+    }
+
+    pub async fn create_namespace(
+        &self,
+        input: KvNamespaceCreateInput,
+    ) -> Result<KvNamespace, KvError> {
+        let url = format!(
+            "{}/accounts/{}/storage/kv/namespaces",
+            self.api_url, input.account_id
+        );
+
+        let response = self
+            .http_client
+            .post(&url)
+            .headers(self.credentials.headers())
+            .json(&HashMap::from([("title", input.title)]))
             .send()
             .await?;
 
@@ -391,6 +413,136 @@ mod test {
                 .and(path(format!(
                     "/client/v4/accounts/{}/storage/kv/namespaces/{}",
                     input.account_id, input.namespace_id
+                )))
+                .respond_with(ResponseTemplate::new(400).set_body_json(ApiErrorResponse { errors }))
+                .mount(&mock_server)
+                .await;
+
+            mock_server
+        }
+    }
+
+    mod create_namespace {
+        use crate::cloudflare::common::{ApiError, ApiErrorResponse, ApiResponse};
+        use crate::cloudflare::kv::kv::test::create_kv;
+        use crate::cloudflare::kv::{KvError, KvNamespace, KvNamespaceCreateInput};
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        #[tokio::test]
+        async fn should_create_namespace() -> Result<(), KvError> {
+            let expected_namespace = KvNamespace {
+                id: "12345".to_string(),
+                title: "MyNamespace".to_string(),
+                beta: Some(false),
+                supports_url_encoding: Some(false),
+            };
+            let create_input = KvNamespaceCreateInput {
+                account_id: "my_account_id".to_string(),
+                title: expected_namespace.title.clone(),
+            };
+            let mock_server =
+                create_succeeding_mock_server(create_input.clone(), expected_namespace.clone())
+                    .await;
+
+            let kv = create_kv(mock_server.uri());
+            let created_namespace = kv.create_namespace(create_input).await?;
+
+            assert_eq!(created_namespace, expected_namespace);
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_respond_with_namespace_already_exists_error() -> Result<(), KvError> {
+            let expected_error_message =
+                "create namespace: 'a namespace with this account ID and title already exists'";
+            let create_input = KvNamespaceCreateInput {
+                account_id: "my_account_id".to_string(),
+                title: "MyNamespace".to_string(),
+            };
+            let mock_server = create_failing_mock_server(
+                create_input.clone(),
+                vec![ApiError {
+                    code: 10014,
+                    message: expected_error_message.to_string(),
+                }],
+            )
+            .await;
+
+            let kv = create_kv(mock_server.uri());
+            let created_namespace_result = kv.create_namespace(create_input).await;
+            assert!(created_namespace_result.is_err());
+
+            let error = created_namespace_result.unwrap_err();
+            assert!(
+                matches!(error, KvError::NamespaceAlreadyExists(ref error_message) if error_message == expected_error_message)
+            );
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_respond_with_namespace_title_missing_error() -> Result<(), KvError> {
+            let expected_error_message = "request is missing a title definition";
+            let create_input = KvNamespaceCreateInput {
+                account_id: "my_account_id".to_string(),
+                title: "".to_string(),
+            };
+            let mock_server = create_failing_mock_server(
+                create_input.clone(),
+                vec![ApiError {
+                    code: 10019,
+                    message: expected_error_message.to_string(),
+                }],
+            )
+            .await;
+
+            let kv = create_kv(mock_server.uri());
+            let created_namespace_result = kv.create_namespace(create_input).await;
+            assert!(created_namespace_result.is_err());
+
+            let error = created_namespace_result.unwrap_err();
+            assert!(
+                matches!(error, KvError::NamespaceTitleMissing(ref error_message) if error_message == expected_error_message)
+            );
+
+            Ok(())
+        }
+
+        async fn create_succeeding_mock_server(
+            input: KvNamespaceCreateInput,
+            namespace: KvNamespace,
+        ) -> MockServer {
+            let mock_server = MockServer::start().await;
+
+            let response_template =
+                ResponseTemplate::new(200).set_body_json(ApiResponse::<KvNamespace> {
+                    result: namespace.clone(),
+                });
+
+            Mock::given(method("POST"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces",
+                    input.account_id
+                )))
+                .respond_with(response_template)
+                .mount(&mock_server)
+                .await;
+
+            mock_server
+        }
+
+        async fn create_failing_mock_server(
+            input: KvNamespaceCreateInput,
+            errors: Vec<ApiError>,
+        ) -> MockServer {
+            let mock_server = MockServer::start().await;
+
+            Mock::given(method("POST"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces",
+                    input.account_id
                 )))
                 .respond_with(ResponseTemplate::new(400).set_body_json(ApiErrorResponse { errors }))
                 .mount(&mock_server)

@@ -93,6 +93,12 @@ pub struct KvNamespaceGetInput {
     pub namespace_id: String,
 }
 
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+pub struct KvNamespaceCreateInput {
+    pub account_id: String,
+    pub title: String,
+}
+
 #[derive(Debug)]
 pub enum KvError {
     NamespaceAlreadyExists(String),
