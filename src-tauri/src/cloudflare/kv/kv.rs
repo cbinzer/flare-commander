@@ -2,12 +2,13 @@ use crate::cloudflare::common::{
     ApiError, ApiErrorResponse, ApiPaginatedResponse, ApiResponse, Credentials, TokenError, API_URL,
 };
 use crate::cloudflare::kv::{
-    KvError, KvNamespace, KvNamespaceCreateInput, KvNamespaceGetInput, KvNamespaces,
-    KvNamespacesListInput,
+    KvError, KvNamespace, KvNamespaceCreateInput, KvNamespaceGetInput, KvNamespaceUpdateInput,
+    KvNamespaces, KvNamespacesListInput,
 };
 use reqwest::{Response, StatusCode};
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::option::Option;
 use std::sync::Arc;
 
 pub struct Kv {
@@ -80,6 +81,27 @@ impl Kv {
         let response = self
             .http_client
             .post(&url)
+            .headers(self.credentials.headers())
+            .json(&HashMap::from([("title", input.title)]))
+            .send()
+            .await?;
+
+        self.handle_api_response::<ApiResponse<KvNamespace>, KvNamespace>(response)
+            .await
+    }
+
+    pub async fn update_namespace(
+        &self,
+        input: KvNamespaceUpdateInput,
+    ) -> Result<KvNamespace, KvError> {
+        let url = format!(
+            "{}/accounts/{}/storage/kv/namespaces/{}",
+            self.api_url, input.account_id, input.namespace_id
+        );
+
+        let response = self
+            .http_client
+            .put(&url)
             .headers(self.credentials.headers())
             .json(&HashMap::from([("title", input.title)]))
             .send()
@@ -543,6 +565,167 @@ mod test {
                 .and(path(format!(
                     "/client/v4/accounts/{}/storage/kv/namespaces",
                     input.account_id
+                )))
+                .respond_with(ResponseTemplate::new(400).set_body_json(ApiErrorResponse { errors }))
+                .mount(&mock_server)
+                .await;
+
+            mock_server
+        }
+    }
+
+    mod update_namespace {
+        use crate::cloudflare::common::{ApiError, ApiErrorResponse, ApiResponse};
+        use crate::cloudflare::kv::kv::test::create_kv;
+        use crate::cloudflare::kv::{KvError, KvNamespace, KvNamespaceUpdateInput};
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        #[tokio::test]
+        async fn should_update_namespace() -> Result<(), KvError> {
+            let expected_namespace = KvNamespace {
+                id: "12345".to_string(),
+                title: "MyNamespace".to_string(),
+                beta: Some(false),
+                supports_url_encoding: Some(false),
+            };
+            let update_input = KvNamespaceUpdateInput {
+                account_id: "my_account_id".to_string(),
+                namespace_id: expected_namespace.id.clone(),
+                title: expected_namespace.title.clone(),
+            };
+            let mock_server =
+                create_succeeding_mock_server(update_input.clone(), expected_namespace.clone())
+                    .await;
+            let kv = create_kv(mock_server.uri());
+            let updated_namespace = kv.update_namespace(update_input).await?;
+
+            assert_eq!(updated_namespace, expected_namespace);
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_respond_with_namespace_already_exists_error() -> Result<(), KvError> {
+            let namespace_id = "12345";
+            let expected_error_message =
+                "rename namespace: 'a namespace with this account ID and title already exists'";
+            let update_input = KvNamespaceUpdateInput {
+                account_id: "my_account_id".to_string(),
+                namespace_id: namespace_id.to_string(),
+                title: "MyNamespace".to_string(),
+            };
+            let mock_server = create_failing_mock_server(
+                update_input.clone(),
+                vec![ApiError {
+                    code: 10014,
+                    message: expected_error_message.to_string(),
+                }],
+            )
+            .await;
+
+            let kv = create_kv(mock_server.uri());
+            let updated_namespace_result = kv.update_namespace(update_input).await;
+            assert!(updated_namespace_result.is_err());
+
+            let error = updated_namespace_result.unwrap_err();
+            assert!(
+                matches!(error, KvError::NamespaceAlreadyExists(ref error_message) if error_message == expected_error_message)
+            );
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_respond_with_namespace_title_missing_error() -> Result<(), KvError> {
+            let namespace_id = "12345";
+            let expected_error_message = "request is missing a title definition";
+            let update_input = KvNamespaceUpdateInput {
+                account_id: "my_account_id".to_string(),
+                namespace_id: namespace_id.to_string(),
+                title: "".to_string(),
+            };
+            let mock_server = create_failing_mock_server(
+                update_input.clone(),
+                vec![ApiError {
+                    code: 10019,
+                    message: expected_error_message.to_string(),
+                }],
+            )
+            .await;
+
+            let kv_service = create_kv(mock_server.uri());
+            let updated_namespace_result = kv_service.update_namespace(update_input).await;
+            assert!(updated_namespace_result.is_err());
+
+            let error = updated_namespace_result.unwrap_err();
+            assert!(
+                matches!(error, KvError::NamespaceTitleMissing(ref error_message) if error_message == expected_error_message)
+            );
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_respond_with_namespace_not_found_error() -> Result<(), KvError> {
+            let namespace_id = "12345";
+            let update_input = KvNamespaceUpdateInput {
+                account_id: "my_account_id".to_string(),
+                namespace_id: namespace_id.to_string(),
+                title: "".to_string(),
+            };
+            let mock_server = create_failing_mock_server(
+                update_input.clone(),
+                vec![ApiError {
+                    code: 10013,
+                    message: "rename namespace: 'namespace not found'".to_string(),
+                }],
+            )
+            .await;
+
+            let kv = create_kv(mock_server.uri());
+            let updated_namespace_result = kv.update_namespace(update_input).await;
+            assert!(updated_namespace_result.is_err());
+
+            let error = updated_namespace_result.unwrap_err();
+            assert!(matches!(error, KvError::NamespaceNotFound));
+
+            Ok(())
+        }
+
+        async fn create_succeeding_mock_server(
+            input: KvNamespaceUpdateInput,
+            namespace: KvNamespace,
+        ) -> MockServer {
+            let mock_server = MockServer::start().await;
+
+            let response_template =
+                ResponseTemplate::new(200).set_body_json(ApiResponse::<KvNamespace> {
+                    result: namespace.clone(),
+                });
+
+            Mock::given(method("PUT"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}",
+                    input.account_id, input.namespace_id
+                )))
+                .respond_with(response_template)
+                .mount(&mock_server)
+                .await;
+
+            mock_server
+        }
+
+        async fn create_failing_mock_server(
+            input: KvNamespaceUpdateInput,
+            errors: Vec<ApiError>,
+        ) -> MockServer {
+            let mock_server = MockServer::start().await;
+
+            Mock::given(method("PUT"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}",
+                    input.account_id, input.namespace_id
                 )))
                 .respond_with(ResponseTemplate::new(400).set_body_json(ApiErrorResponse { errors }))
                 .mount(&mock_server)
