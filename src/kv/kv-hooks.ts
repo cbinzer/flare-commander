@@ -1,23 +1,23 @@
 import { CredentialsType, UserAuthTokenCredentials } from '@/authentication/auth-models.ts';
 import { useAuth } from '@/authentication/use-auth.ts';
 import {
-  KvKeyPairCreateInput,
   KvError,
   KvItem,
   KvItemDTO,
   KvItemsDeletionInput,
   KvItemsDeletionResult,
   KvKey,
+  KvKeyPairCreateInput,
+  KvKeyPairUpsertInput,
   KvKeys,
   KvKeysDTO,
   KvNamespace,
   KvNamespaceCreateInput,
+  KvNamespaceGetInput,
   KvNamespaces,
   KvNamespacesListInput,
   KvNamespacesOrderBy,
   KvNamespaceUpdateInput,
-  KvKeyPairUpsertInput,
-  KvNamespaceGetInput,
 } from '@/kv/kv-models.ts';
 import { invoke } from '@tauri-apps/api/core';
 import { useEffect, useState } from 'react';
@@ -167,7 +167,7 @@ export function useNamespaces() {
     }
   };
 
-  const updateNamespace = async (input: KvNamespaceUpdateInput) => {
+  const updateNamespace = async (input: Omit<KvNamespaceUpdateInput, 'account_id'>) => {
     setIsUpdating(true);
 
     try {
@@ -176,9 +176,10 @@ export function useNamespaces() {
         account_id: account?.id ?? '',
         token: (account?.credentials as UserAuthTokenCredentials).token,
       };
-      await invokeUpdateNamespace(input, credentials);
+      await invokeUpdateNamespace({ ...input, account_id: account?.id ?? '' }, credentials);
     } catch (e) {
       setError(e as KvError);
+      throw e;
     } finally {
       setIsUpdating(false);
     }
@@ -269,9 +270,9 @@ export async function invokeCreateNamespace(
 export async function invokeUpdateNamespace(
   input: KvNamespaceUpdateInput,
   credentials: UserAuthTokenCredentials,
-): Promise<void> {
+): Promise<KvNamespace> {
   try {
-    await invoke<void>('update_namespace', {
+    return await invoke<KvNamespace>('update_namespace', {
       input,
       credentials,
     });

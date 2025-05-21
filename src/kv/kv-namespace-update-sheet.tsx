@@ -16,6 +16,7 @@ import { FunctionComponent, KeyboardEvent, ReactNode, useEffect, useRef, useStat
 import { useNamespaces } from './kv-hooks';
 import { KvNamespace, KvNamespaceUpdateInput } from './kv-models';
 import { Save } from 'lucide-react';
+import { cn } from '@/lib/utils.ts';
 
 export interface KvNamespaceUpdateSheetProps {
   namespaceId: string;
@@ -50,6 +51,8 @@ const KvNamespaceUpdateSheet: FunctionComponent<KvNamespaceUpdateSheetProps> = (
       return;
     }
 
+    setErrors({});
+
     getNamespace(namespaceId).then(() => {
       setTimeout(() => {
         titleInputRef.current?.focus();
@@ -62,8 +65,8 @@ const KvNamespaceUpdateSheet: FunctionComponent<KvNamespaceUpdateSheetProps> = (
     setIsSaving(true);
 
     try {
-      const namespaceUpdateInput: KvNamespaceUpdateInput = {
-        id: namespaceId,
+      const namespaceUpdateInput: Omit<KvNamespaceUpdateInput, 'account_id'> = {
+        namespace_id: namespaceId,
         title: title ?? '',
       };
       await updateNamespace(namespaceUpdateInput);
@@ -76,6 +79,11 @@ const KvNamespaceUpdateSheet: FunctionComponent<KvNamespaceUpdateSheetProps> = (
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const changeTitle = (newTitle: string) => {
+    setErrors((prev) => ({ ...prev, title: undefined }));
+    setTitle(newTitle);
   };
 
   const saveOnEnter = async (e: KeyboardEvent<HTMLInputElement>) => {
@@ -119,14 +127,21 @@ const KvNamespaceUpdateSheet: FunctionComponent<KvNamespaceUpdateSheetProps> = (
             {isLoadingOne ? (
               <Skeleton id="title" className="w-full h-[36px] rounded-md" />
             ) : (
-              <Input
-                id="title"
-                value={title}
-                disabled={isSaving}
-                onKeyDown={saveOnEnter}
-                onChange={(e) => setTitle(e.target.value)}
-                ref={titleInputRef}
-              />
+              <div className="space-y-2">
+                <Input
+                  id="title"
+                  value={title}
+                  disabled={isSaving}
+                  onKeyDown={saveOnEnter}
+                  onChange={(e) => changeTitle(e.target.value)}
+                  ref={titleInputRef}
+                />
+                {errors.title && (
+                  <p className={cn('text-[0.8rem] font-medium text-destructive')}>
+                    A namespace with this title already exists
+                  </p>
+                )}
+              </div>
             )}
           </div>
 
