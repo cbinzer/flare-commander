@@ -155,23 +155,6 @@ pub fn map_api_errors(errors: Vec<ApiError>) -> KvError {
     }
 }
 
-pub fn map_api_errors_v2(errors: Vec<crate::common::common_models::ApiError>) -> KvError {
-    if errors.is_empty() {
-        return KvError::Unknown("No errors in the response.".to_string());
-    }
-
-    let error = &errors[0];
-    match error.code {
-        10000 => KvError::Authentication(AuthenticationError::InvalidToken),
-        10001 => KvError::Authentication(AuthenticationError::InvalidToken),
-        10009 => KvError::KeyNotFound,
-        10013 => KvError::NamespaceNotFound,
-        10014 => KvError::NamespaceAlreadyExists(error.message.clone()),
-        10019 => KvError::NamespaceTitleMissing(error.message.clone()),
-        _ => KvError::Unknown(error.message.clone()),
-    }
-}
-
 // TODO: Remove
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PagePaginationArray<T> {

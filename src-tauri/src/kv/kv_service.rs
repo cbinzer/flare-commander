@@ -1,13 +1,11 @@
 use crate::cloudflare::read_key_value::url_encode_key;
-use crate::common::common_models::{ApiErrorResponse, ApiPaginatedResponse, Credentials};
+use crate::common::common_models::Credentials;
 use crate::common::common_utils::get_cloudflare_env;
 use crate::kv::kv_models::{
-    map_api_errors, map_api_errors_v2, GetKeysInput, KvError, KvItem, KvItemsDeletionInput,
-    KvItemsDeletionResult, KvKey, KvKeyPairCreateInput, KvKeys, KvNamespace,
-    KvNamespaceCreateInput, KvNamespaceUpdateInput, KvNamespaces, KvNamespacesListInput,
+    map_api_errors, GetKeysInput, KvError, KvItem, KvItemsDeletionInput, KvItemsDeletionResult,
+    KvKey, KvKeyPairCreateInput, KvKeys, KvNamespaceUpdateInput,
 };
 use chrono::DateTime;
-use std::collections::HashMap;
 
 use cloudflare::framework::response::ApiSuccess;
 use log::error;
@@ -30,39 +28,6 @@ impl KvService {
         Self {
             api_url,
             http_client,
-        }
-    }
-
-    pub async fn create_namespace(
-        &self,
-        credentials: &Credentials,
-        input: KvNamespaceCreateInput,
-    ) -> Result<KvNamespace, KvError> {
-        let base_url: Url = (&get_cloudflare_env(&self.api_url)).into();
-        let url = format!(
-            "{}accounts/{}/storage/kv/namespaces",
-            base_url,
-            credentials.account_id(),
-        );
-
-        let token = credentials.token().unwrap_or_default();
-        let response = self
-            .http_client
-            .post(&url)
-            .bearer_auth(token)
-            .json(&HashMap::from([("title", input.title)]))
-            .send()
-            .await?;
-
-        match response.status() {
-            StatusCode::OK => {
-                let api_result: ApiSuccess<KvNamespace> = response.json().await?;
-                Ok(api_result.result)
-            }
-            _ => {
-                let api_response = response.json::<ApiSuccess<()>>().await?;
-                Err(map_api_errors(api_response.errors))
-            }
         }
     }
 
@@ -327,147 +292,6 @@ impl KvService {
 mod test {
     use crate::kv::kv_service::KvService;
     use url::Url;
-
-    mod create_namespace {
-        use crate::common::common_models::Credentials;
-        use crate::kv::kv_models::{KvError, KvNamespace, KvNamespaceCreateInput};
-        use crate::kv::kv_service::test::create_kv_service;
-        use crate::test::test_models::ApiSuccess;
-        use cloudflare::framework::response::ApiError;
-        use wiremock::matchers::{method, path};
-        use wiremock::{Mock, MockServer, ResponseTemplate};
-
-        #[tokio::test]
-        async fn should_create_namespace() -> Result<(), KvError> {
-            let credentials = Credentials::UserAuthToken {
-                account_id: "my_account_id".to_string(),
-                token: "my_token".to_string(),
-            };
-            let expected_namespace = KvNamespace {
-                id: "12345".to_string(),
-                title: "MyNamespace".to_string(),
-                beta: Some(false),
-                supports_url_encoding: Some(false),
-            };
-            let mock_server = create_mock_server(
-                credentials.account_id(),
-                Some(expected_namespace.clone()),
-                vec![],
-                200,
-            )
-            .await;
-
-            let create_input = KvNamespaceCreateInput {
-                title: expected_namespace.title.clone(),
-            };
-            let kv_service = create_kv_service(mock_server.uri());
-            let created_namespace = kv_service
-                .create_namespace(&credentials, create_input)
-                .await?;
-
-            assert_eq!(created_namespace, expected_namespace);
-
-            Ok(())
-        }
-
-        #[tokio::test]
-        async fn should_respond_with_namespace_already_exists_error() -> Result<(), KvError> {
-            let credentials = Credentials::UserAuthToken {
-                account_id: "my_account_id".to_string(),
-                token: "my_token".to_string(),
-            };
-            let expected_error_message =
-                "create namespace: 'a namespace with this account ID and title already exists'";
-            let mock_server = create_mock_server(
-                credentials.account_id(),
-                None,
-                vec![ApiError {
-                    code: 10014,
-                    message: expected_error_message.to_string(),
-                    other: Default::default(),
-                }],
-                400,
-            )
-            .await;
-
-            let create_input = KvNamespaceCreateInput {
-                title: "MyNamespace".to_string(),
-            };
-            let kv_service = create_kv_service(mock_server.uri());
-            let created_namespace_result = kv_service
-                .create_namespace(&credentials, create_input)
-                .await;
-            assert!(created_namespace_result.is_err());
-
-            let error = created_namespace_result.unwrap_err();
-            assert!(
-                matches!(error, KvError::NamespaceAlreadyExists(ref error_message) if error_message == expected_error_message)
-            );
-
-            Ok(())
-        }
-
-        #[tokio::test]
-        async fn should_respond_with_namespace_title_missing_error() -> Result<(), KvError> {
-            let credentials = Credentials::UserAuthToken {
-                account_id: "my_account_id".to_string(),
-                token: "my_token".to_string(),
-            };
-            let expected_error_message = "request is missing a title definition";
-            let mock_server = create_mock_server(
-                credentials.account_id(),
-                None,
-                vec![ApiError {
-                    code: 10019,
-                    message: expected_error_message.to_string(),
-                    other: Default::default(),
-                }],
-                400,
-            )
-            .await;
-
-            let create_input = KvNamespaceCreateInput {
-                title: "".to_string(),
-            };
-            let kv_service = create_kv_service(mock_server.uri());
-            let created_namespace_result = kv_service
-                .create_namespace(&credentials, create_input)
-                .await;
-            assert!(created_namespace_result.is_err());
-
-            let error = created_namespace_result.unwrap_err();
-            assert!(
-                matches!(error, KvError::NamespaceTitleMissing(ref error_message) if error_message == expected_error_message)
-            );
-
-            Ok(())
-        }
-
-        async fn create_mock_server(
-            account_id: &str,
-            result: Option<KvNamespace>,
-            errors: Vec<ApiError>,
-            code: u16,
-        ) -> MockServer {
-            let mock_server = MockServer::start().await;
-            let response_template_value =
-                ResponseTemplate::new(code).set_body_json(ApiSuccess::<Option<KvNamespace>> {
-                    result,
-                    errors,
-                    result_info: None,
-                });
-
-            Mock::given(method("POST"))
-                .and(path(format!(
-                    "/client/v4/accounts/{account_id}/storage/kv/namespaces",
-                )))
-                .respond_with(response_template_value)
-                .mount(&mock_server)
-                .await;
-
-            mock_server
-        }
-    }
 
     mod update_namespace {
         use crate::common::common_models::Credentials;
