@@ -1,7 +1,12 @@
 use crate::cloudflare::common::{
-    ApiPaginatedResponse, ApiResponse, OrderDirection, PageInfo, TokenError,
+    ApiCursorPaginatedResponse, ApiPaginatedResponse, ApiResponse, OrderDirection, PageInfo,
+    TokenError,
 };
+
+use chrono::serde::ts_seconds_option;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
@@ -110,6 +115,44 @@ pub struct KvNamespaceUpdateInput {
 pub struct KvNamespaceDeleteInput {
     pub account_id: String,
     pub namespace_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct KvKeys {
+    pub keys: Vec<KvKey>,
+    pub count: usize,
+    pub cursor: Option<String>,
+}
+
+impl From<ApiCursorPaginatedResponse<Vec<KvKey>>> for KvKeys {
+    fn from(value: ApiCursorPaginatedResponse<Vec<KvKey>>) -> Self {
+        Self {
+            keys: value.result,
+            count: value.result_info.count,
+            cursor: value.result_info.cursor,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct KvKey {
+    pub name: String,
+
+    #[serde(default)]
+    pub metadata: Option<Value>,
+
+    #[serde(default)]
+    #[serde(with = "ts_seconds_option")]
+    pub expiration: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+pub struct KvKeysListInput {
+    pub account_id: String,
+    pub namespace_id: String,
+    pub cursor: Option<String>,
+    pub limit: Option<u32>,
+    pub prefix: Option<String>,
 }
 
 #[derive(Debug)]

@@ -1,9 +1,11 @@
 use crate::cloudflare::common::{
-    ApiError, ApiErrorResponse, ApiPaginatedResponse, ApiResponse, Credentials, TokenError, API_URL,
+    ApiCursorPaginatedResponse, ApiError, ApiErrorResponse, ApiPaginatedResponse, ApiResponse,
+    Credentials, TokenError, API_URL,
 };
 use crate::cloudflare::kv::{
-    KvError, KvNamespace, KvNamespaceCreateInput, KvNamespaceDeleteInput, KvNamespaceGetInput,
-    KvNamespaceUpdateInput, KvNamespaces, KvNamespacesListInput,
+    KvError, KvKey, KvKeys, KvKeysListInput, KvNamespace, KvNamespaceCreateInput,
+    KvNamespaceDeleteInput, KvNamespaceGetInput, KvNamespaceUpdateInput, KvNamespaces,
+    KvNamespacesListInput,
 };
 use reqwest::{Response, StatusCode};
 use serde::Deserialize;
@@ -131,6 +133,35 @@ impl Kv {
                 Err(self.map_api_errors(api_response.errors))
             }
         }
+    }
+
+    pub async fn list_keys(&self, input: KvKeysListInput) -> Result<KvKeys, KvError> {
+        let url = format!(
+            "{}/accounts/{}/storage/kv/namespaces/{}/keys",
+            self.api_url, input.account_id, input.namespace_id
+        );
+
+        let limit = input.limit.map_or(Some("1000".to_string()), |l| {
+            if l < 10 {
+                Some("10".to_string())
+            } else {
+                Some(l.to_string())
+            }
+        });
+        let response = self
+            .http_client
+            .get(&url)
+            .headers(self.credentials.headers())
+            .query(&[
+                ("limit", limit),
+                ("cursor", input.cursor),
+                ("prefix", input.prefix),
+            ])
+            .send()
+            .await?;
+
+        self.handle_api_response::<ApiCursorPaginatedResponse<Vec<KvKey>>, KvKeys>(response)
+            .await
     }
 
     async fn handle_api_response<T: for<'a> Deserialize<'a>, R: From<T>>(
@@ -833,6 +864,219 @@ mod test {
             Mock::given(method("DELETE"))
                 .and(path(format!(
                     "/client/v4/accounts/{}/storage/kv/namespaces/{}",
+                    input.account_id, input.namespace_id
+                )))
+                .respond_with(ResponseTemplate::new(400).set_body_json(ApiErrorResponse { errors }))
+                .mount(&mock_server)
+                .await;
+
+            mock_server
+        }
+    }
+
+    mod list_keys {
+        use crate::cloudflare::common::{
+            ApiCursorPaginatedResponse, ApiError, ApiErrorResponse, CursorPageInfo,
+        };
+        use crate::cloudflare::kv::kv::test::create_kv;
+        use crate::cloudflare::kv::{KvError, KvKey, KvKeys, KvKeysListInput};
+        use serde_json::json;
+        use wiremock::matchers::{method, path, query_param};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        #[tokio::test]
+        async fn should_list_kv_keys() -> Result<(), KvError> {
+            let expected_kv_keys = KvKeys {
+                keys: vec![
+                    KvKey {
+                        name: "key1".to_string(),
+                        expiration: None,
+                        metadata: Some(json!({
+                            "key": "value"
+                        })),
+                    },
+                    KvKey {
+                        name: "key2".to_string(),
+                        expiration: None,
+                        metadata: None,
+                    },
+                    KvKey {
+                        name: "key3".to_string(),
+                        expiration: None,
+                        metadata: None,
+                    },
+                ],
+                count: 3,
+                cursor: None,
+            };
+
+            let list_input = KvKeysListInput {
+                account_id: "my_account_id".to_string(),
+                namespace_id: "my_namespace".to_string(),
+                limit: None,
+                cursor: None,
+                prefix: None,
+            };
+            let mock_server =
+                create_succeeding_mock_server(list_input.clone(), expected_kv_keys.clone()).await;
+
+            let kv = create_kv(mock_server.uri());
+            let kv_keys = kv.list_keys(list_input).await?;
+
+            assert_eq!(kv_keys, expected_kv_keys);
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_list_kv_keys_after_given_cursor() -> Result<(), KvError> {
+            let expected_kv_keys = KvKeys {
+                keys: vec![
+                    KvKey {
+                        name: "key1".to_string(),
+                        expiration: None,
+                        metadata: None,
+                    },
+                    KvKey {
+                        name: "key2".to_string(),
+                        expiration: None,
+                        metadata: None,
+                    },
+                    KvKey {
+                        name: "key3".to_string(),
+                        expiration: None,
+                        metadata: None,
+                    },
+                ],
+                count: 3,
+                cursor: None,
+            };
+
+            let list_input = KvKeysListInput {
+                account_id: "my_account_id".to_string(),
+                namespace_id: "my_namespace".to_string(),
+                limit: None,
+                cursor: Some("my_cursor".to_string()),
+                prefix: None,
+            };
+            let mock_server =
+                create_succeeding_mock_server(list_input.clone(), expected_kv_keys.clone()).await;
+
+            let kv = create_kv(mock_server.uri());
+            let kv_keys = kv.list_keys(list_input).await?;
+
+            assert_eq!(kv_keys, expected_kv_keys);
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_list_keys_with_given_prefix() -> Result<(), KvError> {
+            let expected_kv_keys = KvKeys {
+                keys: vec![KvKey {
+                    name: "key1".to_string(),
+                    expiration: None,
+                    metadata: None,
+                }],
+                cursor: None,
+                count: 1,
+            };
+
+            let list_input = KvKeysListInput {
+                account_id: "my_account_id".to_string(),
+                namespace_id: "my_namespace".to_string(),
+                limit: None,
+                cursor: None,
+                prefix: Some("my_prefix".to_string()),
+            };
+            let mock_server =
+                create_succeeding_mock_server(list_input.clone(), expected_kv_keys.clone()).await;
+
+            let kv = create_kv(mock_server.uri());
+            let kv_keys = kv.list_keys(list_input).await?;
+
+            assert_eq!(kv_keys, expected_kv_keys);
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_respond_with_namespace_not_found_error_if_a_namespace_not_exist(
+        ) -> Result<(), KvError> {
+            let list_input = KvKeysListInput {
+                account_id: "my_account_id".to_string(),
+                namespace_id: "12345".to_string(),
+                limit: None,
+                cursor: None,
+                prefix: None,
+            };
+            let mock_server = create_failing_mock_server(
+                list_input.clone(),
+                vec![ApiError {
+                    code: 10013,
+                    message: "list keys: 'namespace not found'".to_string(),
+                }],
+            )
+            .await;
+
+            let kv = create_kv(mock_server.uri());
+            let result = kv.list_keys(list_input).await;
+
+            assert!(result.is_err());
+
+            let error = result.unwrap_err();
+            assert!(matches!(error, KvError::NamespaceNotFound));
+
+            Ok(())
+        }
+
+        async fn create_succeeding_mock_server(input: KvKeysListInput, keys: KvKeys) -> MockServer {
+            let mock_server = MockServer::start().await;
+            let mut mock_builder = Mock::given(method("GET")).and(path(format!(
+                "/client/v4/accounts/{}/storage/kv/namespaces/{}/keys",
+                input.account_id, input.namespace_id
+            )));
+
+            if let Some(limit) = input.limit {
+                mock_builder = mock_builder.and(query_param("limit", limit.to_string()));
+            } else {
+                mock_builder = mock_builder.and(query_param("limit", "1000"));
+            }
+
+            if let Some(cursor) = input.cursor {
+                mock_builder = mock_builder.and(query_param("cursor", cursor));
+            }
+
+            if let Some(prefix) = input.prefix {
+                mock_builder = mock_builder.and(query_param("prefix", prefix));
+            }
+
+            let response_template = ResponseTemplate::new(200).set_body_json(
+                ApiCursorPaginatedResponse::<Vec<KvKey>> {
+                    result: keys.keys,
+                    result_info: CursorPageInfo {
+                        cursor: keys.cursor,
+                        count: keys.count,
+                    },
+                },
+            );
+            mock_builder
+                .respond_with(response_template)
+                .mount(&mock_server)
+                .await;
+
+            mock_server
+        }
+
+        async fn create_failing_mock_server(
+            input: KvKeysListInput,
+            errors: Vec<ApiError>,
+        ) -> MockServer {
+            let mock_server = MockServer::start().await;
+
+            Mock::given(method("GET"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/keys",
                     input.account_id, input.namespace_id
                 )))
                 .respond_with(ResponseTemplate::new(400).set_body_json(ApiErrorResponse { errors }))

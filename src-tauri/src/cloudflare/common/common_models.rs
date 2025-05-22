@@ -11,6 +11,12 @@ pub struct ApiPaginatedResponse<T> {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+pub struct ApiCursorPaginatedResponse<T> {
+    pub result: T,
+    pub result_info: CursorPageInfo,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct ApiResponse<T> {
     pub result: T,
 }
@@ -32,6 +38,12 @@ pub struct PageInfo {
     pub page: usize,
     pub per_page: usize,
     pub total_count: usize,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+pub struct CursorPageInfo {
+    pub count: usize,
+    pub cursor: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
