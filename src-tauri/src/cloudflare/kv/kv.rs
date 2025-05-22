@@ -2,8 +2,8 @@ use crate::cloudflare::common::{
     ApiError, ApiErrorResponse, ApiPaginatedResponse, ApiResponse, Credentials, TokenError, API_URL,
 };
 use crate::cloudflare::kv::{
-    KvError, KvNamespace, KvNamespaceCreateInput, KvNamespaceGetInput, KvNamespaceUpdateInput,
-    KvNamespaces, KvNamespacesListInput,
+    KvError, KvNamespace, KvNamespaceCreateInput, KvNamespaceDeleteInput, KvNamespaceGetInput,
+    KvNamespaceUpdateInput, KvNamespaces, KvNamespacesListInput,
 };
 use reqwest::{Response, StatusCode};
 use serde::Deserialize;
@@ -109,6 +109,28 @@ impl Kv {
 
         self.handle_api_response::<ApiResponse<KvNamespace>, KvNamespace>(response)
             .await
+    }
+
+    pub async fn delete_namespace(&self, input: KvNamespaceDeleteInput) -> Result<(), KvError> {
+        let url = format!(
+            "{}/accounts/{}/storage/kv/namespaces/{}",
+            self.api_url, input.account_id, input.namespace_id
+        );
+
+        let response = self
+            .http_client
+            .delete(&url)
+            .headers(self.credentials.headers())
+            .send()
+            .await?;
+
+        match response.status() {
+            StatusCode::OK => Ok(()),
+            _ => {
+                let api_response = response.json::<ApiErrorResponse>().await?;
+                Err(self.map_api_errors(api_response.errors))
+            }
+        }
     }
 
     async fn handle_api_response<T: for<'a> Deserialize<'a>, R: From<T>>(
@@ -723,6 +745,92 @@ mod test {
             let mock_server = MockServer::start().await;
 
             Mock::given(method("PUT"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}",
+                    input.account_id, input.namespace_id
+                )))
+                .respond_with(ResponseTemplate::new(400).set_body_json(ApiErrorResponse { errors }))
+                .mount(&mock_server)
+                .await;
+
+            mock_server
+        }
+    }
+
+    mod delete_namespace {
+        use crate::cloudflare::common::{ApiError, ApiErrorResponse, ApiResponse};
+        use crate::cloudflare::kv::kv::test::create_kv;
+        use crate::cloudflare::kv::{KvError, KvNamespaceDeleteInput, KvNamespaceUpdateInput};
+
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        #[tokio::test]
+        async fn should_delete_namespace() -> Result<(), KvError> {
+            let delete_input = KvNamespaceDeleteInput {
+                account_id: "my_account_id".to_string(),
+                namespace_id: "12345".to_string(),
+            };
+            let mock_server = create_succeeding_mock_server(delete_input.clone()).await;
+
+            let kv = create_kv(mock_server.uri());
+            kv.delete_namespace(delete_input).await?;
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_respond_with_namespace_not_found_error() -> Result<(), KvError> {
+            let delete_input = KvNamespaceDeleteInput {
+                account_id: "my_account_id".to_string(),
+                namespace_id: "12345".to_string(),
+            };
+            let mock_server = create_failing_mock_server(
+                delete_input.clone(),
+                vec![ApiError {
+                    code: 10013,
+                    message: "remove namespace: 'namespace not found'".to_string(),
+                }],
+            )
+            .await;
+
+            let kv = create_kv(mock_server.uri());
+            let delete_namespace_result = kv.delete_namespace(delete_input).await;
+
+            assert!(delete_namespace_result.is_err());
+
+            let error = delete_namespace_result.unwrap_err();
+            assert!(matches!(error, KvError::NamespaceNotFound));
+
+            Ok(())
+        }
+
+        async fn create_succeeding_mock_server(input: KvNamespaceDeleteInput) -> MockServer {
+            let mock_server = MockServer::start().await;
+
+            let response_template =
+                ResponseTemplate::new(200)
+                    .set_body_json(ApiResponse::<Option<()>> { result: None });
+
+            Mock::given(method("DELETE"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}",
+                    input.account_id, input.namespace_id
+                )))
+                .respond_with(response_template)
+                .mount(&mock_server)
+                .await;
+
+            mock_server
+        }
+
+        async fn create_failing_mock_server(
+            input: KvNamespaceDeleteInput,
+            errors: Vec<ApiError>,
+        ) -> MockServer {
+            let mock_server = MockServer::start().await;
+
+            Mock::given(method("DELETE"))
                 .and(path(format!(
                     "/client/v4/accounts/{}/storage/kv/namespaces/{}",
                     input.account_id, input.namespace_id
