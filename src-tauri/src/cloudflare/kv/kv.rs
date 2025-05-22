@@ -760,7 +760,7 @@ mod test {
     mod delete_namespace {
         use crate::cloudflare::common::{ApiError, ApiErrorResponse, ApiResponse};
         use crate::cloudflare::kv::kv::test::create_kv;
-        use crate::cloudflare::kv::{KvError, KvNamespaceDeleteInput, KvNamespaceUpdateInput};
+        use crate::cloudflare::kv::{KvError, KvNamespaceDeleteInput};
 
         use wiremock::matchers::{method, path};
         use wiremock::{Mock, MockServer, ResponseTemplate};
