@@ -13,6 +13,7 @@ import {
   KvKeysDTO,
   KvNamespace,
   KvNamespaceCreateInput,
+  KvNamespaceDeleteInput,
   KvNamespaceGetInput,
   KvNamespaces,
   KvNamespacesListInput,
@@ -194,7 +195,7 @@ export function useNamespaces() {
         account_id: account?.id ?? '',
         token: (account?.credentials as UserAuthTokenCredentials).token,
       };
-      await invokeDeleteNamespace(namespaceId, credentials);
+      await invokeDeleteNamespace({ account_id: account?.id ?? '', namespace_id: namespaceId }, credentials);
     } catch (e) {
       setError(e as KvError);
     } finally {
@@ -281,10 +282,10 @@ export async function invokeUpdateNamespace(
   }
 }
 
-async function invokeDeleteNamespace(namespaceId: string, credentials: UserAuthTokenCredentials) {
+async function invokeDeleteNamespace(input: KvNamespaceDeleteInput, credentials: UserAuthTokenCredentials) {
   try {
     return await invoke<KvNamespace>('delete_namespace', {
-      namespaceId,
+      input,
       credentials,
     });
   } catch (e) {

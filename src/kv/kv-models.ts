@@ -49,6 +49,11 @@ export interface KvNamespaceUpdateInput extends KvNamespaceCreateInput {
   namespace_id: string;
 }
 
+export interface KvNamespaceDeleteInput {
+  account_id: string;
+  namespace_id: string;
+}
+
 export interface KvItem {
   key: string;
   value?: string;
