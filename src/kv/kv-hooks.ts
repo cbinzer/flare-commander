@@ -11,6 +11,7 @@ import {
   KvKeyPairUpsertInput,
   KvKeys,
   KvKeysDTO,
+  KvKeysListInput,
   KvNamespace,
   KvNamespaceCreateInput,
   KvNamespaceDeleteInput,
@@ -315,7 +316,10 @@ export function useKvKeys(namespaceId: string) {
     };
 
     try {
-      const nextKeys = await getKvKeys({ namespaceId, cursor, limit, prefix }, credentials);
+      const nextKeys = await invokeListKvKeys(
+        { account_id: account?.id ?? '', namespace_id: namespaceId, cursor, limit, prefix },
+        credentials,
+      );
       if (cursor) {
         setKvKeys((previousKeys) => {
           return {
@@ -497,25 +501,10 @@ export function useKvItem() {
   };
 }
 
-export async function getKvKeys(
-  input: {
-    namespaceId: string;
-    cursor?: string;
-    limit?: number;
-    prefix?: string;
-  },
-  credentials: UserAuthTokenCredentials,
-): Promise<KvKeys> {
+export async function invokeListKvKeys(input: KvKeysListInput, credentials: UserAuthTokenCredentials): Promise<KvKeys> {
   try {
-    const invokeInput = {
-      namespace_id: input.namespaceId,
-      cursor: input.cursor,
-      limit: input.limit,
-      prefix: input.prefix,
-    };
-
-    const kvKeys = await invoke<KvKeysDTO>('get_kv_keys', {
-      input: invokeInput,
+    const kvKeys = await invoke<KvKeysDTO>('list_kv_keys', {
+      input,
       credentials,
     });
 

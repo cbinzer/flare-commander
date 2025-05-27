@@ -33,6 +33,14 @@ export interface KvNamespaceGetInput {
   namespace_id: string;
 }
 
+export interface KvKeysListInput {
+  account_id: string;
+  namespace_id: string;
+  cursor?: string;
+  limit?: number;
+  prefix?: string;
+}
+
 export interface PageInfo {
   count: number;
   page: number;
