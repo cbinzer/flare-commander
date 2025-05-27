@@ -215,14 +215,6 @@ pub struct GetKvItemInput<'a> {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct GetKeysInput<'a> {
-    pub namespace_id: &'a str,
-    pub cursor: Option<String>,
-    pub limit: Option<u32>,
-    pub prefix: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
 pub struct KvKeyPairUpsertInput {
     pub namespace_id: String,
     pub key: String,
