@@ -40,7 +40,7 @@ const KvItemUpdateSheet: FunctionComponent<KvItemUpdateSheetProps> = ({
   onUpdate = () => Promise.resolve(),
   onOpenChange = () => {},
 }) => {
-  const { kvItem, loadKvItem, writeKvItem, isLoading } = useKvItem();
+  const { kvItem, getKvPair, writeKvItem, isLoading } = useKvItem();
   const valueInputRef = useRef<HTMLTextAreaElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
@@ -64,7 +64,7 @@ const KvItemUpdateSheet: FunctionComponent<KvItemUpdateSheetProps> = ({
       return;
     }
 
-    loadKvItem(namespaceId, itemKey).then(() =>
+    getKvPair(namespaceId, itemKey).then(() =>
       setSheetContainer(document.querySelector('[role="dialog"]') as HTMLElement),
     );
   };

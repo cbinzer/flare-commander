@@ -2,7 +2,7 @@ import { CredentialsType, UserAuthTokenCredentials } from '@/authentication/auth
 import { useAuth } from '@/authentication/use-auth.ts';
 import {
   KvError,
-  KvItem,
+  KvPair,
   KvItemDTO,
   KvItemsDeletionInput,
   KvItemsDeletionResult,
@@ -20,6 +20,7 @@ import {
   KvNamespacesListInput,
   KvNamespacesOrderBy,
   KvNamespaceUpdateInput,
+  KvPairGetInput,
 } from '@/kv/kv-models.ts';
 import { invoke } from '@tauri-apps/api/core';
 import { useEffect, useState } from 'react';
@@ -426,13 +427,13 @@ export function useKvKeys(namespaceId: string) {
 
 export function useKvItem() {
   const { account } = useAuth();
-  const [kvItem, setKvItem] = useState<KvItem | null>(null);
+  const [kvItem, setKvItem] = useState<KvPair | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isWriting, setIsWriting] = useState(false);
   const [error, setError] = useState<KvError | null>(null);
 
-  const loadKvItem = async (namespaceId: string, key: string) => {
+  const getKvPair = async (namespaceId: string, key: string) => {
     setIsLoading(true);
     setKvItem(null);
 
@@ -443,7 +444,10 @@ export function useKvItem() {
     };
 
     try {
-      const item = await getKvItem({ namespaceId, key }, credentials);
+      const item = await invokeGetKvPair(
+        { account_id: account?.id ?? '', namespace_id: namespaceId, key },
+        credentials,
+      );
       setKvItem(item);
     } catch (e) {
       setError(e as KvError);
@@ -491,7 +495,7 @@ export function useKvItem() {
 
   return {
     kvItem,
-    loadKvItem,
+    getKvPair,
     createKvItem: createKvKeyPair,
     writeKvItem: upsertKvItem,
     isLoading,
@@ -522,21 +526,10 @@ export async function invokeListKvKeys(input: KvKeysListInput, credentials: User
   }
 }
 
-export async function getKvItem(
-  input: {
-    namespaceId: string;
-    key: string;
-  },
-  credentials: UserAuthTokenCredentials,
-): Promise<KvItem> {
+export async function invokeGetKvPair(input: KvPairGetInput, credentials: UserAuthTokenCredentials): Promise<KvPair> {
   try {
-    const invokeInput = {
-      namespace_id: input.namespaceId,
-      key: input.key,
-    };
-
-    const kvItem = await invoke<KvItemDTO>('get_kv_item', {
-      input: invokeInput,
+    const kvItem = await invoke<KvItemDTO>('get_kv_pair', {
+      input,
       credentials,
     });
 
@@ -554,7 +547,7 @@ export async function getKvItem(
 export async function invokeCreateKvKeyPair(
   input: KvKeyPairCreateInput,
   credentials: UserAuthTokenCredentials,
-): Promise<KvItem> {
+): Promise<KvPair> {
   try {
     const invokeInput = {
       namespace_id: input.namespaceId,
@@ -581,7 +574,7 @@ export async function invokeCreateKvKeyPair(
   }
 }
 
-export async function writeKvItem(input: KvKeyPairUpsertInput, credentials: UserAuthTokenCredentials): Promise<KvItem> {
+export async function writeKvItem(input: KvKeyPairUpsertInput, credentials: UserAuthTokenCredentials): Promise<KvPair> {
   try {
     const invokeInput = {
       namespace_id: input.namespaceId,

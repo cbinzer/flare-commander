@@ -15,14 +15,14 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { ChangeEvent, FunctionComponent, ReactNode, useEffect, useRef, useState } from 'react';
 import { useKvItem } from './kv-hooks';
-import { KvItem, KvKeyPairCreateInput } from './kv-models';
+import { KvPair, KvKeyPairCreateInput } from './kv-models';
 import { parseMetadataJSON, validateExpirationTTL, validateMetadata } from '@/kv/kv-utils.ts';
 import { Save } from 'lucide-react';
 import { cn } from '@/lib/utils.ts';
 
 export interface KvItemCreateSheetProps {
   namespaceId: string;
-  onCreate?: (item: KvItem) => Promise<void>;
+  onCreate?: (item: KvPair) => Promise<void>;
   children?: ReactNode;
 }
 

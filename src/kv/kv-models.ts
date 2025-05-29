@@ -62,11 +62,17 @@ export interface KvNamespaceDeleteInput {
   namespace_id: string;
 }
 
-export interface KvItem {
+export interface KvPair {
   key: string;
   value?: string;
   expiration?: Date;
   metadata?: KvMetadata;
+}
+
+export interface KvPairGetInput {
+  account_id: String;
+  namespace_id: String;
+  key: String;
 }
 
 export interface KvItemDTO {
