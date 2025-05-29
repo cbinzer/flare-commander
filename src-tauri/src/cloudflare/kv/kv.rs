@@ -7,11 +7,14 @@ use crate::cloudflare::kv::{
     KvNamespaceDeleteInput, KvNamespaceGetInput, KvNamespaceUpdateInput, KvNamespaces,
     KvNamespacesListInput,
 };
+use chrono::DateTime;
 use reqwest::{Response, StatusCode};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::option::Option;
 use std::sync::Arc;
+
+use super::{KvPair, KvPairGetInput};
 
 pub struct Kv {
     api_url: String,
@@ -162,6 +165,43 @@ impl Kv {
 
         self.handle_api_response::<ApiCursorPaginatedResponse<Vec<KvKey>>, KvKeys>(response)
             .await
+    }
+
+    pub async fn get_kv_pair(&self, input: KvPairGetInput) -> Result<KvPair, KvError> {
+        let url = format!(
+            "{}/accounts/{}/storage/kv/namespaces/{}/values/{}",
+            self.api_url, input.account_id, input.namespace_id, input.key
+        );
+
+        let response = self
+            .http_client
+            .get(&url)
+            .headers(self.credentials.headers())
+            .send()
+            .await?;
+
+        match response.status() {
+            StatusCode::OK => {
+                let expiration = response
+                    .headers()
+                    .get("expiration")
+                    .and_then(|header_val| header_val.to_str().ok())
+                    .and_then(|str_val| str_val.parse::<i64>().ok())
+                    .and_then(|timestamp| DateTime::from_timestamp(timestamp, 0));
+                let value = response.text().await?;
+
+                Ok(KvPair {
+                    key: input.key,
+                    value,
+                    expiration,
+                    metadata: None,
+                })
+            }
+            _ => {
+                let api_response = response.json::<ApiErrorResponse>().await?;
+                Err(self.map_api_errors(api_response.errors))
+            }
+        }
     }
 
     async fn handle_api_response<T: for<'a> Deserialize<'a>, R: From<T>>(
@@ -1078,6 +1118,133 @@ mod test {
                 .and(path(format!(
                     "/client/v4/accounts/{}/storage/kv/namespaces/{}/keys",
                     input.account_id, input.namespace_id
+                )))
+                .respond_with(ResponseTemplate::new(400).set_body_json(ApiErrorResponse { errors }))
+                .mount(&mock_server)
+                .await;
+
+            mock_server
+        }
+    }
+
+    mod get_kv_pair {
+        use chrono::{DateTime, Utc};
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        use crate::cloudflare::common::{ApiError, ApiErrorResponse};
+        use crate::cloudflare::kv::kv::test::create_kv;
+        use crate::cloudflare::kv::{KvError, KvPair, KvPairGetInput};
+
+        #[tokio::test]
+        async fn should_get_kv_pair() -> Result<(), KvError> {
+            let expected_kv_pair = KvPair {
+                key: "key1".to_string(),
+                value: "value".to_string(),
+                expiration: DateTime::from_timestamp(Utc::now().timestamp(), 0),
+                metadata: None,
+            };
+            let get_input = KvPairGetInput {
+                account_id: "my_account_id".to_string(),
+                namespace_id: "my_namespace".to_string(),
+                key: "key1".to_string(),
+            };
+
+            let mock_server = create_succeeding_mock_server(&get_input, &expected_kv_pair).await;
+            let kv = create_kv(mock_server.uri());
+            let result = kv.get_kv_pair(get_input).await?;
+
+            assert_eq!(result, expected_kv_pair);
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_respond_with_namespace_not_found_error_if_a_namespace_not_exist(
+        ) -> Result<(), KvError> {
+            let get_input = KvPairGetInput {
+                account_id: "my_account_id".to_string(),
+                namespace_id: "my_namespace".to_string(),
+                key: "key1".to_string(),
+            };
+            let mock_server = create_failing_mock_server(
+                &get_input,
+                vec![ApiError {
+                    code: 10013,
+                    message: "get: 'namespace not found'".to_string(),
+                }],
+            )
+            .await;
+
+            let kv = create_kv(mock_server.uri());
+            let result = kv.get_kv_pair(get_input).await;
+
+            assert!(result.is_err());
+
+            let error = result.unwrap_err();
+            assert!(matches!(error, KvError::NamespaceNotFound));
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_respond_with_key_not_found_error_if_a_key_not_exist() -> Result<(), KvError>
+        {
+            let get_input = KvPairGetInput {
+                account_id: "account_id".to_string(),
+                namespace_id: "namespace_id".to_string(),
+                key: "key".to_string(),
+            };
+            let mock_server = create_failing_mock_server(
+                &get_input,
+                vec![ApiError {
+                    code: 10009,
+                    message: "get: 'key not found'".to_string(),
+                }],
+            )
+            .await;
+
+            let kv = create_kv(mock_server.uri());
+            let result = kv.get_kv_pair(get_input).await;
+            assert!(result.is_err());
+
+            let error = result.unwrap_err();
+            assert!(matches!(error, KvError::KeyNotFound));
+
+            Ok(())
+        }
+
+        async fn create_succeeding_mock_server(
+            input: &KvPairGetInput,
+            pair: &KvPair,
+        ) -> MockServer {
+            let mock_server = MockServer::start().await;
+            let response_template = ResponseTemplate::new(200)
+                .set_body_string(pair.value.clone())
+                .append_header("expiration", pair.expiration.unwrap().timestamp());
+
+            Mock::given(method("GET"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/values/{}",
+                    input.account_id, input.namespace_id, input.key
+                )))
+                .respond_with(response_template)
+                .mount(&mock_server)
+                .await;
+
+            mock_server
+        }
+
+        async fn create_failing_mock_server(
+            input: &KvPairGetInput,
+            errors: Vec<ApiError>,
+        ) -> MockServer {
+            let mock_server = MockServer::start().await;
+
+            Mock::given(method("GET"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/values/{}",
+                    input.account_id, input.namespace_id, input.key
                 )))
                 .respond_with(ResponseTemplate::new(400).set_body_json(ApiErrorResponse { errors }))
                 .mount(&mock_server)

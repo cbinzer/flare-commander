@@ -155,6 +155,25 @@ pub struct KvKeysListInput {
     pub prefix: Option<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct KvPairGetInput {
+    pub account_id: String,
+    pub namespace_id: String,
+    pub key: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct KvPair {
+    pub key: String,
+    pub value: String,
+
+    #[serde(default)]
+    pub metadata: Option<Value>,
+
+    #[serde(with = "ts_seconds_option")]
+    pub expiration: Option<DateTime<Utc>>,
+}
+
 #[derive(Debug)]
 pub enum KvError {
     NamespaceAlreadyExists(String),
