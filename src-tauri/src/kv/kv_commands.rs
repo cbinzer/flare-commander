@@ -1,9 +1,9 @@
-use super::kv_models::{GetKvItemInput, KvKeyPairUpsertInput};
+use super::kv_models::KvKeyPairUpsertInput;
 use crate::app_state::AppState;
 use crate::cloudflare::common::Credentials as CloudflareCredentials;
 use crate::cloudflare::kv::{
     KvError as CloudflareKvError, KvKeys, KvKeysListInput, KvNamespace, KvNamespaceCreateInput,
-    KvNamespaceGetInput, KvNamespaces, KvNamespacesListInput,
+    KvNamespaceGetInput, KvNamespaces, KvNamespacesListInput, KvPair, KvPairGetInput,
 };
 use crate::cloudflare::kv::{KvNamespaceDeleteInput, KvNamespaceUpdateInput};
 use crate::cloudflare::Cloudflare;
@@ -66,12 +66,13 @@ pub async fn delete_namespace(
 }
 
 #[tauri::command]
-pub async fn get_kv_item<'a>(
-    credentials: Credentials,
-    input: GetKvItemInput<'a>,
-    state: State<'_, AppState>,
-) -> Result<KvItem, KvCommandError> {
-    Ok(state.kv_service.get_kv_item(&credentials, input).await?)
+pub async fn get_kv_pair(
+    credentials: CloudflareCredentials,
+    input: KvPairGetInput,
+) -> Result<KvPair, KvCommandError> {
+    let cloudflare_client = Cloudflare::new(credentials, None);
+    let kv = cloudflare_client.kv;
+    Ok(kv.get_kv_pair(input).await?)
 }
 
 #[tauri::command]

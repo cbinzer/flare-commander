@@ -4,7 +4,7 @@ use crate::kv::kv_commands::{
     create_kv_item, create_namespace, delete_kv_items, delete_namespace, get_namespace,
     list_kv_keys, list_namespaces, update_namespace,
 };
-use kv::kv_commands::{get_kv_item, write_kv_item};
+use kv::kv_commands::{get_kv_pair, write_kv_item};
 use tauri::Manager;
 
 mod app_state;
@@ -32,7 +32,7 @@ pub fn run() {
             create_namespace,
             update_namespace,
             delete_namespace,
-            get_kv_item,
+            get_kv_pair,
             list_kv_keys,
             create_kv_item,
             write_kv_item,
