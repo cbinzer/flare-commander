@@ -131,10 +131,7 @@ impl Kv {
 
         match response.status() {
             StatusCode::OK => Ok(()),
-            _ => {
-                let api_response = response.json::<ApiErrorResponse>().await?;
-                Err(self.map_api_errors(api_response.errors))
-            }
+            _ => Err(self.handle_api_error_response(response).await),
         }
     }
 
@@ -197,10 +194,7 @@ impl Kv {
                     metadata: None,
                 })
             }
-            _ => {
-                let api_response = response.json::<ApiErrorResponse>().await?;
-                Err(self.map_api_errors(api_response.errors))
-            }
+            _ => Err(self.handle_api_error_response(response).await),
         }
     }
 
@@ -213,10 +207,15 @@ impl Kv {
                 let api_result: T = response.json().await?;
                 Ok(api_result.into())
             }
-            _ => {
-                let api_response = response.json::<ApiErrorResponse>().await?;
-                Err(self.map_api_errors(api_response.errors))
-            }
+            _ => Err(self.handle_api_error_response(response).await),
+        }
+    }
+
+    async fn handle_api_error_response(&self, response: Response) -> KvError {
+        let api_response_result = response.json::<ApiErrorResponse>().await;
+        match api_response_result {
+            Ok(api_response) => self.map_api_errors(api_response.errors),
+            Err(error) => error.into(),
         }
     }
 
