@@ -174,6 +174,25 @@ pub struct KvPair {
     pub expiration: Option<DateTime<Utc>>,
 }
 
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
+pub struct KvPairsDeleteInput {
+    pub account_id: String,
+    pub namespace_id: String,
+    pub keys: Vec<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
+pub struct KvPairsDeleteResult {
+    pub successful_key_count: u32,
+    pub unsuccessful_keys: Vec<String>,
+}
+
+impl From<ApiResponse<KvPairsDeleteResult>> for KvPairsDeleteResult {
+    fn from(response: ApiResponse<KvPairsDeleteResult>) -> Self {
+        response.result
+    }
+}
+
 #[derive(Debug)]
 pub enum KvError {
     NamespaceAlreadyExists(String),
@@ -193,7 +212,10 @@ impl Error for KvError {}
 
 impl Display for KvError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "KvError: {:?}", self)
+        match &self {
+            KvError::Reqwest(err) => write!(f, "Reqwest error: {}", err),
+            _ => write!(f, "KvError: {:?}", self),
+        }
     }
 }
 

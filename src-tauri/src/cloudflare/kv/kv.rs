@@ -14,7 +14,7 @@ use std::collections::HashMap;
 use std::option::Option;
 use std::sync::Arc;
 
-use super::{KvPair, KvPairGetInput};
+use super::{KvPair, KvPairGetInput, KvPairsDeleteInput, KvPairsDeleteResult};
 
 pub struct Kv {
     api_url: String,
@@ -196,6 +196,27 @@ impl Kv {
             }
             _ => Err(self.handle_api_error_response(response).await),
         }
+    }
+
+    pub async fn delete_kv_pairs(
+        &self,
+        input: KvPairsDeleteInput,
+    ) -> Result<KvPairsDeleteResult, KvError> {
+        let url = format!(
+            "{}/accounts/{}/storage/kv/namespaces/{}/bulk/delete",
+            self.api_url, input.account_id, input.namespace_id,
+        );
+
+        let response = self
+            .http_client
+            .post(url)
+            .headers(self.credentials.headers())
+            .json(&input.keys)
+            .send()
+            .await?;
+
+        self.handle_api_response::<ApiResponse<KvPairsDeleteResult>, KvPairsDeleteResult>(response)
+            .await
     }
 
     async fn handle_api_response<T: for<'a> Deserialize<'a>, R: From<T>>(
@@ -1246,6 +1267,166 @@ mod test {
                     input.account_id, input.namespace_id, input.key
                 )))
                 .respond_with(ResponseTemplate::new(400).set_body_json(ApiErrorResponse { errors }))
+                .mount(&mock_server)
+                .await;
+
+            mock_server
+        }
+    }
+
+    mod delete_kv_pairs {
+        use crate::cloudflare::common::{ApiError, ApiErrorResponse, ApiResponse};
+
+        use crate::cloudflare::kv::kv::test::create_kv;
+        use crate::cloudflare::kv::{KvError, KvPairsDeleteInput, KvPairsDeleteResult};
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        #[tokio::test]
+        async fn should_delete_kv_pairs() -> Result<(), KvError> {
+            let delete_input = KvPairsDeleteInput {
+                account_id: "account_id".to_string(),
+                namespace_id: "my_namespace".to_string(),
+                keys: vec!["key1".to_string(), "key2".to_string()],
+            };
+
+            let expected_result = KvPairsDeleteResult {
+                successful_key_count: delete_input.keys.len() as u32,
+                unsuccessful_keys: vec![],
+            };
+            let mock_server =
+                create_succeeding_mock_server(&delete_input, &expected_result.clone()).await;
+            let kv = create_kv(mock_server.uri());
+            let delete_result = kv.delete_kv_pairs(delete_input).await?;
+
+            assert_eq!(expected_result, delete_result);
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_respond_with_unsuccessful_deleted_keys_if_it_is_not_possible_to_delete_some(
+        ) -> Result<(), KvError> {
+            let delete_input = KvPairsDeleteInput {
+                account_id: "account_id".to_string(),
+                namespace_id: "my_namespace".to_string(),
+                keys: vec!["key1".to_string(), "key2".to_string()],
+            };
+            let expected_result = KvPairsDeleteResult {
+                successful_key_count: 1,
+                unsuccessful_keys: vec![delete_input.keys[1].clone()],
+            };
+            let mock_server =
+                create_succeeding_mock_server(&delete_input, &expected_result.clone()).await;
+            let kv = create_kv(mock_server.uri());
+
+            let deletion_result = kv.delete_kv_pairs(delete_input).await?;
+
+            assert_eq!(expected_result, deletion_result);
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_respond_with_namespace_not_found_error_if_a_namespace_not_exist(
+        ) -> Result<(), KvError> {
+            let delete_input = KvPairsDeleteInput {
+                account_id: "account_id".to_string(),
+                namespace_id: "my_namespace".to_string(),
+                keys: vec!["key1".to_string(), "key2".to_string()],
+            };
+            let mock_server = create_failing_mock_server(
+                &delete_input,
+                vec![ApiError {
+                    code: 10013,
+                    message: "bulk remove keys: 'namespace not found'".to_string(),
+                }],
+            )
+            .await;
+            let kv = create_kv(mock_server.uri());
+
+            let delete_result = kv.delete_kv_pairs(delete_input).await;
+            assert!(delete_result.is_err());
+
+            let error = delete_result.unwrap_err();
+            assert!(matches!(error, KvError::NamespaceNotFound));
+
+            Ok(())
+        }
+
+        // #[tokio::test]
+        // async fn should_respond_with_namespace_not_found_error_if_a_namespace_not_exist(
+        // ) -> Result<(), KvError> {
+        //     let deletion_input = KvItemsDeletionInput {
+        //         namespace_id: "my_namespace".to_string(),
+        //         keys: vec!["key1".to_string(), "key2".to_string()],
+        //     };
+
+        //     let account_id = "account_id";
+        //     let credentials = Credentials::UserAuthToken {
+        //         account_id: account_id.to_string(),
+        //         token: "my_token".to_string(),
+        //     };
+
+        //     let mock_server = create_mock_server(
+        //         account_id,
+        //         &deletion_input.namespace_id,
+        //         None,
+        //         vec![ApiError {
+        //             code: 10013,
+        //             message: "bulk remove keys: 'namespace not found'".to_string(),
+        //             other: Default::default(),
+        //         }],
+        //         404,
+        //     )
+        //     .await;
+        //     let kv_service = create_kv_service(mock_server.uri());
+
+        //     let deletion_result = kv_service.delete_items(&credentials, &deletion_input).await;
+        //     assert!(deletion_result.is_err());
+
+        //     let error = deletion_result.unwrap_err();
+        //     assert!(matches!(error, KvError::NamespaceNotFound));
+
+        //     Ok(())
+        // }
+
+        async fn create_succeeding_mock_server(
+            input: &KvPairsDeleteInput,
+            result: &KvPairsDeleteResult,
+        ) -> MockServer {
+            let mock_server = MockServer::start().await;
+            let response_template_value =
+                ResponseTemplate::new(200).set_body_json(ApiResponse::<KvPairsDeleteResult> {
+                    result: result.clone(),
+                });
+
+            Mock::given(method("POST"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/bulk/delete",
+                    input.account_id, input.namespace_id
+                )))
+                .respond_with(response_template_value)
+                .mount(&mock_server)
+                .await;
+
+            mock_server
+        }
+
+        async fn create_failing_mock_server(
+            input: &KvPairsDeleteInput,
+            errors: Vec<ApiError>,
+        ) -> MockServer {
+            let mock_server = MockServer::start().await;
+            let response_template_value =
+                ResponseTemplate::new(400).set_body_json(ApiErrorResponse { errors });
+
+            Mock::given(method("POST"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/bulk/delete",
+                    input.account_id, input.namespace_id
+                )))
+                .respond_with(response_template_value)
                 .mount(&mock_server)
                 .await;
 
