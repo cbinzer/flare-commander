@@ -4,13 +4,12 @@ use crate::cloudflare::common::Credentials as CloudflareCredentials;
 use crate::cloudflare::kv::{
     KvError as CloudflareKvError, KvKeys, KvKeysListInput, KvNamespace, KvNamespaceCreateInput,
     KvNamespaceGetInput, KvNamespaces, KvNamespacesListInput, KvPair, KvPairGetInput,
+    KvPairsDeleteInput, KvPairsDeleteResult,
 };
 use crate::cloudflare::kv::{KvNamespaceDeleteInput, KvNamespaceUpdateInput};
 use crate::cloudflare::Cloudflare;
 use crate::common::common_models::Credentials;
-use crate::kv::kv_models::{
-    KvError, KvItem, KvItemsDeletionInput, KvItemsDeletionResult, KvKeyPairCreateInput,
-};
+use crate::kv::kv_models::{KvError, KvItem, KvKeyPairCreateInput};
 use log::error;
 use serde::{Deserialize, Serialize};
 use tauri::State;
@@ -97,16 +96,17 @@ pub async fn create_kv_item(
 }
 
 #[tauri::command]
-pub async fn delete_kv_items(
-    credentials: Credentials,
-    input: KvItemsDeletionInput,
-    state: State<'_, AppState>,
-) -> Result<KvItemsDeletionResult, KvCommandError> {
-    Ok(state.kv_service.delete_items(&credentials, &input).await?)
+pub async fn delete_kv_pairs(
+    credentials: CloudflareCredentials,
+    input: KvPairsDeleteInput,
+) -> Result<KvPairsDeleteResult, KvCommandError> {
+    let cloudflare_client = Cloudflare::new(credentials, None);
+    let kv = cloudflare_client.kv;
+    Ok(kv.delete_kv_pairs(input).await?)
 }
 
 #[tauri::command]
-pub async fn list_kv_keys<'a>(
+pub async fn list_kv_keys(
     credentials: CloudflareCredentials,
     input: KvKeysListInput,
 ) -> Result<KvKeys, KvCommandError> {
