@@ -2,10 +2,7 @@ import { CredentialsType, UserAuthTokenCredentials } from '@/authentication/auth
 import { useAuth } from '@/authentication/use-auth.ts';
 import {
   KvError,
-  KvPair,
   KvItemDTO,
-  KvItemsDeletionInput,
-  KvItemsDeletionResult,
   KvKey,
   KvKeyPairCreateInput,
   KvKeyPairUpsertInput,
@@ -20,7 +17,10 @@ import {
   KvNamespacesListInput,
   KvNamespacesOrderBy,
   KvNamespaceUpdateInput,
+  KvPair,
   KvPairGetInput,
+  KvPairsDeleteInput,
+  KvPairsDeleteResult,
 } from '@/kv/kv-models.ts';
 import { invoke } from '@tauri-apps/api/core';
 import { useEffect, useState } from 'react';
@@ -302,7 +302,7 @@ export function useKvKeys(namespaceId: string) {
   const [isLoadingNextKeys, setIsLoadingNextKeys] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [kvKeys, setKvKeys] = useState<KvKeys | null>(null);
-  const [deletionResult, setDeletionResult] = useState<KvItemsDeletionResult | null>(null);
+  const [deletionResult, setDeletionResult] = useState<KvPairsDeleteResult | null>(null);
   const [prefix, setPrefix] = useState<string | undefined>(undefined);
   const [hasNextKeys, setHasNextKeys] = useState<boolean>(false);
   const [error, setError] = useState<KvError | null>(null);
@@ -387,13 +387,14 @@ export function useKvKeys(namespaceId: string) {
       account_id: account?.id ?? '',
       token: (account?.credentials as UserAuthTokenCredentials).token,
     };
-    const input: KvItemsDeletionInput = {
+    const input: KvPairsDeleteInput = {
+      account_id: account?.id ?? '',
       namespace_id: namespaceId,
       keys,
     };
 
     try {
-      const result = await deleteKvItems(input, credentials);
+      const result = await invokeDeleteKvPairs(input, credentials);
       setDeletionResult(result);
     } catch (e) {
       console.error(e);
@@ -601,12 +602,12 @@ export async function writeKvItem(input: KvKeyPairUpsertInput, credentials: User
   }
 }
 
-export async function deleteKvItems(
-  input: KvItemsDeletionInput,
+export async function invokeDeleteKvPairs(
+  input: KvPairsDeleteInput,
   credentials: UserAuthTokenCredentials,
-): Promise<KvItemsDeletionResult> {
+): Promise<KvPairsDeleteResult> {
   try {
-    return invoke<KvItemsDeletionResult>('delete_kv_items', {
+    return invoke<KvPairsDeleteResult>('delete_kv_pairs', {
       input,
       credentials,
     });

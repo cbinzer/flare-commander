@@ -100,12 +100,13 @@ export interface KvKeyPairUpsertInput {
   metadata?: KvMetadata;
 }
 
-export interface KvItemsDeletionInput {
+export interface KvPairsDeleteInput {
+  account_id: string;
   namespace_id: string;
   keys: string[];
 }
 
-export interface KvItemsDeletionResult {
+export interface KvPairsDeleteResult {
   successful_key_count: number;
   unsuccessful_keys: string[];
 }
