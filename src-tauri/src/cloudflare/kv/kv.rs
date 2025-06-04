@@ -1354,43 +1354,6 @@ mod test {
             Ok(())
         }
 
-        // #[tokio::test]
-        // async fn should_respond_with_namespace_not_found_error_if_a_namespace_not_exist(
-        // ) -> Result<(), KvError> {
-        //     let deletion_input = KvItemsDeletionInput {
-        //         namespace_id: "my_namespace".to_string(),
-        //         keys: vec!["key1".to_string(), "key2".to_string()],
-        //     };
-
-        //     let account_id = "account_id";
-        //     let credentials = Credentials::UserAuthToken {
-        //         account_id: account_id.to_string(),
-        //         token: "my_token".to_string(),
-        //     };
-
-        //     let mock_server = create_mock_server(
-        //         account_id,
-        //         &deletion_input.namespace_id,
-        //         None,
-        //         vec![ApiError {
-        //             code: 10013,
-        //             message: "bulk remove keys: 'namespace not found'".to_string(),
-        //             other: Default::default(),
-        //         }],
-        //         404,
-        //     )
-        //     .await;
-        //     let kv_service = create_kv_service(mock_server.uri());
-
-        //     let deletion_result = kv_service.delete_items(&credentials, &deletion_input).await;
-        //     assert!(deletion_result.is_err());
-
-        //     let error = deletion_result.unwrap_err();
-        //     assert!(matches!(error, KvError::NamespaceNotFound));
-
-        //     Ok(())
-        // }
-
         async fn create_succeeding_mock_server(
             input: &KvPairsDeleteInput,
             result: &KvPairsDeleteResult,
