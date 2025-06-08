@@ -82,8 +82,9 @@ export interface KvItemDTO {
   metadata?: KvMetadata;
 }
 
-export interface KvKeyPairCreateInput {
-  namespaceId: string;
+export interface KvPairCreateInput {
+  account_id: string;
+  namespace_id: string;
   key: string;
   value?: string;
   expiration?: Date;

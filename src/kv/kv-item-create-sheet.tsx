@@ -15,7 +15,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { ChangeEvent, FunctionComponent, ReactNode, useEffect, useRef, useState } from 'react';
 import { useKvItem } from './kv-hooks';
-import { KvPair, KvKeyPairCreateInput } from './kv-models';
+import { KvPair, KvPairCreateInput } from './kv-models';
 import { parseMetadataJSON, validateExpirationTTL, validateMetadata } from '@/kv/kv-utils.ts';
 import { Save } from 'lucide-react';
 import { cn } from '@/lib/utils.ts';
@@ -85,8 +85,8 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
 
     try {
       const parsedMetadata = parseMetadataJSON(metadata);
-      const createInput: KvKeyPairCreateInput = {
-        namespaceId,
+      const createInput: Omit<KvPairCreateInput, 'account_id'> = {
+        namespace_id: namespaceId,
         key: key ?? '',
         value,
         expiration,

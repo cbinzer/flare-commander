@@ -4,7 +4,6 @@ import {
   KvError,
   KvItemDTO,
   KvKey,
-  KvKeyPairCreateInput,
   KvKeyPairWriteInput,
   KvKeys,
   KvKeysDTO,
@@ -18,6 +17,7 @@ import {
   KvNamespacesOrderBy,
   KvNamespaceUpdateInput,
   KvPair,
+  KvPairCreateInput,
   KvPairGetInput,
   KvPairsDeleteInput,
   KvPairsDeleteResult,
@@ -457,7 +457,7 @@ export function useKvItem() {
     }
   };
 
-  const createKvPair = async (input: KvKeyPairCreateInput) => {
+  const createKvPair = async (input: Omit<KvPairCreateInput, 'account_id'>) => {
     setIsCreating(true);
 
     const credentials: UserAuthTokenCredentials = {
@@ -466,7 +466,7 @@ export function useKvItem() {
       token: (account?.credentials as UserAuthTokenCredentials).token,
     };
     try {
-      const createdKvItem = await invokeCreateKvKeyPair(input, credentials);
+      const createdKvItem = await invokeCreateKvPair({ ...input, account_id: account?.id ?? '' }, credentials);
       setKvItem(createdKvItem);
     } catch (e) {
       setError(e as KvError);
@@ -545,22 +545,13 @@ export async function invokeGetKvPair(input: KvPairGetInput, credentials: UserAu
   }
 }
 
-export async function invokeCreateKvKeyPair(
-  input: KvKeyPairCreateInput,
+export async function invokeCreateKvPair(
+  input: KvPairCreateInput,
   credentials: UserAuthTokenCredentials,
 ): Promise<KvPair> {
   try {
-    const invokeInput = {
-      namespace_id: input.namespaceId,
-      key: input.key,
-      value: input.value,
-      expiration: input.expiration,
-      expiration_ttl: input.expiration_ttl,
-      metadata: input.metadata,
-    };
-
-    const kvItem = await invoke<KvItemDTO>('create_kv_item', {
-      input: invokeInput,
+    const kvItem = await invoke<KvItemDTO>('create_kv_pair', {
+      input,
       credentials,
     });
 
