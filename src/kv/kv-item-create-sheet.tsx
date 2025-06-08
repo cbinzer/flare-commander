@@ -31,7 +31,7 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
   children,
   onCreate = () => Promise.resolve(),
 }) => {
-  const { kvItem, error, createKvItem } = useKvItem();
+  const { kvItem, error, createKvPair } = useKvItem();
 
   const valueInputRef = useRef<HTMLTextAreaElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -93,7 +93,7 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
         expiration_ttl: Number(expirationTTL),
         metadata: parsedMetadata,
       };
-      await createKvItem(createInput);
+      await createKvPair(createInput);
     } catch (e) {
       console.error('Error parsing metadata:', e);
       setErrors((prev) => ({ ...prev, metadata: e as Error }));

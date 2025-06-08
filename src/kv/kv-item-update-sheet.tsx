@@ -16,7 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { FunctionComponent, ReactNode, useEffect, useRef, useState } from 'react';
 import { useKvItem } from './kv-hooks';
-import { KvKeyPairUpsertInput, KvMetadata } from './kv-models';
+import { KvKeyPairWriteInput, KvMetadata } from './kv-models';
 import { parseMetadataJSON, stringifyMetadataJSON, validateExpirationTTL, validateMetadata } from '@/kv/kv-utils.ts';
 import { Save } from 'lucide-react';
 import { cn } from '@/lib/utils.ts';
@@ -40,7 +40,7 @@ const KvItemUpdateSheet: FunctionComponent<KvItemUpdateSheetProps> = ({
   onUpdate = () => Promise.resolve(),
   onOpenChange = () => {},
 }) => {
-  const { kvItem, getKvPair, writeKvItem, isLoading } = useKvItem();
+  const { kvItem, getKvPair, writeKvPair, isLoading } = useKvItem();
   const valueInputRef = useRef<HTMLTextAreaElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
@@ -89,15 +89,15 @@ const KvItemUpdateSheet: FunctionComponent<KvItemUpdateSheetProps> = ({
 
     try {
       const parsedMetadata = parseMetadataJSON(metadata);
-      const upsertInput: KvKeyPairUpsertInput = {
-        namespaceId,
+      const upsertInput: Omit<KvKeyPairWriteInput, 'account_id'> = {
+        namespace_id: namespaceId,
         key: key ?? '',
         value,
         expiration,
         expiration_ttl: Number(expirationTTL),
         metadata: parsedMetadata,
       };
-      await writeKvItem(upsertInput);
+      await writeKvPair(upsertInput);
       await onUpdate();
 
       setIsOpen(false);

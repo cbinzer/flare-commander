@@ -5,7 +5,7 @@ import {
   KvItemDTO,
   KvKey,
   KvKeyPairCreateInput,
-  KvKeyPairUpsertInput,
+  KvKeyPairWriteInput,
   KvKeys,
   KvKeysDTO,
   KvKeysListInput,
@@ -457,7 +457,7 @@ export function useKvItem() {
     }
   };
 
-  const createKvKeyPair = async (input: KvKeyPairCreateInput) => {
+  const createKvPair = async (input: KvKeyPairCreateInput) => {
     setIsCreating(true);
 
     const credentials: UserAuthTokenCredentials = {
@@ -475,7 +475,7 @@ export function useKvItem() {
     }
   };
 
-  const upsertKvItem = async (input: KvKeyPairUpsertInput) => {
+  const writeKvPair = async (input: Omit<KvKeyPairWriteInput, 'account_id'>) => {
     setIsWriting(true);
 
     const credentials: UserAuthTokenCredentials = {
@@ -485,7 +485,7 @@ export function useKvItem() {
     };
 
     try {
-      const updatedKvItem = await writeKvItem(input, credentials);
+      const updatedKvItem = await invokeWriteKvPair({ ...input, account_id: account?.id ?? '' }, credentials);
       setKvItem(updatedKvItem);
     } catch (e) {
       setError(e as KvError);
@@ -497,8 +497,8 @@ export function useKvItem() {
   return {
     kvItem,
     getKvPair,
-    createKvItem: createKvKeyPair,
-    writeKvItem: upsertKvItem,
+    createKvPair,
+    writeKvPair,
     isLoading,
     isCreating,
     isWriting,
@@ -575,19 +575,13 @@ export async function invokeCreateKvKeyPair(
   }
 }
 
-export async function writeKvItem(input: KvKeyPairUpsertInput, credentials: UserAuthTokenCredentials): Promise<KvPair> {
+export async function invokeWriteKvPair(
+  input: KvKeyPairWriteInput,
+  credentials: UserAuthTokenCredentials,
+): Promise<KvPair> {
   try {
-    const invokeInput = {
-      namespace_id: input.namespaceId,
-      key: input.key,
-      value: input.value,
-      expiration: input.expiration,
-      expiration_ttl: input.expiration_ttl,
-      metadata: input.metadata,
-    };
-
-    const kvItem = await invoke<KvItemDTO>('write_kv_item', {
-      input: invokeInput,
+    const kvItem = await invoke<KvItemDTO>('write_kv_pair', {
+      input,
       credentials,
     });
 

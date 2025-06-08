@@ -91,8 +91,9 @@ export interface KvKeyPairCreateInput {
   metadata?: KvMetadata;
 }
 
-export interface KvKeyPairUpsertInput {
-  namespaceId: string;
+export interface KvKeyPairWriteInput {
+  account_id: string;
+  namespace_id: string;
   key: string;
   value?: string;
   expiration?: Date;
