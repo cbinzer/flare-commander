@@ -174,6 +174,17 @@ pub struct KvPair {
     pub expiration: Option<DateTime<Utc>>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct KvPairWriteInput {
+    pub account_id: String,
+    pub namespace_id: String,
+    pub key: String,
+    pub value: Option<String>,
+    pub expiration: Option<DateTime<Utc>>,
+    pub expiration_ttl: Option<u32>,
+    pub metadata: Option<Value>,
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct KvPairsDeleteInput {
     pub account_id: String,

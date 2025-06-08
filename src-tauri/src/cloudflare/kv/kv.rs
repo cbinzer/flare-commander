@@ -1,3 +1,4 @@
+use super::{KvPair, KvPairGetInput, KvPairsDeleteInput, KvPairsDeleteResult};
 use crate::cloudflare::common::{
     ApiCursorPaginatedResponse, ApiError, ApiErrorResponse, ApiPaginatedResponse, ApiResponse,
     Credentials, TokenError, API_URL,
@@ -5,16 +6,15 @@ use crate::cloudflare::common::{
 use crate::cloudflare::kv::{
     KvError, KvKey, KvKeys, KvKeysListInput, KvNamespace, KvNamespaceCreateInput,
     KvNamespaceDeleteInput, KvNamespaceGetInput, KvNamespaceUpdateInput, KvNamespaces,
-    KvNamespacesListInput,
+    KvNamespacesListInput, KvPairWriteInput,
 };
 use chrono::DateTime;
+use reqwest::multipart::Form;
 use reqwest::{Response, StatusCode};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::option::Option;
 use std::sync::Arc;
-
-use super::{KvPair, KvPairGetInput, KvPairsDeleteInput, KvPairsDeleteResult};
 
 pub struct Kv {
     api_url: String,
@@ -194,6 +194,47 @@ impl Kv {
                     metadata: None,
                 })
             }
+            _ => Err(self.handle_api_error_response(response).await),
+        }
+    }
+
+    pub async fn write_kv_pair(&self, input: KvPairWriteInput) -> Result<KvPair, KvError> {
+        let url = format!(
+            "{}/accounts/{}/storage/kv/namespaces/{}/values/{}",
+            self.api_url, input.account_id, input.namespace_id, input.key
+        );
+
+        let expiration = input
+            .expiration
+            .map(|expiration_date| expiration_date.timestamp().to_string());
+        let expiration_ttl = input.expiration_ttl.map(|ttl| ttl.to_string());
+        let request = self
+            .http_client
+            .put(url)
+            .headers(self.credentials.headers())
+            .query(&[
+                ("expiration", expiration),
+                ("expiration_ttl", expiration_ttl),
+            ]);
+
+        let value = input.value.unwrap_or_default();
+        let mut metadata = String::from("null");
+        if let Some(metadata_value) = &input.metadata {
+            metadata = serde_json::to_string(&metadata_value).unwrap_or_default();
+        }
+
+        let form_data = Form::new()
+            .text("value", value.clone())
+            .text("metadata", metadata);
+        let response = request.multipart(form_data).send().await?;
+
+        match response.status() {
+            StatusCode::OK => Ok(KvPair {
+                key: input.key.to_string(),
+                value,
+                expiration: input.expiration,
+                metadata: input.metadata,
+            }),
             _ => Err(self.handle_api_error_response(response).await),
         }
     }
@@ -1265,6 +1306,121 @@ mod test {
                 .and(path(format!(
                     "/client/v4/accounts/{}/storage/kv/namespaces/{}/values/{}",
                     input.account_id, input.namespace_id, input.key
+                )))
+                .respond_with(ResponseTemplate::new(400).set_body_json(ApiErrorResponse { errors }))
+                .mount(&mock_server)
+                .await;
+
+            mock_server
+        }
+    }
+
+    mod write_kv_pair {
+        use crate::cloudflare::common::{ApiError, ApiErrorResponse};
+        use crate::cloudflare::kv::kv::test::create_kv;
+        use crate::cloudflare::kv::{KvError, KvPair, KvPairWriteInput};
+        use chrono::{DateTime, Utc};
+        use serde_json::json;
+        use wiremock::{
+            matchers::{method, path, query_param},
+            Mock, MockServer, ResponseTemplate,
+        };
+
+        #[tokio::test]
+        async fn should_write_kv_pair() -> Result<(), KvError> {
+            let expected_kv_pair = KvPair {
+                key: "key1".to_string(),
+                value: "value".to_string(),
+                expiration: DateTime::from_timestamp(Utc::now().timestamp(), 0),
+                metadata: Some(json!({
+                    "key": "value"
+                })),
+            };
+
+            let write_input = KvPairWriteInput {
+                account_id: "my_account_id".to_string(),
+                namespace_id: "my_namespace".to_string(),
+                key: expected_kv_pair.key.clone(),
+                value: Some(expected_kv_pair.value.clone()),
+                expiration: expected_kv_pair.expiration,
+                expiration_ttl: Some(60),
+                metadata: expected_kv_pair.metadata.clone(),
+            };
+            let mock_server = create_succeeding_mock_server(&write_input).await;
+
+            let kv = create_kv(mock_server.uri());
+            let updated_kv_pair = kv.write_kv_pair(write_input).await?;
+
+            assert_eq!(updated_kv_pair, expected_kv_pair);
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_respond_with_namespace_not_found_error_if_a_namespace_not_exist(
+        ) -> Result<(), KvError> {
+            let write_input = KvPairWriteInput {
+                account_id: "my_account_id".to_string(),
+                namespace_id: "my_namespace".to_string(),
+                key: "key1".to_string(),
+                value: None,
+                expiration: None,
+                expiration_ttl: None,
+                metadata: None,
+            };
+            let mock_server = create_failing_mock_server(
+                &write_input,
+                vec![ApiError {
+                    code: 10013,
+                    message: "put: 'namespace not found'".to_string(),
+                }],
+            )
+            .await;
+
+            let kv = create_kv(mock_server.uri());
+            let result = kv.write_kv_pair(write_input).await;
+
+            assert!(result.is_err());
+
+            let error = result.unwrap_err();
+            assert!(matches!(error, KvError::NamespaceNotFound));
+
+            Ok(())
+        }
+
+        async fn create_succeeding_mock_server(input: &KvPairWriteInput) -> MockServer {
+            let mock_server = MockServer::start().await;
+            let response_template = ResponseTemplate::new(200).set_body_string("");
+            Mock::given(method("PUT"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/values/{}",
+                    input.account_id, input.namespace_id, input.key,
+                )))
+                .and(query_param(
+                    "expiration",
+                    input.expiration.unwrap().timestamp().to_string(),
+                ))
+                .and(query_param(
+                    "expiration_ttl",
+                    input.expiration_ttl.unwrap().to_string(),
+                ))
+                .respond_with(response_template)
+                .mount(&mock_server)
+                .await;
+
+            mock_server
+        }
+
+        async fn create_failing_mock_server(
+            input: &KvPairWriteInput,
+            errors: Vec<ApiError>,
+        ) -> MockServer {
+            let mock_server = MockServer::start().await;
+
+            Mock::given(method("PUT"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/values/{}",
+                    input.account_id, input.namespace_id, input.key,
                 )))
                 .respond_with(ResponseTemplate::new(400).set_body_json(ApiErrorResponse { errors }))
                 .mount(&mock_server)
