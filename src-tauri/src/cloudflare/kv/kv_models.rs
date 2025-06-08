@@ -175,6 +175,41 @@ pub struct KvPair {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct KvPairCreateInput {
+    pub account_id: String,
+    pub namespace_id: String,
+    pub key: String,
+    pub value: Option<String>,
+    pub expiration: Option<DateTime<Utc>>,
+    pub expiration_ttl: Option<u32>,
+    pub metadata: Option<Value>,
+}
+
+impl From<&KvPairCreateInput> for KvPairGetInput {
+    fn from(input: &KvPairCreateInput) -> Self {
+        Self {
+            account_id: input.account_id.clone(),
+            namespace_id: input.namespace_id.clone(),
+            key: input.key.clone(),
+        }
+    }
+}
+
+impl From<KvPairCreateInput> for KvPairWriteInput {
+    fn from(value: KvPairCreateInput) -> Self {
+        Self {
+            account_id: value.account_id,
+            namespace_id: value.namespace_id,
+            key: value.key,
+            value: value.value,
+            expiration: value.expiration,
+            expiration_ttl: value.expiration_ttl,
+            metadata: value.metadata,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct KvPairWriteInput {
     pub account_id: String,
     pub namespace_id: String,

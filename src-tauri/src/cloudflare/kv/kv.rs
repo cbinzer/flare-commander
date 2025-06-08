@@ -1,4 +1,4 @@
-use super::{KvPair, KvPairGetInput, KvPairsDeleteInput, KvPairsDeleteResult};
+use super::{KvPair, KvPairCreateInput, KvPairGetInput, KvPairsDeleteInput, KvPairsDeleteResult};
 use crate::cloudflare::common::{
     ApiCursorPaginatedResponse, ApiError, ApiErrorResponse, ApiPaginatedResponse, ApiResponse,
     Credentials, TokenError, API_URL,
@@ -195,6 +195,18 @@ impl Kv {
                 })
             }
             _ => Err(self.handle_api_error_response(response).await),
+        }
+    }
+
+    pub async fn create_kv_pair(&self, input: KvPairCreateInput) -> Result<KvPair, KvError> {
+        // Check if the item already exists
+        let kv_pair_result = self.get_kv_pair((&input).into()).await;
+        match kv_pair_result {
+            Ok(_) => Err(KvError::KeyAlreadyExists(input.key.clone())),
+            Err(error) => match error {
+                KvError::KeyNotFound => self.write_kv_pair(input.into()).await,
+                _ => Err(error),
+            },
         }
     }
 
@@ -1308,6 +1320,120 @@ mod test {
                     input.account_id, input.namespace_id, input.key
                 )))
                 .respond_with(ResponseTemplate::new(400).set_body_json(ApiErrorResponse { errors }))
+                .mount(&mock_server)
+                .await;
+
+            mock_server
+        }
+    }
+
+    mod create_kv_pair {
+        use crate::cloudflare::common::{ApiError, ApiErrorResponse};
+        use crate::cloudflare::kv::kv::test::create_kv;
+        use crate::cloudflare::kv::{KvError, KvPair, KvPairCreateInput};
+        use chrono::{DateTime, Utc};
+        use serde_json::json;
+        use wiremock::matchers::{method, path, query_param};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        #[tokio::test]
+        async fn should_create_a_kv_pair() -> Result<(), KvError> {
+            let expected_kv_pair = KvPair {
+                key: "key1".to_string(),
+                value: "value".to_string(),
+                expiration: DateTime::from_timestamp(Utc::now().timestamp(), 0),
+                metadata: Some(json!({
+                    "key": "value"
+                })),
+            };
+            let create_input = KvPairCreateInput {
+                account_id: "account_id".to_string(),
+                namespace_id: "my_namespace".to_string(),
+                key: expected_kv_pair.key.clone(),
+                value: Some(expected_kv_pair.value.clone()),
+                expiration: expected_kv_pair.expiration,
+                expiration_ttl: None,
+                metadata: expected_kv_pair.metadata.clone(),
+            };
+            let mock_server = create_succeeding_mock_server(&create_input, &expected_kv_pair).await;
+
+            let kv = create_kv(mock_server.uri());
+            let updated_kv_pair = kv.create_kv_pair(create_input).await?;
+
+            assert_eq!(updated_kv_pair, expected_kv_pair);
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_result_with_a_item_already_exists_error() -> Result<(), KvError> {
+            let create_input = KvPairCreateInput {
+                account_id: "account_id".to_string(),
+                namespace_id: "my_namespace".to_string(),
+                key: "key1".to_string(),
+                value: None,
+                expiration: None,
+                expiration_ttl: None,
+                metadata: None,
+            };
+            let mock_server = create_failing_mock_server(&create_input).await;
+
+            let kv = create_kv(mock_server.uri());
+            let result = kv.create_kv_pair(create_input).await;
+            assert!(result.is_err());
+
+            let error = result.unwrap_err();
+            assert!(matches!(error, KvError::KeyAlreadyExists(_)));
+
+            Ok(())
+        }
+
+        async fn create_succeeding_mock_server(
+            input: &KvPairCreateInput,
+            pair: &KvPair,
+        ) -> MockServer {
+            let mock_server = MockServer::start().await;
+            let response_template_get =
+                ResponseTemplate::new(404).set_body_json(ApiErrorResponse {
+                    errors: vec![ApiError {
+                        code: 10009,
+                        message: "get: 'key not found'".to_string(),
+                    }],
+                });
+            Mock::given(method("GET"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/values/{}",
+                    input.account_id, input.namespace_id, input.key
+                )))
+                .respond_with(response_template_get)
+                .mount(&mock_server)
+                .await;
+
+            let response_template_write = ResponseTemplate::new(200).set_body_string("");
+            Mock::given(method("PUT"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/values/{}",
+                    input.account_id, input.namespace_id, input.key,
+                )))
+                .and(query_param(
+                    "expiration",
+                    pair.expiration.unwrap().timestamp().to_string(),
+                ))
+                .respond_with(response_template_write)
+                .mount(&mock_server)
+                .await;
+
+            mock_server
+        }
+
+        async fn create_failing_mock_server(input: &KvPairCreateInput) -> MockServer {
+            let mock_server = MockServer::start().await;
+            Mock::given(method("GET"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/values/{}",
+                    input.account_id, input.namespace_id, input.key
+                )))
+                .respond_with(ResponseTemplate::new(200).set_body_string(""))
                 .mount(&mock_server)
                 .await;
 
