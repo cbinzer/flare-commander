@@ -3,6 +3,7 @@ use crate::cloudflare::common::{
     ApiCursorPaginatedResponse, ApiError, ApiErrorResponse, ApiPaginatedResponse, ApiResponse,
     Credentials, TokenError, API_URL,
 };
+use crate::cloudflare::kv::utils::url_encode_key;
 use crate::cloudflare::kv::{
     KvError, KvKey, KvKeys, KvKeysListInput, KvNamespace, KvNamespaceCreateInput,
     KvNamespaceDeleteInput, KvNamespaceGetInput, KvNamespaceUpdateInput, KvNamespaces,
@@ -167,7 +168,10 @@ impl Kv {
     pub async fn get_kv_pair(&self, input: KvPairGetInput) -> Result<KvPair, KvError> {
         let url = format!(
             "{}/accounts/{}/storage/kv/namespaces/{}/values/{}",
-            self.api_url, input.account_id, input.namespace_id, input.key
+            self.api_url,
+            input.account_id,
+            input.namespace_id,
+            url_encode_key(&input.key)
         );
 
         let response = self
@@ -213,7 +217,10 @@ impl Kv {
     pub async fn write_kv_pair(&self, input: KvPairWriteInput) -> Result<KvPair, KvError> {
         let url = format!(
             "{}/accounts/{}/storage/kv/namespaces/{}/values/{}",
-            self.api_url, input.account_id, input.namespace_id, input.key
+            self.api_url,
+            input.account_id,
+            input.namespace_id,
+            url_encode_key(&input.key)
         );
 
         let expiration = input

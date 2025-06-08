@@ -6,7 +6,6 @@ pub mod account_details;
 pub(crate) mod kv;
 
 pub(crate) mod common;
-pub mod read_key_value;
 
 pub struct Cloudflare {
     pub kv: Kv,
