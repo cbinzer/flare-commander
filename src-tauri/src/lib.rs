@@ -1,7 +1,7 @@
 use crate::app_state::AppState;
 use crate::authentication::authentication_commands::verify_credentials;
 use crate::kv::kv_commands::{
-    create_kv_item, create_namespace, delete_kv_pairs, delete_namespace, get_namespace,
+    create_kv_pair, create_namespace, delete_kv_pairs, delete_namespace, get_namespace,
     list_kv_keys, list_namespaces, update_namespace,
 };
 use kv::kv_commands::{get_kv_pair, write_kv_pair};
@@ -34,7 +34,7 @@ pub fn run() {
             delete_namespace,
             get_kv_pair,
             list_kv_keys,
-            create_kv_item,
+            create_kv_pair,
             write_kv_pair,
             delete_kv_pairs,
         ])

@@ -1,22 +1,18 @@
-use super::kv_models::KvKeyPairUpsertInput;
-use crate::app_state::AppState;
-use crate::cloudflare::common::Credentials as CloudflareCredentials;
+use crate::cloudflare::common::Credentials;
 use crate::cloudflare::kv::{
-    KvError as CloudflareKvError, KvKeys, KvKeysListInput, KvNamespace, KvNamespaceCreateInput,
-    KvNamespaceGetInput, KvNamespaces, KvNamespacesListInput, KvPair, KvPairGetInput,
+    KvError, KvKeys, KvKeysListInput, KvNamespace, KvNamespaceCreateInput, KvNamespaceGetInput,
+    KvNamespaces, KvNamespacesListInput, KvPair, KvPairCreateInput, KvPairGetInput,
     KvPairWriteInput, KvPairsDeleteInput, KvPairsDeleteResult,
 };
 use crate::cloudflare::kv::{KvNamespaceDeleteInput, KvNamespaceUpdateInput};
 use crate::cloudflare::Cloudflare;
-use crate::common::common_models::Credentials;
-use crate::kv::kv_models::{KvError, KvItem, KvKeyPairCreateInput};
+
 use log::error;
 use serde::{Deserialize, Serialize};
-use tauri::State;
 
 #[tauri::command]
 pub async fn list_namespaces(
-    credentials: CloudflareCredentials,
+    credentials: Credentials,
     input: KvNamespacesListInput,
 ) -> Result<KvNamespaces, KvCommandError> {
     let cloudflare_client = Cloudflare::new(credentials, None);
@@ -26,7 +22,7 @@ pub async fn list_namespaces(
 
 #[tauri::command]
 pub async fn get_namespace(
-    credentials: CloudflareCredentials,
+    credentials: Credentials,
     input: KvNamespaceGetInput,
 ) -> Result<KvNamespace, KvCommandError> {
     let cloudflare_client = Cloudflare::new(credentials, None);
@@ -36,7 +32,7 @@ pub async fn get_namespace(
 
 #[tauri::command]
 pub async fn create_namespace(
-    credentials: CloudflareCredentials,
+    credentials: Credentials,
     input: KvNamespaceCreateInput,
 ) -> Result<KvNamespace, KvCommandError> {
     let cloudflare_client = Cloudflare::new(credentials, None);
@@ -46,7 +42,7 @@ pub async fn create_namespace(
 
 #[tauri::command]
 pub async fn update_namespace(
-    credentials: CloudflareCredentials,
+    credentials: Credentials,
     input: KvNamespaceUpdateInput,
 ) -> Result<KvNamespace, KvCommandError> {
     let cloudflare_client = Cloudflare::new(credentials, None);
@@ -56,7 +52,7 @@ pub async fn update_namespace(
 
 #[tauri::command]
 pub async fn delete_namespace(
-    credentials: CloudflareCredentials,
+    credentials: Credentials,
     input: KvNamespaceDeleteInput,
 ) -> Result<(), KvCommandError> {
     let cloudflare_client = Cloudflare::new(credentials, None);
@@ -66,7 +62,7 @@ pub async fn delete_namespace(
 
 #[tauri::command]
 pub async fn get_kv_pair(
-    credentials: CloudflareCredentials,
+    credentials: Credentials,
     input: KvPairGetInput,
 ) -> Result<KvPair, KvCommandError> {
     let cloudflare_client = Cloudflare::new(credentials, None);
@@ -76,7 +72,7 @@ pub async fn get_kv_pair(
 
 #[tauri::command]
 pub async fn write_kv_pair(
-    credentials: CloudflareCredentials,
+    credentials: Credentials,
     input: KvPairWriteInput,
 ) -> Result<KvPair, KvCommandError> {
     let cloudflare_client = Cloudflare::new(credentials, None);
@@ -85,20 +81,18 @@ pub async fn write_kv_pair(
 }
 
 #[tauri::command]
-pub async fn create_kv_item(
+pub async fn create_kv_pair(
     credentials: Credentials,
-    input: KvKeyPairCreateInput,
-    state: State<'_, AppState>,
-) -> Result<KvItem, KvCommandError> {
-    Ok(state
-        .kv_service
-        .create_kv_item(&credentials, &input)
-        .await?)
+    input: KvPairCreateInput,
+) -> Result<KvPair, KvCommandError> {
+    let cloudflare_client = Cloudflare::new(credentials, None);
+    let kv = cloudflare_client.kv;
+    Ok(kv.create_kv_pair(input).await?)
 }
 
 #[tauri::command]
 pub async fn delete_kv_pairs(
-    credentials: CloudflareCredentials,
+    credentials: Credentials,
     input: KvPairsDeleteInput,
 ) -> Result<KvPairsDeleteResult, KvCommandError> {
     let cloudflare_client = Cloudflare::new(credentials, None);
@@ -108,7 +102,7 @@ pub async fn delete_kv_pairs(
 
 #[tauri::command]
 pub async fn list_kv_keys(
-    credentials: CloudflareCredentials,
+    credentials: Credentials,
     input: KvKeysListInput,
 ) -> Result<KvKeys, KvCommandError> {
     let cloudflare_client = Cloudflare::new(credentials, None);
@@ -158,10 +152,10 @@ impl From<KvError> for KvCommandError {
                 kind: KvCommandErrorKind::KeyAlreadyExists,
                 message: format!("An item with the key {} already exists", key),
             },
-            KvError::Authentication(auth_err) => {
+            KvError::Token(token_err) => {
                 error!(
-                    "An authentication error occurred on interacting with kv: {}",
-                    auth_err
+                    "A token error occurred on interacting with kv: {}",
+                    token_err
                 );
                 KvCommandError {
                     kind: KvCommandErrorKind::Authentication,
@@ -179,60 +173,6 @@ impl From<KvError> for KvCommandError {
                 }
             }
             KvError::Unknown(unknown_err) => {
-                error!("An unknown kv error occurred: {}", unknown_err);
-                KvCommandError {
-                    kind: KvCommandErrorKind::Unknown,
-                    message: "An unknown error occurred".to_string(),
-                }
-            }
-        }
-    }
-}
-
-impl From<CloudflareKvError> for KvCommandError {
-    fn from(error: CloudflareKvError) -> Self {
-        match error {
-            CloudflareKvError::NamespaceAlreadyExists(message) => KvCommandError {
-                kind: KvCommandErrorKind::NamespaceAlreadyExists,
-                message,
-            },
-            CloudflareKvError::NamespaceTitleMissing(message) => KvCommandError {
-                kind: KvCommandErrorKind::NamespaceTitleMissing,
-                message,
-            },
-            CloudflareKvError::NamespaceNotFound => KvCommandError {
-                kind: KvCommandErrorKind::NamespaceNotFound,
-                message: "Namespace not found".to_string(),
-            },
-            CloudflareKvError::KeyNotFound => KvCommandError {
-                kind: KvCommandErrorKind::KeyNotFound,
-                message: "Key not found".to_string(),
-            },
-            CloudflareKvError::KeyAlreadyExists(key) => KvCommandError {
-                kind: KvCommandErrorKind::KeyAlreadyExists,
-                message: format!("An item with the key {} already exists", key),
-            },
-            CloudflareKvError::Token(token_err) => {
-                error!(
-                    "A token error occurred on interacting with kv: {}",
-                    token_err
-                );
-                KvCommandError {
-                    kind: KvCommandErrorKind::Authentication,
-                    message: "Authentication error".to_string(),
-                }
-            }
-            CloudflareKvError::Reqwest(reqwest_err) => {
-                error!(
-                    "A reqwest error occurred on interacting with kv: {}",
-                    reqwest_err
-                );
-                KvCommandError {
-                    kind: KvCommandErrorKind::Unknown,
-                    message: "A network error occurred".to_string(),
-                }
-            }
-            CloudflareKvError::Unknown(unknown_err) => {
                 error!("An unknown kv error occurred: {}", unknown_err);
                 KvCommandError {
                     kind: KvCommandErrorKind::Unknown,
