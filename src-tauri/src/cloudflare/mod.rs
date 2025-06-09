@@ -16,7 +16,7 @@ pub struct Cloudflare {
 
 impl Cloudflare {
     pub fn new(credentials: Credentials, api_url: Option<String>) -> Self {
-        let api_url = api_url.unwrap_or(API_URL.to_string());
+        let api_url = Arc::new(api_url.unwrap_or(API_URL.to_string()));
         let credentials = Arc::new(credentials);
         let http_client = Arc::new(reqwest::Client::new());
 

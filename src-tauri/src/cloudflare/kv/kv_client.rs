@@ -18,7 +18,7 @@ use std::option::Option;
 use std::sync::Arc;
 
 pub struct KvClient {
-    api_url: String,
+    api_url: Arc<String>,
     credentials: Arc<Credentials>,
     http_client: Arc<reqwest::Client>,
 }
@@ -26,11 +26,11 @@ pub struct KvClient {
 impl KvClient {
     pub fn new(
         credentials: Arc<Credentials>,
-        api_url: Option<String>,
+        api_url: Option<Arc<String>>,
         http_client: Option<Arc<reqwest::Client>>,
     ) -> Self {
         Self {
-            api_url: api_url.unwrap_or(API_URL.to_string()),
+            api_url: api_url.unwrap_or(Arc::new(API_URL.to_string())),
             credentials,
             http_client: http_client.unwrap_or_default(),
         }
@@ -327,7 +327,7 @@ mod test {
     mod list_namespaces {
         use crate::authentication::authentication_models::AuthenticationError;
         use crate::cloudflare::common::{OrderDirection, PageInfo, TokenError};
-        use crate::cloudflare::kv::kv_client::test::create_kv;
+        use crate::cloudflare::kv::kv_client::test::create_kv_client;
         use crate::cloudflare::kv::{
             KvError, KvNamespace, KvNamespaces, KvNamespacesListInput, KvNamespacesOrderBy,
         };
@@ -379,7 +379,7 @@ mod test {
             )
             .await;
 
-            let kv = create_kv(mock_server.uri().to_string());
+            let kv = create_kv_client(mock_server.uri().to_string());
             let namespaces = kv.list_namespaces(list_namespaces_input).await?;
             assert_eq!(namespaces.items.len(), 3);
             assert_eq!(namespaces, expected_namespaces);
@@ -393,7 +393,7 @@ mod test {
             let account_id = "account_id".to_string();
             let mock_server = create_failing_mock_server(&account_id, vec![]).await;
 
-            let kv = create_kv(mock_server.uri().to_string());
+            let kv = create_kv_client(mock_server.uri().to_string());
             let namespaces_result = kv
                 .list_namespaces(KvNamespacesListInput {
                     account_id: account_id.clone(),
@@ -432,7 +432,7 @@ mod test {
             )
             .await;
 
-            let kv = create_kv(mock_server.uri());
+            let kv = create_kv_client(mock_server.uri());
             let namespaces_result = kv
                 .list_namespaces(KvNamespacesListInput {
                     account_id: account_id.clone(),
@@ -519,7 +519,7 @@ mod test {
 
     mod get_namespace {
         use crate::cloudflare::common::{ApiError, ApiErrorResponse, ApiResponse};
-        use crate::cloudflare::kv::kv_client::test::create_kv;
+        use crate::cloudflare::kv::kv_client::test::create_kv_client;
         use crate::cloudflare::kv::{KvError, KvNamespace, KvNamespaceGetInput};
         use wiremock::matchers::{method, path};
         use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -540,7 +540,7 @@ mod test {
             let mock_server =
                 create_succeeding_mock_server(input.clone(), expected_namespace.clone()).await;
 
-            let kv = create_kv(mock_server.uri());
+            let kv = create_kv_client(mock_server.uri());
             let namespace = kv.get_namespace(input).await?;
 
             assert_eq!(namespace, expected_namespace);
@@ -564,7 +564,7 @@ mod test {
             )
             .await;
 
-            let kv = create_kv(mock_server.uri());
+            let kv = create_kv_client(mock_server.uri());
             let namespace_result = kv.get_namespace(input).await;
 
             assert!(namespace_result.is_err());
@@ -619,7 +619,7 @@ mod test {
 
     mod create_namespace {
         use crate::cloudflare::common::{ApiError, ApiErrorResponse, ApiResponse};
-        use crate::cloudflare::kv::kv_client::test::create_kv;
+        use crate::cloudflare::kv::kv_client::test::create_kv_client;
         use crate::cloudflare::kv::{KvError, KvNamespace, KvNamespaceCreateInput};
         use wiremock::matchers::{method, path};
         use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -640,7 +640,7 @@ mod test {
                 create_succeeding_mock_server(create_input.clone(), expected_namespace.clone())
                     .await;
 
-            let kv = create_kv(mock_server.uri());
+            let kv = create_kv_client(mock_server.uri());
             let created_namespace = kv.create_namespace(create_input).await?;
 
             assert_eq!(created_namespace, expected_namespace);
@@ -665,7 +665,7 @@ mod test {
             )
             .await;
 
-            let kv = create_kv(mock_server.uri());
+            let kv = create_kv_client(mock_server.uri());
             let created_namespace_result = kv.create_namespace(create_input).await;
             assert!(created_namespace_result.is_err());
 
@@ -693,7 +693,7 @@ mod test {
             )
             .await;
 
-            let kv = create_kv(mock_server.uri());
+            let kv = create_kv_client(mock_server.uri());
             let created_namespace_result = kv.create_namespace(create_input).await;
             assert!(created_namespace_result.is_err());
 
@@ -749,7 +749,7 @@ mod test {
 
     mod update_namespace {
         use crate::cloudflare::common::{ApiError, ApiErrorResponse, ApiResponse};
-        use crate::cloudflare::kv::kv_client::test::create_kv;
+        use crate::cloudflare::kv::kv_client::test::create_kv_client;
         use crate::cloudflare::kv::{KvError, KvNamespace, KvNamespaceUpdateInput};
         use wiremock::matchers::{method, path};
         use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -770,7 +770,7 @@ mod test {
             let mock_server =
                 create_succeeding_mock_server(update_input.clone(), expected_namespace.clone())
                     .await;
-            let kv = create_kv(mock_server.uri());
+            let kv = create_kv_client(mock_server.uri());
             let updated_namespace = kv.update_namespace(update_input).await?;
 
             assert_eq!(updated_namespace, expected_namespace);
@@ -797,7 +797,7 @@ mod test {
             )
             .await;
 
-            let kv = create_kv(mock_server.uri());
+            let kv = create_kv_client(mock_server.uri());
             let updated_namespace_result = kv.update_namespace(update_input).await;
             assert!(updated_namespace_result.is_err());
 
@@ -827,7 +827,7 @@ mod test {
             )
             .await;
 
-            let kv_service = create_kv(mock_server.uri());
+            let kv_service = create_kv_client(mock_server.uri());
             let updated_namespace_result = kv_service.update_namespace(update_input).await;
             assert!(updated_namespace_result.is_err());
 
@@ -856,7 +856,7 @@ mod test {
             )
             .await;
 
-            let kv = create_kv(mock_server.uri());
+            let kv = create_kv_client(mock_server.uri());
             let updated_namespace_result = kv.update_namespace(update_input).await;
             assert!(updated_namespace_result.is_err());
 
@@ -910,7 +910,7 @@ mod test {
 
     mod delete_namespace {
         use crate::cloudflare::common::{ApiError, ApiErrorResponse, ApiResponse};
-        use crate::cloudflare::kv::kv_client::test::create_kv;
+        use crate::cloudflare::kv::kv_client::test::create_kv_client;
         use crate::cloudflare::kv::{KvError, KvNamespaceDeleteInput};
 
         use wiremock::matchers::{method, path};
@@ -924,7 +924,7 @@ mod test {
             };
             let mock_server = create_succeeding_mock_server(delete_input.clone()).await;
 
-            let kv = create_kv(mock_server.uri());
+            let kv = create_kv_client(mock_server.uri());
             kv.delete_namespace(delete_input).await?;
 
             Ok(())
@@ -945,7 +945,7 @@ mod test {
             )
             .await;
 
-            let kv = create_kv(mock_server.uri());
+            let kv = create_kv_client(mock_server.uri());
             let delete_namespace_result = kv.delete_namespace(delete_input).await;
 
             assert!(delete_namespace_result.is_err());
@@ -998,7 +998,7 @@ mod test {
         use crate::cloudflare::common::{
             ApiCursorPaginatedResponse, ApiError, ApiErrorResponse, CursorPageInfo,
         };
-        use crate::cloudflare::kv::kv_client::test::create_kv;
+        use crate::cloudflare::kv::kv_client::test::create_kv_client;
         use crate::cloudflare::kv::{KvError, KvKey, KvKeys, KvKeysListInput};
         use serde_json::json;
         use wiremock::matchers::{method, path, query_param};
@@ -1040,7 +1040,7 @@ mod test {
             let mock_server =
                 create_succeeding_mock_server(list_input.clone(), expected_kv_keys.clone()).await;
 
-            let kv = create_kv(mock_server.uri());
+            let kv = create_kv_client(mock_server.uri());
             let kv_keys = kv.list_keys(list_input).await?;
 
             assert_eq!(kv_keys, expected_kv_keys);
@@ -1082,7 +1082,7 @@ mod test {
             let mock_server =
                 create_succeeding_mock_server(list_input.clone(), expected_kv_keys.clone()).await;
 
-            let kv = create_kv(mock_server.uri());
+            let kv = create_kv_client(mock_server.uri());
             let kv_keys = kv.list_keys(list_input).await?;
 
             assert_eq!(kv_keys, expected_kv_keys);
@@ -1112,7 +1112,7 @@ mod test {
             let mock_server =
                 create_succeeding_mock_server(list_input.clone(), expected_kv_keys.clone()).await;
 
-            let kv = create_kv(mock_server.uri());
+            let kv = create_kv_client(mock_server.uri());
             let kv_keys = kv.list_keys(list_input).await?;
 
             assert_eq!(kv_keys, expected_kv_keys);
@@ -1139,7 +1139,7 @@ mod test {
             )
             .await;
 
-            let kv = create_kv(mock_server.uri());
+            let kv = create_kv_client(mock_server.uri());
             let result = kv.list_keys(list_input).await;
 
             assert!(result.is_err());
@@ -1213,7 +1213,7 @@ mod test {
         use wiremock::{Mock, MockServer, ResponseTemplate};
 
         use crate::cloudflare::common::{ApiError, ApiErrorResponse};
-        use crate::cloudflare::kv::kv_client::test::create_kv;
+        use crate::cloudflare::kv::kv_client::test::create_kv_client;
         use crate::cloudflare::kv::{KvError, KvPair, KvPairGetInput};
 
         #[tokio::test]
@@ -1231,7 +1231,7 @@ mod test {
             };
 
             let mock_server = create_succeeding_mock_server(&get_input, &expected_kv_pair).await;
-            let kv = create_kv(mock_server.uri());
+            let kv = create_kv_client(mock_server.uri());
             let result = kv.get_kv_pair(get_input).await?;
 
             assert_eq!(result, expected_kv_pair);
@@ -1256,7 +1256,7 @@ mod test {
             )
             .await;
 
-            let kv = create_kv(mock_server.uri());
+            let kv = create_kv_client(mock_server.uri());
             let result = kv.get_kv_pair(get_input).await;
 
             assert!(result.is_err());
@@ -1284,7 +1284,7 @@ mod test {
             )
             .await;
 
-            let kv = create_kv(mock_server.uri());
+            let kv = create_kv_client(mock_server.uri());
             let result = kv.get_kv_pair(get_input).await;
             assert!(result.is_err());
 
@@ -1336,7 +1336,7 @@ mod test {
 
     mod create_kv_pair {
         use crate::cloudflare::common::{ApiError, ApiErrorResponse};
-        use crate::cloudflare::kv::kv_client::test::create_kv;
+        use crate::cloudflare::kv::kv_client::test::create_kv_client;
         use crate::cloudflare::kv::{KvError, KvPair, KvPairCreateInput};
         use chrono::{DateTime, Utc};
         use serde_json::json;
@@ -1364,7 +1364,7 @@ mod test {
             };
             let mock_server = create_succeeding_mock_server(&create_input, &expected_kv_pair).await;
 
-            let kv = create_kv(mock_server.uri());
+            let kv = create_kv_client(mock_server.uri());
             let updated_kv_pair = kv.create_kv_pair(create_input).await?;
 
             assert_eq!(updated_kv_pair, expected_kv_pair);
@@ -1385,7 +1385,7 @@ mod test {
             };
             let mock_server = create_failing_mock_server(&create_input).await;
 
-            let kv = create_kv(mock_server.uri());
+            let kv = create_kv_client(mock_server.uri());
             let result = kv.create_kv_pair(create_input).await;
             assert!(result.is_err());
 
@@ -1450,7 +1450,7 @@ mod test {
 
     mod write_kv_pair {
         use crate::cloudflare::common::{ApiError, ApiErrorResponse};
-        use crate::cloudflare::kv::kv_client::test::create_kv;
+        use crate::cloudflare::kv::kv_client::test::create_kv_client;
         use crate::cloudflare::kv::{KvError, KvPair, KvPairWriteInput};
         use chrono::{DateTime, Utc};
         use serde_json::json;
@@ -1481,7 +1481,7 @@ mod test {
             };
             let mock_server = create_succeeding_mock_server(&write_input).await;
 
-            let kv = create_kv(mock_server.uri());
+            let kv = create_kv_client(mock_server.uri());
             let updated_kv_pair = kv.write_kv_pair(write_input).await?;
 
             assert_eq!(updated_kv_pair, expected_kv_pair);
@@ -1510,7 +1510,7 @@ mod test {
             )
             .await;
 
-            let kv = create_kv(mock_server.uri());
+            let kv = create_kv_client(mock_server.uri());
             let result = kv.write_kv_pair(write_input).await;
 
             assert!(result.is_err());
@@ -1566,7 +1566,7 @@ mod test {
     mod delete_kv_pairs {
         use crate::cloudflare::common::{ApiError, ApiErrorResponse, ApiResponse};
 
-        use crate::cloudflare::kv::kv_client::test::create_kv;
+        use crate::cloudflare::kv::kv_client::test::create_kv_client;
         use crate::cloudflare::kv::{KvError, KvPairsDeleteInput, KvPairsDeleteResult};
         use wiremock::matchers::{method, path};
         use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -1585,7 +1585,7 @@ mod test {
             };
             let mock_server =
                 create_succeeding_mock_server(&delete_input, &expected_result.clone()).await;
-            let kv = create_kv(mock_server.uri());
+            let kv = create_kv_client(mock_server.uri());
             let delete_result = kv.delete_kv_pairs(delete_input).await?;
 
             assert_eq!(expected_result, delete_result);
@@ -1607,7 +1607,7 @@ mod test {
             };
             let mock_server =
                 create_succeeding_mock_server(&delete_input, &expected_result.clone()).await;
-            let kv = create_kv(mock_server.uri());
+            let kv = create_kv_client(mock_server.uri());
 
             let deletion_result = kv.delete_kv_pairs(delete_input).await?;
 
@@ -1632,7 +1632,7 @@ mod test {
                 }],
             )
             .await;
-            let kv = create_kv(mock_server.uri());
+            let kv = create_kv_client(mock_server.uri());
 
             let delete_result = kv.delete_kv_pairs(delete_input).await;
             assert!(delete_result.is_err());
@@ -1686,12 +1686,12 @@ mod test {
         }
     }
 
-    fn create_kv(host_url: String) -> KvClient {
+    fn create_kv_client(host_url: String) -> KvClient {
         KvClient::new(
             Arc::new(Credentials::UserAuthToken {
                 token: "12345".to_string(),
             }),
-            Some(format!("{}/client/v4", host_url)),
+            Some(Arc::new(format!("{}/client/v4", host_url))),
             None,
         )
     }
