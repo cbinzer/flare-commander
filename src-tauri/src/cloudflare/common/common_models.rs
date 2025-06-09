@@ -106,6 +106,26 @@ impl Credentials {
     }
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Token {
+    pub id: String,
+    pub status: TokenStatus,
+}
+
+impl From<ApiResponse<Token>> for Token {
+    fn from(api_response: ApiResponse<Token>) -> Self {
+        api_response.result
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+#[serde(rename_all = "lowercase")]
+pub enum TokenStatus {
+    Active,
+    Disabled,
+    Expired,
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum TokenError {
     Expired,
