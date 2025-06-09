@@ -17,13 +17,13 @@ use std::collections::HashMap;
 use std::option::Option;
 use std::sync::Arc;
 
-pub struct Kv {
+pub struct KvClient {
     api_url: String,
     credentials: Arc<Credentials>,
     http_client: Arc<reqwest::Client>,
 }
 
-impl Kv {
+impl KvClient {
     pub fn new(
         credentials: Arc<Credentials>,
         api_url: Option<String>,
@@ -321,13 +321,13 @@ impl Kv {
 #[cfg(test)]
 mod test {
     use crate::cloudflare::common::Credentials;
-    use crate::cloudflare::kv::Kv;
+    use crate::cloudflare::kv::KvClient;
     use std::sync::Arc;
 
     mod list_namespaces {
         use crate::authentication::authentication_models::AuthenticationError;
         use crate::cloudflare::common::{OrderDirection, PageInfo, TokenError};
-        use crate::cloudflare::kv::kv::test::create_kv;
+        use crate::cloudflare::kv::kv_client::test::create_kv;
         use crate::cloudflare::kv::{
             KvError, KvNamespace, KvNamespaces, KvNamespacesListInput, KvNamespacesOrderBy,
         };
@@ -519,7 +519,7 @@ mod test {
 
     mod get_namespace {
         use crate::cloudflare::common::{ApiError, ApiErrorResponse, ApiResponse};
-        use crate::cloudflare::kv::kv::test::create_kv;
+        use crate::cloudflare::kv::kv_client::test::create_kv;
         use crate::cloudflare::kv::{KvError, KvNamespace, KvNamespaceGetInput};
         use wiremock::matchers::{method, path};
         use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -619,7 +619,7 @@ mod test {
 
     mod create_namespace {
         use crate::cloudflare::common::{ApiError, ApiErrorResponse, ApiResponse};
-        use crate::cloudflare::kv::kv::test::create_kv;
+        use crate::cloudflare::kv::kv_client::test::create_kv;
         use crate::cloudflare::kv::{KvError, KvNamespace, KvNamespaceCreateInput};
         use wiremock::matchers::{method, path};
         use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -749,7 +749,7 @@ mod test {
 
     mod update_namespace {
         use crate::cloudflare::common::{ApiError, ApiErrorResponse, ApiResponse};
-        use crate::cloudflare::kv::kv::test::create_kv;
+        use crate::cloudflare::kv::kv_client::test::create_kv;
         use crate::cloudflare::kv::{KvError, KvNamespace, KvNamespaceUpdateInput};
         use wiremock::matchers::{method, path};
         use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -910,7 +910,7 @@ mod test {
 
     mod delete_namespace {
         use crate::cloudflare::common::{ApiError, ApiErrorResponse, ApiResponse};
-        use crate::cloudflare::kv::kv::test::create_kv;
+        use crate::cloudflare::kv::kv_client::test::create_kv;
         use crate::cloudflare::kv::{KvError, KvNamespaceDeleteInput};
 
         use wiremock::matchers::{method, path};
@@ -998,7 +998,7 @@ mod test {
         use crate::cloudflare::common::{
             ApiCursorPaginatedResponse, ApiError, ApiErrorResponse, CursorPageInfo,
         };
-        use crate::cloudflare::kv::kv::test::create_kv;
+        use crate::cloudflare::kv::kv_client::test::create_kv;
         use crate::cloudflare::kv::{KvError, KvKey, KvKeys, KvKeysListInput};
         use serde_json::json;
         use wiremock::matchers::{method, path, query_param};
@@ -1213,7 +1213,7 @@ mod test {
         use wiremock::{Mock, MockServer, ResponseTemplate};
 
         use crate::cloudflare::common::{ApiError, ApiErrorResponse};
-        use crate::cloudflare::kv::kv::test::create_kv;
+        use crate::cloudflare::kv::kv_client::test::create_kv;
         use crate::cloudflare::kv::{KvError, KvPair, KvPairGetInput};
 
         #[tokio::test]
@@ -1336,7 +1336,7 @@ mod test {
 
     mod create_kv_pair {
         use crate::cloudflare::common::{ApiError, ApiErrorResponse};
-        use crate::cloudflare::kv::kv::test::create_kv;
+        use crate::cloudflare::kv::kv_client::test::create_kv;
         use crate::cloudflare::kv::{KvError, KvPair, KvPairCreateInput};
         use chrono::{DateTime, Utc};
         use serde_json::json;
@@ -1450,7 +1450,7 @@ mod test {
 
     mod write_kv_pair {
         use crate::cloudflare::common::{ApiError, ApiErrorResponse};
-        use crate::cloudflare::kv::kv::test::create_kv;
+        use crate::cloudflare::kv::kv_client::test::create_kv;
         use crate::cloudflare::kv::{KvError, KvPair, KvPairWriteInput};
         use chrono::{DateTime, Utc};
         use serde_json::json;
@@ -1566,7 +1566,7 @@ mod test {
     mod delete_kv_pairs {
         use crate::cloudflare::common::{ApiError, ApiErrorResponse, ApiResponse};
 
-        use crate::cloudflare::kv::kv::test::create_kv;
+        use crate::cloudflare::kv::kv_client::test::create_kv;
         use crate::cloudflare::kv::{KvError, KvPairsDeleteInput, KvPairsDeleteResult};
         use wiremock::matchers::{method, path};
         use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -1686,8 +1686,8 @@ mod test {
         }
     }
 
-    fn create_kv(host_url: String) -> Kv {
-        Kv::new(
+    fn create_kv(host_url: String) -> KvClient {
+        KvClient::new(
             Arc::new(Credentials::UserAuthToken {
                 token: "12345".to_string(),
             }),
