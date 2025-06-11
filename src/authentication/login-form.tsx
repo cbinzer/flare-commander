@@ -38,7 +38,7 @@ export function LoginForm({ className, ...props }: ComponentPropsWithoutRef<'div
         account_id: accountId,
         token: apiToken,
       };
-      await verifyCredentials(credentials);
+      await verifyCredentials(accountId, credentials);
     } catch (error) {
       const authError = error as AuthenticationError;
       switch (authError.kind) {

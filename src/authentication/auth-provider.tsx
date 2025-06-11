@@ -1,16 +1,12 @@
 import { createContext, FunctionComponent, ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { invoke } from '@tauri-apps/api/core';
-import {
-  AccountWithCredentials,
-  AuthenticationError,
-  Credentials,
-} from '@/authentication/auth-models.ts';
+import { AccountWithCredentials, AuthenticationError, Credentials } from '@/authentication/auth-models.ts';
 import { useLocalStorage } from '@/common/common-hooks.ts';
 
 interface AuthContextValue {
   account: AccountWithCredentials | null;
-  verifyCredentials: (credentials: Credentials) => Promise<void>;
+  verifyCredentials: (accountId: string, credentials: Credentials) => Promise<void>;
   resetCredentials: () => void;
 }
 
@@ -26,11 +22,10 @@ interface AuthProviderProps {
 
 const AuthProvider: FunctionComponent<AuthProviderProps> = ({ children }) => {
   const navigate = useNavigate();
-  const [account, setAccount] =
-    useLocalStorage<AccountWithCredentials>('account');
+  const [account, setAccount] = useLocalStorage<AccountWithCredentials>('account');
 
-  const verifyCredentials = async (credentials: Credentials) => {
-    const accountWithCredentials = await invokeVerifyCredentials(credentials);
+  const verifyCredentials = async (accountId: string, credentials: Credentials) => {
+    const accountWithCredentials = await invokeVerifyAccountAndCredentials(accountId, credentials);
     setAccount(accountWithCredentials);
     navigate('/');
   };
@@ -45,14 +40,17 @@ const AuthProvider: FunctionComponent<AuthProviderProps> = ({ children }) => {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-async function invokeVerifyCredentials(
+async function invokeVerifyAccountAndCredentials(
+  accountId: string,
   credentials: Credentials,
 ): Promise<AccountWithCredentials> {
   try {
-    return await invoke<AccountWithCredentials>('verify_credentials', {
+    return await invoke<AccountWithCredentials>('verify_account_and_credentials', {
+      accountId,
       credentials,
     });
   } catch (e) {
+    console.error('An error occurred on verifying account and credentials', e);
     const error = e as AuthenticationError;
     throw new AuthenticationError(error.message, error.kind);
   }
