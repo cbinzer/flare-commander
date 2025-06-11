@@ -325,13 +325,14 @@ mod test {
     use std::sync::Arc;
 
     mod list_namespaces {
-        use crate::authentication::authentication_models::AuthenticationError;
-        use crate::cloudflare::common::{OrderDirection, PageInfo, TokenError};
+        use crate::cloudflare::common::{
+            ApiError, ApiErrorResponse, ApiPaginatedResponse, OrderDirection, PageInfo, TokenError,
+        };
         use crate::cloudflare::kv::kv_client::test::create_kv_client;
         use crate::cloudflare::kv::{
             KvError, KvNamespace, KvNamespaces, KvNamespacesListInput, KvNamespacesOrderBy,
         };
-        use crate::common::common_models::{ApiError, ApiErrorResponse, ApiPaginatedResponse};
+
         use wiremock::matchers::{method, path, query_param};
         use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -389,7 +390,7 @@ mod test {
 
         #[tokio::test]
         async fn should_respond_with_an_unknown_error_if_no_errors_are_available(
-        ) -> Result<(), AuthenticationError> {
+        ) -> Result<(), TokenError> {
             let account_id = "account_id".to_string();
             let mock_server = create_failing_mock_server(&account_id, vec![]).await;
 
@@ -420,7 +421,7 @@ mod test {
 
         #[tokio::test]
         async fn should_respond_with_an_token_error_if_the_request_could_not_be_authenticated(
-        ) -> Result<(), AuthenticationError> {
+        ) -> Result<(), TokenError> {
             let account_id = "account_id".to_string();
             let error_message = "Unable to authenticate request";
             let mock_server = create_failing_mock_server(
@@ -466,7 +467,7 @@ mod test {
             let response_template = ResponseTemplate::new(200).set_body_json(
                 ApiPaginatedResponse::<Vec<KvNamespace>> {
                     result: namespaces.clone().items,
-                    result_info: crate::common::common_models::PageInfo {
+                    result_info: PageInfo {
                         total_count: namespaces.items.len(),
                         count: namespaces.items.len(),
                         page: 1,

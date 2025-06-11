@@ -4,12 +4,12 @@ use crate::cloudflare::kv::KvClient;
 use crate::cloudflare::user::UserClient;
 use std::sync::Arc;
 
-pub mod account_details;
 pub(crate) mod kv;
 
-mod account;
+pub(crate) mod account;
 pub(crate) mod common;
-mod user;
+
+pub(crate) mod user;
 
 pub struct Cloudflare {
     pub accounts: AccountClient,

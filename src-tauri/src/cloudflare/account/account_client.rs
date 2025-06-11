@@ -65,8 +65,8 @@ impl AccountClient {
 
         let error = &errors[0];
         match error.code {
-            7003 => AccountError::InvalidId,
-            9109 => AccountError::InvalidId,
+            7003 => AccountError::InvalidIdAccountId,
+            9109 => AccountError::InvalidIdAccountId,
             _ => AccountError::Unknown(error.message.clone()),
         }
     }
@@ -118,7 +118,7 @@ mod test {
             let account_client = create_account_client(&mock_server.uri());
             let result = account_client.get_account(account_id).await;
 
-            assert!(matches!(result, Err(AccountError::InvalidId)));
+            assert!(matches!(result, Err(AccountError::InvalidIdAccountId)));
 
             Ok(())
         }

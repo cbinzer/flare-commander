@@ -27,7 +27,7 @@ pub struct AccountSettings {
 
 #[derive(Debug)]
 pub enum AccountError {
-    InvalidId,
+    InvalidIdAccountId,
 
     Reqwest(reqwest::Error),
     Unknown(String),
