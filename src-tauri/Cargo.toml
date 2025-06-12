@@ -15,17 +15,18 @@ name = "flare_commander_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-tauri-build = { version = "2.0.5", features = [] }
+tauri-build = { version = "2.2.0", features = [] }
 
 [dependencies]
 chrono = { version = "0.4.41", features = ["serde"] }
 log = "0.4.27"
-tauri = { version = "2.2.3", features = [] }
-tauri-plugin-opener = "2.2.4"
-tauri-plugin-log = "2.2.1"
+tauri = { version = "2.5.1", features = [] }
+tauri-plugin = "2.2.0"
+tauri-plugin-opener = "2.2.7"
+tauri-plugin-log = "2.4.0"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
-reqwest = { version = "0.12.20", features = ["multipart"] }
+reqwest = { version = "0.12.20", features = ["multipart", "json"] }
 tokio = { version = "1.45.1", features = ["macros"] }
 percent-encoding = "2.3.1"
 
