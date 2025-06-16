@@ -12,11 +12,12 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet.tsx';
 import { ChangeEvent, FunctionComponent, KeyboardEvent, ReactNode, useEffect, useRef, useState } from 'react';
-import { useNamespaces } from '../hooks/kv-hooks.ts';
+
 import { KvNamespace } from '../kv-models.ts';
 import { PlusIcon } from 'lucide-react';
 import { cn } from '@/lib/utils.ts';
 import { useError } from '@/hooks/use-local-storage.ts';
+import { useNamespaces } from '@/features/kv/hooks/use-namespaces.ts';
 
 export interface KvNamespaceCreateSheetProps {
   open?: boolean;

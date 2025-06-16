@@ -1,4 +1,4 @@
-import { KvMetadata } from '@/features/kv/kv-models.ts';
+import { KvError, KvMetadata } from '@/features/kv/kv-models.ts';
 
 export function stringifyMetadataJSON(value: KvMetadata): string {
   if (value === null) {
@@ -47,4 +47,9 @@ export function validateExpirationTTL(value: string): boolean {
   }
 
   return expirationTTL === 0 || expirationTTL >= 60;
+}
+
+export function convertPlainToKvErrorClass(kvError: KvError): KvError {
+  console.error(kvError);
+  return new KvError(kvError.message, kvError.kind);
 }

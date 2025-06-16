@@ -12,7 +12,6 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from '@/components/ui/sidebar.tsx';
-import { useNamespaces } from '@/features/kv/hooks/kv-hooks.ts';
 import { Skeleton } from '@/components/ui/skeleton.tsx';
 import { FunctionComponent, MouseEvent, useEffect, useState } from 'react';
 import { KvNamespace } from '@/features/kv/kv-models.ts';
@@ -38,6 +37,7 @@ import {
 } from '@/components/ui/dialog.tsx';
 import { Button } from '@/components/ui/button.tsx';
 import { LoadingSpinner } from '@/components/ui/loading-spinner.tsx';
+import { useNamespaces } from '@/features/kv/hooks/use-namespaces.ts';
 
 export function KvSidebarGroup() {
   const [activeNamespaceId, setActiveNamespaceId] = useState<string | undefined>();

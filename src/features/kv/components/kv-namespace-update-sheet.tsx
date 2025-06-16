@@ -13,10 +13,10 @@ import {
 } from '@/components/ui/sheet.tsx';
 import { Skeleton } from '@/components/ui/skeleton.tsx';
 import { FunctionComponent, KeyboardEvent, ReactNode, useEffect, useRef, useState } from 'react';
-import { useNamespaces } from '../hooks/kv-hooks.ts';
 import { KvNamespace, KvNamespaceUpdateInput } from '../kv-models.ts';
 import { Save } from 'lucide-react';
 import { cn } from '@/lib/utils.ts';
+import { useNamespaces } from '@/features/kv/hooks/use-namespaces.ts';
 
 export interface KvNamespaceUpdateSheetProps {
   namespaceId: string;

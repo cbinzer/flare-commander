@@ -1,6 +1,6 @@
 import { TableHead, TableHeader, TableRow } from '@/components/ui/table.tsx';
 import { KvTableKey } from '@/features/kv/kv-models.ts';
-import { calcElementWidth } from '@/features/kv/components/table/kv-table-utils.ts';
+import { calcElementWidth } from '@/features/kv/lib/kv-table-utils.ts';
 import { flexRender, HeaderGroup } from '@tanstack/react-table';
 
 interface DataTableHeaderProps {
