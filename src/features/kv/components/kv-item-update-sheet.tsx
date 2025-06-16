@@ -1,8 +1,8 @@
-import { Button } from '@/components/ui/button';
-import DateTimePicker from '@/components/ui/date-time-picker';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { Button } from '@/components/ui/button.tsx';
+import DateTimePicker from '@/components/ui/date-time-picker.tsx';
+import { Input } from '@/components/ui/input.tsx';
+import { Label } from '@/components/ui/label.tsx';
+import { LoadingSpinner } from '@/components/ui/loading-spinner.tsx';
 import {
   Sheet,
   SheetContent,
@@ -11,13 +11,18 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from '@/components/ui/sheet';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Textarea } from '@/components/ui/textarea';
+} from '@/components/ui/sheet.tsx';
+import { Skeleton } from '@/components/ui/skeleton.tsx';
+import { Textarea } from '@/components/ui/textarea.tsx';
 import { FunctionComponent, ReactNode, useEffect, useRef, useState } from 'react';
-import { useKvItem } from './kv-hooks';
-import { KvKeyPairWriteInput, KvMetadata } from './kv-models';
-import { parseMetadataJSON, stringifyMetadataJSON, validateExpirationTTL, validateMetadata } from '@/kv/kv-utils.ts';
+import { useKvItem } from '../hooks/kv-hooks.ts';
+import { KvKeyPairWriteInput, KvMetadata } from '../kv-models.ts';
+import {
+  parseMetadataJSON,
+  stringifyMetadataJSON,
+  validateExpirationTTL,
+  validateMetadata,
+} from '@/features/kv/lib/kv-utils.ts';
 import { Save } from 'lucide-react';
 import { cn } from '@/lib/utils.ts';
 

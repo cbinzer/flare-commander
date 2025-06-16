@@ -1,5 +1,5 @@
-import { CredentialsType, UserAuthTokenCredentials } from '@/authentication/auth-models.ts';
-import { useAuth } from '@/authentication/use-auth.ts';
+import { CredentialsType, UserAuthTokenCredentials } from '@/features/authentication/auth-models.ts';
+import { useAuth } from '@/features/authentication/hooks/use-auth.ts';
 import {
   KvError,
   KvItemDTO,
@@ -21,7 +21,7 @@ import {
   KvPairGetInput,
   KvPairsDeleteInput,
   KvPairsDeleteResult,
-} from '@/kv/kv-models.ts';
+} from '@/features/kv/kv-models.ts';
 import { invoke } from '@tauri-apps/api/core';
 import { useEffect, useState } from 'react';
 

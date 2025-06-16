@@ -1,7 +1,7 @@
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { Button } from '@/components/ui/button.tsx';
+import { Input } from '@/components/ui/input.tsx';
+import { Label } from '@/components/ui/label.tsx';
+import { LoadingSpinner } from '@/components/ui/loading-spinner.tsx';
 import {
   Sheet,
   SheetContent,
@@ -10,13 +10,13 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from '@/components/ui/sheet';
+} from '@/components/ui/sheet.tsx';
 import { ChangeEvent, FunctionComponent, KeyboardEvent, ReactNode, useEffect, useRef, useState } from 'react';
-import { useNamespaces } from './kv-hooks';
-import { KvNamespace } from './kv-models';
+import { useNamespaces } from '../hooks/kv-hooks.ts';
+import { KvNamespace } from '../kv-models.ts';
 import { PlusIcon } from 'lucide-react';
 import { cn } from '@/lib/utils.ts';
-import { useError } from '@/common/common-hooks.ts';
+import { useError } from '@/hooks/use-local-storage.ts';
 
 export interface KvNamespaceCreateSheetProps {
   open?: boolean;

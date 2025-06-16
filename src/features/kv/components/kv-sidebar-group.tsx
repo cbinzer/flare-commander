@@ -11,23 +11,23 @@ import {
   SidebarMenuSubAction,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-} from '@/components/ui/sidebar';
-import { useNamespaces } from '@/kv/kv-hooks.ts';
+} from '@/components/ui/sidebar.tsx';
+import { useNamespaces } from '@/features/kv/hooks/kv-hooks.ts';
 import { Skeleton } from '@/components/ui/skeleton.tsx';
 import { FunctionComponent, MouseEvent, useEffect, useState } from 'react';
-import { KvNamespace } from '@/kv/kv-models.ts';
-import { useError } from '@/common/common-hooks.ts';
+import { KvNamespace } from '@/features/kv/kv-models.ts';
+import { useError } from '@/hooks/use-local-storage.ts';
 import { useNavigate } from 'react-router';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip.tsx';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { useIsMobile } from '@/hooks/use-mobile.tsx';
-import KvNamespaceCreateSheet from '@/kv/kv-namespace-create-sheet.tsx';
-import KvNamespaceUpdateSheet from '@/kv/kv-namespace-update-sheet.tsx';
+} from '@/components/ui/dropdown-menu.tsx';
+import { useIsMobile } from '@/hooks/use-mobile.ts';
+import KvNamespaceCreateSheet from '@/features/kv/components/kv-namespace-create-sheet.tsx';
+import KvNamespaceUpdateSheet from '@/features/kv/components/kv-namespace-update-sheet.tsx';
 import {
   Dialog,
   DialogContent,

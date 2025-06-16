@@ -1,6 +1,6 @@
 import { FunctionComponent, ReactNode } from 'react';
 import { Navigate } from 'react-router';
-import { useAuth } from '@/authentication/use-auth.ts';
+import { useAuth } from '@/features/authentication/hooks/use-auth.ts';
 
 const ProtectedPage: FunctionComponent<ProtectedPageProps> = ({ children }) => {
   const { account } = useAuth();

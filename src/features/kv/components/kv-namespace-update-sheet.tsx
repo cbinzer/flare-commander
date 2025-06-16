@@ -1,7 +1,7 @@
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { Button } from '@/components/ui/button.tsx';
+import { Input } from '@/components/ui/input.tsx';
+import { Label } from '@/components/ui/label.tsx';
+import { LoadingSpinner } from '@/components/ui/loading-spinner.tsx';
 import {
   Sheet,
   SheetContent,
@@ -10,11 +10,11 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from '@/components/ui/sheet';
-import { Skeleton } from '@/components/ui/skeleton';
+} from '@/components/ui/sheet.tsx';
+import { Skeleton } from '@/components/ui/skeleton.tsx';
 import { FunctionComponent, KeyboardEvent, ReactNode, useEffect, useRef, useState } from 'react';
-import { useNamespaces } from './kv-hooks';
-import { KvNamespace, KvNamespaceUpdateInput } from './kv-models';
+import { useNamespaces } from '../hooks/kv-hooks.ts';
+import { KvNamespace, KvNamespaceUpdateInput } from '../kv-models.ts';
 import { Save } from 'lucide-react';
 import { cn } from '@/lib/utils.ts';
 

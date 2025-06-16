@@ -1,8 +1,8 @@
 import { createContext, FunctionComponent, ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { invoke } from '@tauri-apps/api/core';
-import { AccountWithCredentials, AuthenticationError, Credentials } from '@/authentication/auth-models.ts';
-import { useLocalStorage } from '@/common/common-hooks.ts';
+import { AccountWithCredentials, AuthenticationError, Credentials } from '@/features/authentication/auth-models.ts';
+import { useLocalStorage } from '@/hooks/use-local-storage.ts';
 
 interface AuthContextValue {
   account: AccountWithCredentials | null;

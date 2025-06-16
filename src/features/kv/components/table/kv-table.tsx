@@ -3,10 +3,10 @@ import { Checkbox } from '@/components/ui/checkbox.tsx';
 import { LoadingSpinner } from '@/components/ui/loading-spinner.tsx';
 import { Skeleton } from '@/components/ui/skeleton.tsx';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table.tsx';
-import { useKvKeys } from '@/kv/kv-hooks.ts';
-import { KvNamespace, KvTableKey } from '@/kv/kv-models.ts';
-import { KvTableBody } from '@/kv/table/kv-table-body.tsx';
-import { KvTableHeader } from '@/kv/table/kv-table-header.tsx';
+import { useKvKeys } from '@/features/kv/hooks/kv-hooks.ts';
+import { KvNamespace, KvTableKey } from '@/features/kv/kv-models.ts';
+import { KvTableBody } from '@/features/kv/components/table/kv-table-body.tsx';
+import { KvTableHeader } from '@/features/kv/components/table/kv-table-header.tsx';
 import { ColumnDef, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import { FocusEvent, FunctionComponent, KeyboardEvent, useEffect, useMemo, useState } from 'react';
@@ -21,7 +21,7 @@ import {
   Trash2Icon,
   TrashIcon,
 } from 'lucide-react';
-import KvItemCreateSheet from '@/kv/kv-item-create-sheet.tsx';
+import KvItemCreateSheet from '@/features/kv/components/kv-item-create-sheet.tsx';
 import {
   DropdownMenu,
   DropdownMenuContent,

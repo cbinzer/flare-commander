@@ -2,7 +2,7 @@
 
 import { ChevronsUpDown, LogOut } from 'lucide-react';
 
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar.tsx';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,9 +10,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar';
-import { useAuth } from '@/authentication/use-auth.ts';
+} from '@/components/ui/dropdown-menu.tsx';
+import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar.tsx';
+import { useAuth } from '@/features/authentication/hooks/use-auth.ts';
 
 export function AccountSidebarMenu() {
   const { isMobile } = useSidebar();

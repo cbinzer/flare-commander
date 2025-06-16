@@ -8,10 +8,10 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
-} from '@/components/ui/sidebar';
-import { KvSidebarGroup } from '@/kv/kv-sidebar-group.tsx';
+} from '@/components/ui/sidebar.tsx';
+import { KvSidebarGroup } from '@/features/kv/components/kv-sidebar-group.tsx';
 import { Outlet } from 'react-router';
-import { AccountSidebarMenu } from '@/common/account-sidebar-menu.tsx';
+import { AccountSidebarMenu } from '@/features/account/components/account-sidebar-menu.tsx';
 import logoUrl from '../assets/logo.svg';
 
 export default function MainPage() {

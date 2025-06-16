@@ -1,9 +1,9 @@
-import AuthProvider from '@/authentication/auth-provider.tsx';
-import LoginPage from '@/authentication/login-page.tsx';
-import ProtectedPage from '@/authentication/protected-page.tsx';
+import AuthProvider from '@/features/authentication/components/auth-provider.tsx';
+import LoginPage from '@/pages/login-page.tsx';
+import ProtectedPage from '@/features/authentication/components/protected-page.tsx';
 import { Toaster } from '@/components/ui/toaster.tsx';
-import KvNamespaceDetails from '@/kv/kv-namespace-details.tsx';
-import MainPage from '@/main/main-page.tsx';
+import KvNamespaceDetails from '@/features/kv/components/kv-namespace-details.tsx';
+import MainPage from '@/pages/main-page.tsx';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Route, Routes } from 'react-router';
 import './App.css';

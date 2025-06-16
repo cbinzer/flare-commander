@@ -7,8 +7,8 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb.tsx';
 import { Location, useLocation, useNavigate } from 'react-router';
-import { KvNamespace } from '@/kv/kv-models.ts';
-import { KvTable } from '@/kv/table/kv-table.tsx';
+import { KvNamespace } from '@/features/kv/kv-models.ts';
+import { KvTable } from '@/features/kv/components/table/kv-table.tsx';
 
 const KvNamespaceDetails: FunctionComponent = () => {
   const location: Location<KvNamespace> = useLocation();

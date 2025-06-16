@@ -1,7 +1,7 @@
 import { flexRender, Row } from '@tanstack/react-table';
 import { TableBody, TableCell, TableRow } from '@/components/ui/table.tsx';
-import { KvTableKey } from '@/kv/kv-models.ts';
-import { calcElementWidth } from '@/kv/table/kv-table-utils.ts';
+import { KvTableKey } from '@/features/kv/kv-models.ts';
+import { calcElementWidth } from '@/features/kv/components/table/kv-table-utils.ts';
 
 interface KvTableBodyProps {
   rows: Row<KvTableKey>[];

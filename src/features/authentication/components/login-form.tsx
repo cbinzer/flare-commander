@@ -1,15 +1,19 @@
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils.ts';
+import { Button } from '@/components/ui/button.tsx';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.tsx';
+import { Input } from '@/components/ui/input.tsx';
+import { Label } from '@/components/ui/label.tsx';
 import { ComponentPropsWithoutRef, FormEvent, useState } from 'react';
-import { useAuth } from '@/authentication/use-auth.ts';
+import { useAuth } from '@/features/authentication/hooks/use-auth.ts';
 import { LoadingSpinner } from '@/components/ui/loading-spinner.tsx';
-import { AuthenticationError, CredentialsType, UserAuthTokenCredentials } from '@/authentication/auth-models.ts';
+import {
+  AuthenticationError,
+  CredentialsType,
+  UserAuthTokenCredentials,
+} from '@/features/authentication/auth-models.ts';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert.tsx';
 import { AlertCircle } from 'lucide-react';
-import logoUrl from '../assets/logo.svg';
+import logoUrl from '../../../assets/logo.svg';
 
 export function LoginForm({ className, ...props }: ComponentPropsWithoutRef<'div'>) {
   const { verifyCredentials } = useAuth();
@@ -63,7 +67,7 @@ export function LoginForm({ className, ...props }: ComponentPropsWithoutRef<'div
     <div className={cn('flex flex-col gap-5', className)} {...props}>
       <div className="grid grid-cols-1 grid-rows-2 justify-items-center font-medium text-lg">
         <div className="h-11 w-11 justify-center">
-          <img src={logoUrl} />
+          <img alt="logo" src={logoUrl} />
         </div>
         <div className="text-center">FlareCommander</div>
       </div>

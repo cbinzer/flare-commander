@@ -1,4 +1,4 @@
-import { KvMetadata } from '@/kv/kv-models.ts';
+import { KvMetadata } from '@/features/kv/kv-models.ts';
 
 export function stringifyMetadataJSON(value: KvMetadata): string {
   if (value === null) {

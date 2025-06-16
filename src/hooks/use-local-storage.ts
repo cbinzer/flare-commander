@@ -1,6 +1,6 @@
 import { Dispatch, SetStateAction, useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast.ts';
-import { useAuth } from '@/authentication/use-auth.ts';
+import { useAuth } from '@/features/authentication/hooks/use-auth.ts';
 
 export function useLocalStorage<T>(
   storageKey: string,
