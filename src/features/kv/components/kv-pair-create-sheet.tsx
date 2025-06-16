@@ -14,24 +14,24 @@ import {
 } from '@/components/ui/sheet.tsx';
 import { Textarea } from '@/components/ui/textarea.tsx';
 import { ChangeEvent, FunctionComponent, ReactNode, useEffect, useRef, useState } from 'react';
-import { useKvItem } from '../hooks/kv-hooks.ts';
+import { useKvPair } from '../hooks/use-kv-pair.ts';
 import { KvPair, KvPairCreateInput } from '../kv-models.ts';
 import { parseMetadataJSON, validateExpirationTTL, validateMetadata } from '@/features/kv/lib/kv-utils.ts';
 import { Save } from 'lucide-react';
 import { cn } from '@/lib/utils.ts';
 
-export interface KvItemCreateSheetProps {
+export interface KvPairCreateSheetProps {
   namespaceId: string;
   onCreate?: (item: KvPair) => Promise<void>;
   children?: ReactNode;
 }
 
-const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
+const KvPairCreateSheet: FunctionComponent<KvPairCreateSheetProps> = ({
   namespaceId,
   children,
   onCreate = () => Promise.resolve(),
 }) => {
-  const { kvItem, error, createKvPair } = useKvItem();
+  const { kvPair, error, createKvPair } = useKvPair();
 
   const valueInputRef = useRef<HTMLTextAreaElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -101,12 +101,12 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
   };
 
   useEffect(() => {
-    if (kvItem) {
-      onCreate(kvItem)
+    if (kvPair) {
+      onCreate(kvPair)
         .then(() => setIsOpen(false))
         .finally(() => setIsSaving(false));
     }
-  }, [kvItem]);
+  }, [kvPair]);
 
   useEffect(() => {
     setKey(undefined);
@@ -245,4 +245,4 @@ const KvItemCreateSheet: FunctionComponent<KvItemCreateSheetProps> = ({
   );
 };
 
-export default KvItemCreateSheet;
+export default KvPairCreateSheet;

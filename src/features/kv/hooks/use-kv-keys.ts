@@ -1,21 +1,16 @@
-import { CredentialsType, UserAuthTokenCredentials } from '@/features/authentication/auth-models.ts';
-import { useAuth } from '@/features/authentication/hooks/use-auth.ts';
+import { useEffect, useState } from 'react';
 import {
   KvError,
-  KvItemDTO,
   KvKey,
-  KvKeyPairWriteInput,
   KvKeys,
   KvKeysDTO,
   KvKeysListInput,
-  KvPair,
-  KvPairCreateInput,
-  KvPairGetInput,
   KvPairsDeleteInput,
   KvPairsDeleteResult,
 } from '@/features/kv/kv-models.ts';
+import { CredentialsType, UserAuthTokenCredentials } from '@/features/authentication/auth-models.ts';
+import { useAuth } from '@/features/authentication/hooks/use-auth.ts';
 import { invoke } from '@tauri-apps/api/core';
-import { useEffect, useState } from 'react';
 import { convertPlainToKvErrorClass } from '@/features/kv/lib/kv-utils.ts';
 
 export function useKvKeys(namespaceId: string) {
@@ -149,86 +144,6 @@ export function useKvKeys(namespaceId: string) {
   };
 }
 
-export function useKvItem() {
-  const { account } = useAuth();
-  const [kvItem, setKvItem] = useState<KvPair | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
-  const [isWriting, setIsWriting] = useState(false);
-  const [error, setError] = useState<KvError | null>(null);
-
-  const getKvPair = async (namespaceId: string, key: string) => {
-    setIsLoading(true);
-    setKvItem(null);
-
-    const credentials: UserAuthTokenCredentials = {
-      type: CredentialsType.UserAuthToken,
-      account_id: account?.id ?? '',
-      token: (account?.credentials as UserAuthTokenCredentials).token,
-    };
-
-    try {
-      const item = await invokeGetKvPair(
-        { account_id: account?.id ?? '', namespace_id: namespaceId, key },
-        credentials,
-      );
-      setKvItem(item);
-    } catch (e) {
-      setError(e as KvError);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const createKvPair = async (input: Omit<KvPairCreateInput, 'account_id'>) => {
-    setIsCreating(true);
-
-    const credentials: UserAuthTokenCredentials = {
-      type: CredentialsType.UserAuthToken,
-      account_id: account?.id ?? '',
-      token: (account?.credentials as UserAuthTokenCredentials).token,
-    };
-    try {
-      const createdKvItem = await invokeCreateKvPair({ ...input, account_id: account?.id ?? '' }, credentials);
-      setKvItem(createdKvItem);
-    } catch (e) {
-      setError(e as KvError);
-    } finally {
-      setIsCreating(false);
-    }
-  };
-
-  const writeKvPair = async (input: Omit<KvKeyPairWriteInput, 'account_id'>) => {
-    setIsWriting(true);
-
-    const credentials: UserAuthTokenCredentials = {
-      type: CredentialsType.UserAuthToken,
-      account_id: account?.id ?? '',
-      token: (account?.credentials as UserAuthTokenCredentials).token,
-    };
-
-    try {
-      const updatedKvItem = await invokeWriteKvPair({ ...input, account_id: account?.id ?? '' }, credentials);
-      setKvItem(updatedKvItem);
-    } catch (e) {
-      setError(e as KvError);
-    } finally {
-      setIsWriting(false);
-    }
-  };
-
-  return {
-    kvItem,
-    getKvPair,
-    createKvPair,
-    writeKvPair,
-    isLoading,
-    isCreating,
-    isWriting,
-    error,
-  };
-}
-
 export async function invokeListKvKeys(input: KvKeysListInput, credentials: UserAuthTokenCredentials): Promise<KvKeys> {
   try {
     const kvKeys = await invoke<KvKeysDTO>('list_kv_keys', {
@@ -242,66 +157,6 @@ export async function invokeListKvKeys(input: KvKeysListInput, credentials: User
         ...key,
         expiration: key.expiration ? new Date(key.expiration * 1000) : undefined,
       })),
-    };
-  } catch (e) {
-    const kvError = e as KvError;
-    console.error(kvError);
-    throw new KvError(kvError.message, kvError.kind);
-  }
-}
-
-export async function invokeGetKvPair(input: KvPairGetInput, credentials: UserAuthTokenCredentials): Promise<KvPair> {
-  try {
-    const kvItem = await invoke<KvItemDTO>('get_kv_pair', {
-      input,
-      credentials,
-    });
-
-    return {
-      ...kvItem,
-      expiration: kvItem.expiration ? new Date(kvItem.expiration * 1000) : undefined,
-    };
-  } catch (e) {
-    const kvError = e as KvError;
-    console.error(kvError);
-    throw new KvError(kvError.message, kvError.kind);
-  }
-}
-
-export async function invokeCreateKvPair(
-  input: KvPairCreateInput,
-  credentials: UserAuthTokenCredentials,
-): Promise<KvPair> {
-  try {
-    const kvItem = await invoke<KvItemDTO>('create_kv_pair', {
-      input,
-      credentials,
-    });
-
-    return {
-      ...kvItem,
-      expiration: kvItem.expiration ? new Date(kvItem.expiration * 1000) : undefined,
-    };
-  } catch (e) {
-    const kvError = e as KvError;
-    console.error(kvError);
-    throw new KvError(kvError.message, kvError.kind);
-  }
-}
-
-export async function invokeWriteKvPair(
-  input: KvKeyPairWriteInput,
-  credentials: UserAuthTokenCredentials,
-): Promise<KvPair> {
-  try {
-    const kvItem = await invoke<KvItemDTO>('write_kv_pair', {
-      input,
-      credentials,
-    });
-
-    return {
-      ...kvItem,
-      expiration: kvItem.expiration ? new Date(kvItem.expiration * 1000) : undefined,
     };
   } catch (e) {
     const kvError = e as KvError;

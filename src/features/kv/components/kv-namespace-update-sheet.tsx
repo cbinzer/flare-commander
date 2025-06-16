@@ -16,7 +16,7 @@ import { FunctionComponent, KeyboardEvent, ReactNode, useEffect, useRef, useStat
 import { KvNamespace, KvNamespaceUpdateInput } from '../kv-models.ts';
 import { Save } from 'lucide-react';
 import { cn } from '@/lib/utils.ts';
-import { useNamespaces } from '@/features/kv/hooks/use-namespaces.ts';
+import { useKvNamespaces } from '@/features/kv/hooks/use-kv-namespaces.ts';
 
 export interface KvNamespaceUpdateSheetProps {
   namespaceId: string;
@@ -33,7 +33,7 @@ const KvNamespaceUpdateSheet: FunctionComponent<KvNamespaceUpdateSheetProps> = (
   onUpdate = () => {},
   onOpenChange = () => {},
 }) => {
-  const { namespace, getNamespace, updateNamespace, isLoadingOne } = useNamespaces();
+  const { namespace, getNamespace, updateNamespace, isLoadingOne } = useKvNamespaces();
   const titleInputRef = useRef<HTMLInputElement>(null);
 
   const [isSaving, setIsSaving] = useState(false);

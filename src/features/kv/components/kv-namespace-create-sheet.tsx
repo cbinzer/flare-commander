@@ -17,7 +17,7 @@ import { KvNamespace } from '../kv-models.ts';
 import { PlusIcon } from 'lucide-react';
 import { cn } from '@/lib/utils.ts';
 import { useError } from '@/hooks/use-local-storage.ts';
-import { useNamespaces } from '@/features/kv/hooks/use-namespaces.ts';
+import { useKvNamespaces } from '@/features/kv/hooks/use-kv-namespaces.ts';
 
 export interface KvNamespaceCreateSheetProps {
   open?: boolean;
@@ -32,7 +32,7 @@ const KvNamespaceCreateSheet: FunctionComponent<KvNamespaceCreateSheetProps> = (
   onCreate = () => Promise.resolve(),
   onOpenChange = () => {},
 }) => {
-  const { createNamespace, namespace, error } = useNamespaces();
+  const { createNamespace, namespace, error } = useKvNamespaces();
   const { handleError } = useError();
 
   const titleInputRef = useRef<HTMLInputElement>(null);

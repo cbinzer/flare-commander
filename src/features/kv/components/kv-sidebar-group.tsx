@@ -37,14 +37,14 @@ import {
 } from '@/components/ui/dialog.tsx';
 import { Button } from '@/components/ui/button.tsx';
 import { LoadingSpinner } from '@/components/ui/loading-spinner.tsx';
-import { useNamespaces } from '@/features/kv/hooks/use-namespaces.ts';
+import { useKvNamespaces } from '@/features/kv/hooks/use-kv-namespaces.ts';
 
 export function KvSidebarGroup() {
   const [activeNamespaceId, setActiveNamespaceId] = useState<string | undefined>();
   const [isReloading, setIsReloading] = useState(false);
   const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false);
   const { isListing, isLoadingNext, namespaces, listNamespaces, listNextNamespaces, relistNamespaces, totalCount } =
-    useNamespaces();
+    useKvNamespaces();
   const { handleError } = useError();
   const isMobile = useIsMobile();
 
@@ -296,7 +296,7 @@ const KvNamespaceDeleteDialog: FunctionComponent<KvNamespaceDeleteDialogProps> =
   onOpenChange = () => {},
   onDelete = () => Promise.resolve(),
 }) => {
-  const { deleteNamespace } = useNamespaces();
+  const { deleteNamespace } = useKvNamespaces();
 
   const [isDialogOpen, setIsDialogOpen] = useState(open);
   const [isDeleting, setIsDeleting] = useState(false);

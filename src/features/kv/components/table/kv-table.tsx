@@ -3,14 +3,13 @@ import { Checkbox } from '@/components/ui/checkbox.tsx';
 import { LoadingSpinner } from '@/components/ui/loading-spinner.tsx';
 import { Skeleton } from '@/components/ui/skeleton.tsx';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table.tsx';
-import { useKvKeys } from '@/features/kv/hooks/kv-hooks.ts';
 import { KvNamespace, KvTableKey } from '@/features/kv/kv-models.ts';
 import { KvTableBody } from '@/features/kv/components/table/kv-table-body.tsx';
 import { KvTableHeader } from '@/features/kv/components/table/kv-table-header.tsx';
 import { ColumnDef, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { format } from 'date-fns';
 import { FocusEvent, FunctionComponent, KeyboardEvent, useEffect, useMemo, useState } from 'react';
-import KvItemUpdateSheet from '../kv-item-update-sheet.tsx';
+import KvPairUpdateSheet from '../kv-pair-update-sheet.tsx';
 import {
   ArrowDown,
   EditIcon,
@@ -21,7 +20,7 @@ import {
   Trash2Icon,
   TrashIcon,
 } from 'lucide-react';
-import KvItemCreateSheet from '@/features/kv/components/kv-item-create-sheet.tsx';
+import KvPairCreateSheet from '@/features/kv/components/kv-pair-create-sheet.tsx';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,6 +37,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog.tsx';
 import { Input } from '@/components/ui/input.tsx';
+import { useKvKeys } from '@/features/kv/hooks/use-kv-keys.ts';
 
 interface KvTableProps {
   namespace: KvNamespace;
@@ -64,7 +64,7 @@ export function KvTable({ namespace }: KvTableProps) {
     deleteKeys,
   } = useKvKeys(namespace.id);
 
-  const openKvItemUpdateSheet = (key: KvTableKey) => {
+  const openKvPairUpdateSheet = (key: KvTableKey) => {
     setKvKeyToEdit(key);
     setIsUpdateSheetOpen(true);
   };
@@ -98,7 +98,7 @@ export function KvTable({ namespace }: KvTableProps) {
     }
   };
 
-  const deleteKvItemsAndReload = async () => {
+  const deleteKvPairAndReload = async () => {
     setIsDeleting(true);
 
     try {
@@ -161,7 +161,7 @@ export function KvTable({ namespace }: KvTableProps) {
         header: 'Key',
         cell: (cell) => (
           <Button
-            onClick={() => openKvItemUpdateSheet(cell.row.original)}
+            onClick={() => openKvPairUpdateSheet(cell.row.original)}
             variant="link"
             className="w-fit h-fit p-0 text-left text-foreground"
           >
@@ -205,7 +205,7 @@ export function KvTable({ namespace }: KvTableProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-32">
-              <DropdownMenuItem onClick={() => openKvItemUpdateSheet(cell.row.original)}>
+              <DropdownMenuItem onClick={() => openKvPairUpdateSheet(cell.row.original)}>
                 <EditIcon />
                 Edit
               </DropdownMenuItem>
@@ -269,12 +269,12 @@ export function KvTable({ namespace }: KvTableProps) {
             <Trash2Icon />
             <span className="hidden lg:inline">Delete</span>
           </Button>
-          <KvItemCreateSheet namespaceId={namespace.id} onCreate={async () => await reloadKeys()}>
+          <KvPairCreateSheet namespaceId={namespace.id} onCreate={async () => await reloadKeys()}>
             <Button variant="outline" size="sm" disabled={isRefreshing}>
               <PlusIcon />
               <span className="hidden lg:inline">Add Item</span>
             </Button>
-          </KvItemCreateSheet>
+          </KvPairCreateSheet>
           <Button variant="outline" size="sm" disabled={isRefreshing} onClick={refreshKeys}>
             <RefreshCcwIcon className={isRefreshing ? 'animate-spin' : ''} />
           </Button>
@@ -311,7 +311,7 @@ export function KvTable({ namespace }: KvTableProps) {
         </div>
       ) : null}
 
-      <KvItemUpdateSheet
+      <KvPairUpdateSheet
         namespaceId={namespace.id}
         itemKey={kvKeyToEdit?.name ?? ''}
         itemMetadata={kvKeyToEdit?.metadata ?? null}
@@ -333,7 +333,7 @@ export function KvTable({ namespace }: KvTableProps) {
             <Button variant="secondary" disabled={isDeleting} onClick={closeKvKeysDeleteDialog}>
               Cancel
             </Button>
-            <Button variant="destructive" disabled={isDeleting} onClick={deleteKvItemsAndReload}>
+            <Button variant="destructive" disabled={isDeleting} onClick={deleteKvPairAndReload}>
               {isDeleting ? (
                 <>
                   <LoadingSpinner /> Deleting...

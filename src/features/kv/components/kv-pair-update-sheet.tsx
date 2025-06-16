@@ -15,7 +15,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton.tsx';
 import { Textarea } from '@/components/ui/textarea.tsx';
 import { FunctionComponent, ReactNode, useEffect, useRef, useState } from 'react';
-import { useKvItem } from '../hooks/kv-hooks.ts';
+import { useKvPair } from '../hooks/use-kv-pair.ts';
 import { KvKeyPairWriteInput, KvMetadata } from '../kv-models.ts';
 import {
   parseMetadataJSON,
@@ -26,7 +26,7 @@ import {
 import { Save } from 'lucide-react';
 import { cn } from '@/lib/utils.ts';
 
-export interface KvItemUpdateSheetProps {
+export interface KvPairUpdateSheetProps {
   namespaceId: string;
   itemKey: string;
   itemMetadata: KvMetadata;
@@ -36,7 +36,7 @@ export interface KvItemUpdateSheetProps {
   children?: ReactNode;
 }
 
-const KvItemUpdateSheet: FunctionComponent<KvItemUpdateSheetProps> = ({
+const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
   namespaceId,
   itemKey,
   itemMetadata,
@@ -45,23 +45,23 @@ const KvItemUpdateSheet: FunctionComponent<KvItemUpdateSheetProps> = ({
   onUpdate = () => Promise.resolve(),
   onOpenChange = () => {},
 }) => {
-  const { kvItem, getKvPair, writeKvPair, isLoading } = useKvItem();
+  const { kvPair, getKvPair, writeKvPair, isLoading } = useKvPair();
   const valueInputRef = useRef<HTMLTextAreaElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   const [sheetContainer, setSheetContainer] = useState<HTMLElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [key, setKey] = useState(kvItem?.key);
-  const [value, setValue] = useState(kvItem?.value);
+  const [key, setKey] = useState(kvPair?.key);
+  const [value, setValue] = useState(kvPair?.value);
   const [metadata, setMetadata] = useState(stringifyMetadataJSON(itemMetadata));
   const [isSaving, setIsSaving] = useState(false);
-  const [expiration, setExpiration] = useState(kvItem?.expiration);
+  const [expiration, setExpiration] = useState(kvPair?.expiration);
   const [expirationTTL, setExpirationTTL] = useState('0');
   const [errors, setErrors] = useState<{ metadata?: Error; expirationTTL?: Error }>({});
 
   const isSaveButtonDisabled = isLoading || isSaving || !key || !!errors.metadata;
 
-  const loadKvItemOnOpenChange = (open: boolean) => {
+  const loadKvPairOnOpenChange = (open: boolean) => {
     onOpenChange(open);
     setIsOpen(open);
 
@@ -122,16 +122,16 @@ const KvItemUpdateSheet: FunctionComponent<KvItemUpdateSheetProps> = ({
   }, [sheetContainer]);
 
   useEffect(() => {
-    setKey(kvItem?.key);
-    setValue(kvItem?.value);
-    setExpiration(kvItem?.expiration);
+    setKey(kvPair?.key);
+    setValue(kvPair?.value);
+    setExpiration(kvPair?.expiration);
     setExpirationTTL('0');
-  }, [kvItem]);
+  }, [kvPair]);
 
-  useEffect(() => loadKvItemOnOpenChange(open), [open]);
+  useEffect(() => loadKvPairOnOpenChange(open), [open]);
 
   return (
-    <Sheet open={isOpen} onOpenChange={loadKvItemOnOpenChange}>
+    <Sheet open={isOpen} onOpenChange={loadKvPairOnOpenChange}>
       <SheetTrigger asChild>{children}</SheetTrigger>
 
       <SheetContent closeDisabled={isSaving} className="w-[500px] sm:max-w-[500px]">
@@ -260,4 +260,4 @@ const KvItemUpdateSheet: FunctionComponent<KvItemUpdateSheetProps> = ({
   );
 };
 
-export default KvItemUpdateSheet;
+export default KvPairUpdateSheet;

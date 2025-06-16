@@ -75,7 +75,7 @@ export interface KvPairGetInput {
   key: String;
 }
 
-export interface KvItemDTO {
+export interface KvPairDTO {
   key: string;
   value?: string;
   expiration?: number;

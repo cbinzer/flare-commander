@@ -16,7 +16,7 @@ import { CredentialsType, UserAuthTokenCredentials } from '@/features/authentica
 import { invoke } from '@tauri-apps/api/core';
 import { convertPlainToKvErrorClass } from '@/features/kv/lib/kv-utils.ts';
 
-export function useNamespaces() {
+export function useKvNamespaces() {
   const { account } = useAuth();
   const [isListing, setIsListing] = useState(false);
   const [isRelisting, setIsRelisting] = useState(false);
