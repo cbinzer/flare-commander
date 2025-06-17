@@ -102,10 +102,11 @@ export function useKvNamespaces() {
         type: CredentialsType.UserAuthToken,
         token: (account?.credentials as UserAuthTokenCredentials).token,
       };
+      const per_page = namespaces && namespaces.length > 20 ? namespaces.length : 20;
       const reloadedNamespaces = await invokeListNamespaces(credentials, {
         account_id: account?.id ?? '',
         order_by: KvNamespacesOrderBy.TITLE,
-        per_page: namespaces?.length ?? 20,
+        per_page,
       });
 
       setPage(reloadedNamespaces.page_info.page);
