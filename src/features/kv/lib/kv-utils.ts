@@ -41,7 +41,6 @@ export function validateMetadata(value: string): boolean {
 
 export function validateExpirationTTL(value: string): boolean {
   const expirationTTL = Number(value);
-  console.log(expirationTTL);
   if (isNaN(expirationTTL)) {
     return false;
   }

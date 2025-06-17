@@ -157,9 +157,7 @@ export async function invokeListKvKeys(input: KvKeysListInput, credentials: User
       })),
     };
   } catch (e) {
-    const kvError = e as KvError;
-    console.error(kvError);
-    throw new KvError(kvError.message, kvError.kind);
+    throw convertPlainToKvErrorClass(e as KvError);
   }
 }
 

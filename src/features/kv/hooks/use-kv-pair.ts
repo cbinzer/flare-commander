@@ -10,6 +10,7 @@ import {
 } from '@/features/kv/kv-models.ts';
 import { invoke } from '@tauri-apps/api/core';
 import { useState } from 'react';
+import { convertPlainToKvErrorClass } from '@/features/kv/lib/kv-utils.ts';
 
 export function useKvPair() {
   const { account } = useAuth();
@@ -100,9 +101,7 @@ export async function invokeGetKvPair(input: KvPairGetInput, credentials: UserAu
       expiration: kvPair.expiration ? new Date(kvPair.expiration * 1000) : undefined,
     };
   } catch (e) {
-    const kvError = e as KvError;
-    console.error(kvError);
-    throw new KvError(kvError.message, kvError.kind);
+    throw convertPlainToKvErrorClass(e as KvError);
   }
 }
 
@@ -121,9 +120,7 @@ export async function invokeCreateKvPair(
       expiration: kvPair.expiration ? new Date(kvPair.expiration * 1000) : undefined,
     };
   } catch (e) {
-    const kvError = e as KvError;
-    console.error(kvError);
-    throw new KvError(kvError.message, kvError.kind);
+    throw convertPlainToKvErrorClass(e as KvError);
   }
 }
 
@@ -142,8 +139,6 @@ export async function invokeWriteKvPair(
       expiration: kvPair.expiration ? new Date(kvPair.expiration * 1000) : undefined,
     };
   } catch (e) {
-    const kvError = e as KvError;
-    console.error(kvError);
-    throw new KvError(kvError.message, kvError.kind);
+    throw convertPlainToKvErrorClass(e as KvError);
   }
 }
