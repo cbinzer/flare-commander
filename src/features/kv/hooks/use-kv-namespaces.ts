@@ -37,7 +37,6 @@ export function useKvNamespaces() {
     try {
       const credentials: UserAuthTokenCredentials = {
         type: CredentialsType.UserAuthToken,
-        account_id: account?.id ?? '',
         token: (account?.credentials as UserAuthTokenCredentials).token,
       };
       const namespaces = await invokeListNamespaces(credentials, {
@@ -61,7 +60,6 @@ export function useKvNamespaces() {
     try {
       const credentials: UserAuthTokenCredentials = {
         type: CredentialsType.UserAuthToken,
-        account_id: account?.id ?? '',
         token: (account?.credentials as UserAuthTokenCredentials).token,
       };
       const nextNamespaces = await invokeListNamespaces(credentials, {
@@ -102,7 +100,6 @@ export function useKvNamespaces() {
     try {
       const credentials: UserAuthTokenCredentials = {
         type: CredentialsType.UserAuthToken,
-        account_id: account?.id ?? '',
         token: (account?.credentials as UserAuthTokenCredentials).token,
       };
       const reloadedNamespaces = await invokeListNamespaces(credentials, {
@@ -127,7 +124,6 @@ export function useKvNamespaces() {
     try {
       const credentials: UserAuthTokenCredentials = {
         type: CredentialsType.UserAuthToken,
-        account_id: account?.id ?? '',
         token: (account?.credentials as UserAuthTokenCredentials).token,
       };
       const input: KvNamespaceGetInput = {
@@ -149,7 +145,6 @@ export function useKvNamespaces() {
     try {
       const credentials: UserAuthTokenCredentials = {
         type: CredentialsType.UserAuthToken,
-        account_id: account?.id ?? '',
         token: (account?.credentials as UserAuthTokenCredentials).token,
       };
       const createdNamespace = await invokeCreateNamespace({ ...input, account_id: account?.id ?? '' }, credentials);
@@ -167,7 +162,6 @@ export function useKvNamespaces() {
     try {
       const credentials: UserAuthTokenCredentials = {
         type: CredentialsType.UserAuthToken,
-        account_id: account?.id ?? '',
         token: (account?.credentials as UserAuthTokenCredentials).token,
       };
       await invokeUpdateNamespace({ ...input, account_id: account?.id ?? '' }, credentials);
@@ -185,7 +179,6 @@ export function useKvNamespaces() {
     try {
       const credentials: UserAuthTokenCredentials = {
         type: CredentialsType.UserAuthToken,
-        account_id: account?.id ?? '',
         token: (account?.credentials as UserAuthTokenCredentials).token,
       };
       await invokeDeleteNamespace({ account_id: account?.id ?? '', namespace_id: namespaceId }, credentials);

@@ -39,7 +39,6 @@ export function LoginForm({ className, ...props }: ComponentPropsWithoutRef<'div
     try {
       const credentials: UserAuthTokenCredentials = {
         type: CredentialsType.UserAuthToken,
-        account_id: accountId,
         token: apiToken,
       };
       await verifyCredentials(accountId, credentials);

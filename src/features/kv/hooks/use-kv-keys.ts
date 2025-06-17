@@ -30,7 +30,6 @@ export function useKvKeys(namespaceId: string) {
 
     const credentials: UserAuthTokenCredentials = {
       type: CredentialsType.UserAuthToken,
-      account_id: account?.id ?? '',
       token: (account?.credentials as UserAuthTokenCredentials).token,
     };
 
@@ -102,7 +101,6 @@ export function useKvKeys(namespaceId: string) {
 
     const credentials: UserAuthTokenCredentials = {
       type: CredentialsType.UserAuthToken,
-      account_id: account?.id ?? '',
       token: (account?.credentials as UserAuthTokenCredentials).token,
     };
     const input: KvPairsDeleteInput = {
