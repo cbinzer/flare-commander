@@ -286,7 +286,7 @@ export function KvTable({ namespace }: KvTableProps) {
           <KvTableHeader headerGroups={table.getHeaderGroups()} />
 
           {isInitialLoading || isRefreshing ? (
-            <LoadingTableBody pageSize={18} columns={columns} />
+            <LoadingTableBody pageSize={10} columns={columns} />
           ) : table.getRowModel().rows?.length ? (
             <KvTableBody rows={table.getRowModel().rows} />
           ) : (
@@ -362,7 +362,7 @@ const LoadingTableBody: FunctionComponent<LoadingTableBodyProps> = ({ pageSize =
       {Array(pageSize)
         .fill(null)
         .map((_, i) => (
-          <TableRow key={i} className={'h-[40px]'} selectable={false}>
+          <TableRow key={i} className={'h-[54px]'} selectable={false}>
             {columns.map(() => (
               <TableCell>
                 <Skeleton className="h-5" />
