@@ -102,14 +102,14 @@ const KvNamespaceUpdateSheet: FunctionComponent<KvNamespaceUpdateSheetProps> = (
     <Sheet open={isOpen} onOpenChange={loadKvNamespaceOnOpenChange}>
       <SheetTrigger asChild>{children}</SheetTrigger>
 
-      <SheetContent closeDisabled={isSaving} className="w-[500px] sm:max-w-[500px]">
+      <SheetContent closeDisabled={isSaving} className="w-[550px] sm:max-w-[550px]">
         <SheetHeader>
           <SheetTitle>Edit KV Namespace</SheetTitle>
           <SheetDescription>Edit the title</SheetDescription>
         </SheetHeader>
 
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-[95px_1fr] items-center gap-4">
+          <div className="grid grid-cols-[100px_1fr] items-center gap-4">
             <Label htmlFor="id" className="text-right">
               Id *
             </Label>
@@ -120,7 +120,7 @@ const KvNamespaceUpdateSheet: FunctionComponent<KvNamespaceUpdateSheetProps> = (
             )}
           </div>
 
-          <div className="grid grid-cols-[95px_1fr] items-center gap-4">
+          <div className="grid grid-cols-[100px_1fr] items-center gap-4">
             <Label htmlFor="title" className="text-right">
               Title *
             </Label>
@@ -145,7 +145,7 @@ const KvNamespaceUpdateSheet: FunctionComponent<KvNamespaceUpdateSheetProps> = (
             )}
           </div>
 
-          <div className="grid grid-cols-[95px_1fr] items-center gap-4">
+          <div className="grid grid-cols-[100px_1fr] items-center gap-4">
             <Label htmlFor="beta" className="text-right">
               Beta
             </Label>
@@ -156,7 +156,7 @@ const KvNamespaceUpdateSheet: FunctionComponent<KvNamespaceUpdateSheetProps> = (
             )}
           </div>
 
-          <div className="grid grid-cols-[95px_1fr] items-center gap-4">
+          <div className="grid grid-cols-[100px_1fr] items-center gap-4">
             <Label htmlFor="supportsUrlEncoding" className=" text-right">
               URL Encoding
             </Label>

@@ -134,57 +134,50 @@ const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
     <Sheet open={isOpen} onOpenChange={loadKvPairOnOpenChange}>
       <SheetTrigger asChild>{children}</SheetTrigger>
 
-      <SheetContent closeDisabled={isSaving} className="w-[500px] sm:max-w-[500px]">
+      <SheetContent closeDisabled={isSaving} className="w-[550px] sm:max-w-[550px]">
         <SheetHeader>
-          <SheetTitle>Edit KV Item</SheetTitle>
+          <SheetTitle>Edit KV Pair</SheetTitle>
           <SheetDescription>Edit value, metadata and expiration date</SheetDescription>
         </SheetHeader>
 
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-12 items-center gap-4">
-            <Label htmlFor="key" className="col-span-2 text-right">
+          <div className="grid grid-cols-[100px_1fr] items-center gap-4">
+            <Label htmlFor="key" className="text-right">
               Key *
             </Label>
             {isLoading ? (
-              <Skeleton className="w-full h-[36px] rounded-md col-span-10" />
+              <Skeleton className="w-full h-[36px] rounded-md" />
             ) : (
-              <Input
-                id="key"
-                value={key}
-                className="col-span-10"
-                disabled={true}
-                ref={nameInputRef}
-                onChange={(e) => setKey(e.target.value)}
-              />
+              <Input id="key" value={key} disabled={true} ref={nameInputRef} onChange={(e) => setKey(e.target.value)} />
             )}
           </div>
 
-          <div className="grid grid-cols-12 items-start gap-4">
-            <Label htmlFor="value" className="col-span-2 text-right pt-2">
+          <div className="grid grid-cols-[100px_1fr] items-center gap-4">
+            <Label htmlFor="value" className="self-start text-right mt-3">
               Value
             </Label>
             {isLoading ? (
-              <Skeleton id="value" className="w-full h-[200px] rounded-md col-span-10" />
+              <Skeleton id="value" className="w-full h-[200px] rounded-md" />
             ) : (
               <Textarea
                 id="value"
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
-                className="col-span-10 min-h-[200px]"
+                className="min-h-[200px]"
                 ref={valueInputRef}
                 disabled={isSaving}
               />
             )}
           </div>
 
-          <div className="grid grid-cols-12 items-start gap-4">
-            <Label htmlFor="metadata" className="col-span-2 text-right pt-2">
+          <div className="grid grid-cols-[100px_1fr] items-center gap-4">
+            <Label htmlFor="metadata" className="self-start text-right mt-3">
               Metadata
             </Label>
             {isLoading ? (
-              <Skeleton id="metadata" className="w-full h-[200px] rounded-md col-span-10" />
+              <Skeleton id="metadata" className="w-full h-[200px] rounded-md" />
             ) : (
-              <div className="col-span-10 space-y-2">
+              <div className="space-y-2">
                 <Textarea
                   id="metadata"
                   value={metadata}
@@ -199,11 +192,11 @@ const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
             )}
           </div>
 
-          <div className="grid grid-cols-12 items-center gap-4">
-            <Label htmlFor="expiration" className="col-span-2 text-right">
+          <div className="grid grid-cols-[100px_1fr] items-center gap-4">
+            <Label htmlFor="expiration" className="text-right">
               Expiration
             </Label>
-            <div className="col-span-10 w-full">
+            <div className="w-full">
               {isLoading ? (
                 <Skeleton className="w-full h-[36px] rounded-md" />
               ) : (
@@ -217,11 +210,11 @@ const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-12 items-start gap-4">
-            <Label htmlFor="expirationTTL" className="col-span-2 text-right pt-3">
+          <div className="grid grid-cols-[100px_1fr] items-center gap-4">
+            <Label htmlFor="expirationTTL" className="text-right">
               Expiration TTL
             </Label>
-            <div className="col-span-10 space-y-2">
+            <div className="space-y-2">
               {isLoading ? (
                 <Skeleton className="w-full h-[36px] rounded-md" />
               ) : (

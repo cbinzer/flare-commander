@@ -107,18 +107,18 @@ const KvNamespaceCreateSheet: FunctionComponent<KvNamespaceCreateSheetProps> = (
   return (
     <Sheet open={isOpen} onOpenChange={setFocusOnOpenChange}>
       <SheetTrigger asChild>{children}</SheetTrigger>
-      <SheetContent closeDisabled={isCreating} className="w-[500px] sm:max-w-[500px]">
+      <SheetContent closeDisabled={isCreating} className="w-[550px] sm:max-w-[550px]">
         <SheetHeader>
           <SheetTitle>Create KV Namespace</SheetTitle>
           <SheetDescription>Set title to create a namespace</SheetDescription>
         </SheetHeader>
 
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-12 items-start gap-4">
-            <Label htmlFor="title" className="col-span-2 text-right pt-3">
+          <div className="grid grid-cols-[100px_1fr] items-center gap-4">
+            <Label htmlFor="title" className="text-right">
               Title *
             </Label>
-            <div className="col-span-10 space-y-2">
+            <div className="space-y-2">
               <Input
                 id="title"
                 value={title}

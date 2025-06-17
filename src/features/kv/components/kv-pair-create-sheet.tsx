@@ -17,8 +17,8 @@ import { ChangeEvent, FunctionComponent, ReactNode, useEffect, useRef, useState 
 import { useKvPair } from '../hooks/use-kv-pair.ts';
 import { KvPair, KvPairCreateInput } from '../kv-models.ts';
 import { parseMetadataJSON, validateExpirationTTL, validateMetadata } from '@/features/kv/lib/kv-utils.ts';
-import { Save } from 'lucide-react';
 import { cn } from '@/lib/utils.ts';
+import { PlusIcon } from 'lucide-react';
 
 export interface KvPairCreateSheetProps {
   namespaceId: string;
@@ -135,18 +135,18 @@ const KvPairCreateSheet: FunctionComponent<KvPairCreateSheetProps> = ({
   return (
     <Sheet open={isOpen} onOpenChange={setContainerOnOpenChange}>
       <SheetTrigger asChild>{children}</SheetTrigger>
-      <SheetContent closeDisabled={isSaving} className="w-[500px] sm:max-w-[500px]">
+      <SheetContent closeDisabled={isSaving} className="w-[550px] sm:max-w-[550px]">
         <SheetHeader>
-          <SheetTitle>Create KV Item</SheetTitle>
+          <SheetTitle>Create KV Pair</SheetTitle>
           <SheetDescription>Set key, value, metadata and expiration date</SheetDescription>
         </SheetHeader>
 
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-12 items-start gap-4">
-            <Label htmlFor="key" className="col-span-2 text-right pt-3">
+          <div className="grid grid-cols-[100px_1fr] items-center gap-4">
+            <Label htmlFor="key" className="text-right">
               Key *
             </Label>
-            <div className="col-span-10 space-y-2">
+            <div className="space-y-2">
               <Input
                 id="key"
                 value={key}
@@ -156,30 +156,30 @@ const KvPairCreateSheet: FunctionComponent<KvPairCreateSheetProps> = ({
                 className={cn(errors.key && 'border-red-500 focus-visible:ring-red-500')}
               />
               {errors.key && (
-                <p className={cn('text-[0.8rem] font-medium text-destructive')}>An item with this key already exists</p>
+                <p className={cn('text-[0.8rem] font-medium text-destructive')}>A pair with this key already exists</p>
               )}
             </div>
           </div>
 
-          <div className="grid grid-cols-12 items-start gap-4">
-            <Label htmlFor="value" className="col-span-2 text-right pt-2">
+          <div className="grid grid-cols-[100px_1fr] items-center gap-4">
+            <Label htmlFor="value" className="self-start text-right mt-3">
               Value
             </Label>
             <Textarea
               id="value"
               value={value}
               onChange={(e) => setValue(e.target.value)}
-              className="col-span-10 min-h-[200px]"
+              className="min-h-[200px]"
               ref={valueInputRef}
               disabled={isSaving}
             />
           </div>
 
-          <div className="grid grid-cols-12 items-start gap-4">
-            <Label htmlFor="metadata" className="col-span-2 text-right pt-2">
+          <div className="grid grid-cols-[100px_1fr] items-center gap-4">
+            <Label htmlFor="metadata" className="self-start text-right mt-3">
               Metadata
             </Label>
-            <div className="col-span-10 space-y-2">
+            <div className="space-y-2">
               <Textarea
                 id="metadata"
                 value={metadata}
@@ -193,11 +193,11 @@ const KvPairCreateSheet: FunctionComponent<KvPairCreateSheetProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-12 items-start gap-4">
-            <Label htmlFor="expiration" className="col-span-2 text-right pt-3">
+          <div className="grid grid-cols-[100px_1fr] items-center gap-4">
+            <Label htmlFor="expiration" className="text-right">
               Expiration
             </Label>
-            <div className="col-span-10 w-full">
+            <div className="w-full">
               <DateTimePicker
                 container={sheetContainer}
                 value={expiration}
@@ -207,11 +207,11 @@ const KvPairCreateSheet: FunctionComponent<KvPairCreateSheetProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-12 items-start gap-4">
-            <Label htmlFor="expirationTTL" className="col-span-2 text-right pt-3">
+          <div className="grid grid-cols-[100px_1fr] items-center gap-4">
+            <Label htmlFor="expirationTTL" className="text-right">
               Expiration TTL
             </Label>
-            <div className="col-span-10 space-y-2">
+            <div className="space-y-2">
               <Input
                 id="expirationTTL"
                 type="text"
@@ -231,11 +231,11 @@ const KvPairCreateSheet: FunctionComponent<KvPairCreateSheetProps> = ({
           <Button type="submit" disabled={isSaveButtonDisabled} onClick={handleSaveClick}>
             {isSaving ? (
               <>
-                <LoadingSpinner /> Saving...
+                <LoadingSpinner /> Creating...
               </>
             ) : (
               <>
-                <Save /> Save
+                <PlusIcon /> Create
               </>
             )}
           </Button>
