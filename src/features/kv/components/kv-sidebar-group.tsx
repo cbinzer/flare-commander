@@ -15,7 +15,6 @@ import {
 import { Skeleton } from '@/components/ui/skeleton.tsx';
 import { FunctionComponent, MouseEvent, useEffect, useState } from 'react';
 import { KvNamespace } from '@/features/kv/kv-models.ts';
-import { useError } from '@/hooks/use-local-storage.ts';
 import { useNavigate } from 'react-router';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip.tsx';
 import {
@@ -38,6 +37,7 @@ import {
 import { Button } from '@/components/ui/button.tsx';
 import { LoadingSpinner } from '@/components/ui/loading-spinner.tsx';
 import { useKvNamespaces } from '@/features/kv/hooks/use-kv-namespaces.ts';
+import { useError } from '@/hooks/use-error.ts';
 
 export function KvSidebarGroup() {
   const [activeNamespaceId, setActiveNamespaceId] = useState<string | undefined>();

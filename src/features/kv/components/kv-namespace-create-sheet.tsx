@@ -16,8 +16,8 @@ import { ChangeEvent, FunctionComponent, KeyboardEvent, ReactNode, useEffect, us
 import { KvNamespace } from '../kv-models.ts';
 import { PlusIcon } from 'lucide-react';
 import { cn } from '@/lib/utils.ts';
-import { useError } from '@/hooks/use-local-storage.ts';
 import { useKvNamespaces } from '@/features/kv/hooks/use-kv-namespaces.ts';
+import { useError } from '@/hooks/use-error.ts';
 
 export interface KvNamespaceCreateSheetProps {
   open?: boolean;
