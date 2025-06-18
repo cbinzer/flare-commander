@@ -313,6 +313,7 @@ impl KvClient {
             10013 => KvError::NamespaceNotFound,
             10014 => KvError::NamespaceAlreadyExists(error.message.clone()),
             10019 => KvError::NamespaceTitleMissing(error.message.clone()),
+            10147 => KvError::InvalidMetadata,
             _ => KvError::Unknown(error.message.clone()),
         }
     }
@@ -1518,6 +1519,38 @@ mod test {
 
             let error = result.unwrap_err();
             assert!(matches!(error, KvError::NamespaceNotFound));
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_respond_with_invalid_metadata_error_if_a_metadata_is_invalid(
+        ) -> Result<(), KvError> {
+            let write_input = KvPairWriteInput {
+                account_id: "my_account_id".to_string(),
+                namespace_id: "my_namespace".to_string(),
+                key: "key1".to_string(),
+                value: None,
+                expiration: None,
+                expiration_ttl: None,
+                metadata: None,
+            };
+            let mock_server = create_failing_mock_server(
+                &write_input,
+                vec![ApiError {
+                    code: 10147,
+                    message: "metadata must be valid json".to_string(),
+                }],
+            )
+            .await;
+
+            let kv = create_kv_client(mock_server.uri());
+            let result = kv.write_kv_pair(write_input).await;
+
+            assert!(result.is_err());
+
+            let error = result.unwrap_err();
+            assert!(matches!(error, KvError::InvalidMetadata));
 
             Ok(())
         }

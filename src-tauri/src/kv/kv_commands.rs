@@ -124,6 +124,7 @@ pub enum KvCommandErrorKind {
 
     KeyNotFound,
     KeyAlreadyExists,
+    InvalidMetadata,
 
     Authentication,
     Unknown,
@@ -151,6 +152,10 @@ impl From<KvError> for KvCommandError {
             KvError::KeyAlreadyExists(key) => KvCommandError {
                 kind: KvCommandErrorKind::KeyAlreadyExists,
                 message: format!("An item with the key {} already exists", key),
+            },
+            KvError::InvalidMetadata => KvCommandError {
+                kind: KvCommandErrorKind::InvalidMetadata,
+                message: "Metadata must be valid json".to_string(),
             },
             KvError::Token(token_err) => {
                 error!(
