@@ -13,12 +13,10 @@ use chrono::DateTime;
 use reqwest::multipart::Form;
 use reqwest::{Response, StatusCode};
 use serde::Deserialize;
-use serde_json::Value;
-use std::any::Any;
 use std::collections::HashMap;
-use std::iter::Map;
 use std::option::Option;
 use std::sync::Arc;
+use tokio::join;
 
 pub struct KvClient {
     api_url: Arc<String>,
@@ -177,13 +175,14 @@ impl KvClient {
             url_encode_key(&input.key)
         );
 
-        let response = self
+        let get_val_req = self
             .http_client
             .get(&url)
-            .headers(self.credentials.headers())
-            .send()
-            .await?;
+            .headers(self.credentials.headers());
+        let get_metadata_req = self.get_kv_pair_metadata(input.clone().into());
+        let (resp_result, metadata_result) = join!(get_val_req.send(), get_metadata_req);
 
+        let response = resp_result?;
         match response.status() {
             StatusCode::OK => {
                 let expiration = response
@@ -198,7 +197,7 @@ impl KvClient {
                     key: input.key,
                     value,
                     expiration,
-                    metadata: None,
+                    metadata: metadata_result?,
                 })
             }
             _ => Err(self.handle_api_error_response(response).await),
@@ -1237,12 +1236,14 @@ mod test {
 
     mod get_kv_pair {
         use chrono::{DateTime, Utc};
+        use serde_json::json;
+        use std::collections::HashMap;
         use wiremock::matchers::{method, path};
         use wiremock::{Mock, MockServer, ResponseTemplate};
 
-        use crate::cloudflare::common::{ApiError, ApiErrorResponse};
+        use crate::cloudflare::common::{ApiError, ApiErrorResponse, ApiResponse};
         use crate::cloudflare::kv::kv_client::test::create_kv_client;
-        use crate::cloudflare::kv::{KvError, KvPair, KvPairGetInput};
+        use crate::cloudflare::kv::{KvError, KvPair, KvPairGetInput, KvPairMetadata};
 
         #[tokio::test]
         async fn should_get_kv_pair() -> Result<(), KvError> {
@@ -1250,7 +1251,12 @@ mod test {
                 key: "key1".to_string(),
                 value: "value".to_string(),
                 expiration: DateTime::from_timestamp(Utc::now().timestamp(), 0),
-                metadata: None,
+                metadata: Some(HashMap::from([(
+                    "key".to_string(),
+                    json!({
+                        "subkey": "subvalue"
+                    }),
+                )])),
             };
             let get_input = KvPairGetInput {
                 account_id: "my_account_id".to_string(),
@@ -1337,6 +1343,19 @@ mod test {
                     input.account_id, input.namespace_id, input.key
                 )))
                 .respond_with(response_template)
+                .mount(&mock_server)
+                .await;
+
+            Mock::given(method("GET"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/metadata/{}",
+                    input.account_id, input.namespace_id, input.key
+                )))
+                .respond_with(ResponseTemplate::new(200).set_body_json(ApiResponse::<
+                    KvPairMetadata,
+                > {
+                    result: pair.metadata.clone(),
+                }))
                 .mount(&mock_server)
                 .await;
 
@@ -1484,11 +1503,13 @@ mod test {
     }
 
     mod create_kv_pair {
-        use crate::cloudflare::common::{ApiError, ApiErrorResponse};
+        use std::collections::HashMap;
+
+        use crate::cloudflare::common::{ApiError, ApiErrorResponse, ApiResponse};
         use crate::cloudflare::kv::kv_client::test::create_kv_client;
-        use crate::cloudflare::kv::{KvError, KvPair, KvPairCreateInput};
+        use crate::cloudflare::kv::{KvError, KvPair, KvPairCreateInput, KvPairMetadata};
         use chrono::{DateTime, Utc};
-        use serde_json::json;
+        use serde_json::Value;
         use wiremock::matchers::{method, path, query_param};
         use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -1498,9 +1519,10 @@ mod test {
                 key: "key1".to_string(),
                 value: "value".to_string(),
                 expiration: DateTime::from_timestamp(Utc::now().timestamp(), 0),
-                metadata: Some(json!({
-                    "key": "value"
-                })),
+                metadata: Some(HashMap::<String, Value>::from([(
+                    "key".to_string(),
+                    Value::String("value".to_string()),
+                )])),
             };
             let create_input = KvPairCreateInput {
                 account_id: "account_id".to_string(),
@@ -1593,16 +1615,31 @@ mod test {
                 .mount(&mock_server)
                 .await;
 
+            Mock::given(method("GET"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/metadata/{}",
+                    input.account_id, input.namespace_id, input.key
+                )))
+                .respond_with(ResponseTemplate::new(200).set_body_json(ApiResponse::<
+                    KvPairMetadata,
+                > {
+                    result: None,
+                }))
+                .mount(&mock_server)
+                .await;
+
             mock_server
         }
     }
 
     mod write_kv_pair {
+        use std::collections::HashMap;
+
         use crate::cloudflare::common::{ApiError, ApiErrorResponse};
         use crate::cloudflare::kv::kv_client::test::create_kv_client;
         use crate::cloudflare::kv::{KvError, KvPair, KvPairWriteInput};
         use chrono::{DateTime, Utc};
-        use serde_json::json;
+        use serde_json::Value;
         use wiremock::{
             matchers::{method, path, query_param},
             Mock, MockServer, ResponseTemplate,
@@ -1614,9 +1651,10 @@ mod test {
                 key: "key1".to_string(),
                 value: "value".to_string(),
                 expiration: DateTime::from_timestamp(Utc::now().timestamp(), 0),
-                metadata: Some(json!({
-                    "key": "value"
-                })),
+                metadata: Some(HashMap::<String, Value>::from([(
+                    "key".to_string(),
+                    Value::String("value".to_string()),
+                )])),
             };
 
             let write_input = KvPairWriteInput {

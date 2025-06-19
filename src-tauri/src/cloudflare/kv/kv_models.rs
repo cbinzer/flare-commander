@@ -168,13 +168,23 @@ pub struct KvPair {
     pub value: String,
 
     #[serde(default)]
-    pub metadata: Option<Value>,
+    pub metadata: KvPairMetadata,
 
     #[serde(with = "ts_seconds_option")]
     pub expiration: Option<DateTime<Utc>>,
 }
 
 pub type KvPairMetadata = Option<HashMap<String, Value>>;
+
+impl From<KvPairGetInput> for KvPairMetadataGetInput {
+    fn from(value: KvPairGetInput) -> Self {
+        Self {
+            account_id: value.account_id,
+            namespace_id: value.namespace_id,
+            key: value.key,
+        }
+    }
+}
 
 impl From<ApiResponse<KvPairMetadata>> for KvPairMetadata {
     fn from(response: ApiResponse<KvPairMetadata>) -> Self {
@@ -197,7 +207,7 @@ pub struct KvPairCreateInput {
     pub value: Option<String>,
     pub expiration: Option<DateTime<Utc>>,
     pub expiration_ttl: Option<u32>,
-    pub metadata: Option<Value>,
+    pub metadata: KvPairMetadata,
 }
 
 impl From<&KvPairCreateInput> for KvPairGetInput {
@@ -232,7 +242,7 @@ pub struct KvPairWriteInput {
     pub value: Option<String>,
     pub expiration: Option<DateTime<Utc>>,
     pub expiration_ttl: Option<u32>,
-    pub metadata: Option<Value>,
+    pub metadata: KvPairMetadata,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
