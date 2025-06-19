@@ -174,6 +174,21 @@ pub struct KvPair {
     pub expiration: Option<DateTime<Utc>>,
 }
 
+pub type KvPairMetadata = Option<HashMap<String, Value>>;
+
+impl From<ApiResponse<KvPairMetadata>> for KvPairMetadata {
+    fn from(response: ApiResponse<KvPairMetadata>) -> Self {
+        response.result
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct KvPairMetadataGetInput {
+    pub account_id: String,
+    pub namespace_id: String,
+    pub key: String,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct KvPairCreateInput {
     pub account_id: String,

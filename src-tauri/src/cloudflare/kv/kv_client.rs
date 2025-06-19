@@ -7,13 +7,16 @@ use crate::cloudflare::kv::utils::url_encode_key;
 use crate::cloudflare::kv::{
     KvError, KvKey, KvKeys, KvKeysListInput, KvNamespace, KvNamespaceCreateInput,
     KvNamespaceDeleteInput, KvNamespaceGetInput, KvNamespaceUpdateInput, KvNamespaces,
-    KvNamespacesListInput, KvPairWriteInput,
+    KvNamespacesListInput, KvPairMetadata, KvPairMetadataGetInput, KvPairWriteInput,
 };
 use chrono::DateTime;
 use reqwest::multipart::Form;
 use reqwest::{Response, StatusCode};
 use serde::Deserialize;
+use serde_json::Value;
+use std::any::Any;
 use std::collections::HashMap;
+use std::iter::Map;
 use std::option::Option;
 use std::sync::Arc;
 
@@ -200,6 +203,29 @@ impl KvClient {
             }
             _ => Err(self.handle_api_error_response(response).await),
         }
+    }
+
+    pub async fn get_kv_pair_metadata(
+        &self,
+        input: KvPairMetadataGetInput,
+    ) -> Result<KvPairMetadata, KvError> {
+        let url = format!(
+            "{}/accounts/{}/storage/kv/namespaces/{}/metadata/{}",
+            self.api_url,
+            input.account_id,
+            input.namespace_id,
+            url_encode_key(&input.key)
+        );
+
+        let response = self
+            .http_client
+            .get(&url)
+            .headers(self.credentials.headers())
+            .send()
+            .await?;
+
+        self.handle_api_response::<ApiResponse<KvPairMetadata>, KvPairMetadata>(response)
+            .await
     }
 
     pub async fn create_kv_pair(&self, input: KvPairCreateInput) -> Result<KvPair, KvError> {
@@ -1326,6 +1352,127 @@ mod test {
             Mock::given(method("GET"))
                 .and(path(format!(
                     "/client/v4/accounts/{}/storage/kv/namespaces/{}/values/{}",
+                    input.account_id, input.namespace_id, input.key
+                )))
+                .respond_with(ResponseTemplate::new(400).set_body_json(ApiErrorResponse { errors }))
+                .mount(&mock_server)
+                .await;
+
+            mock_server
+        }
+    }
+
+    mod get_kv_pair_metadata {
+        use std::collections::HashMap;
+
+        use crate::cloudflare::common::{ApiError, ApiErrorResponse, ApiResponse};
+        use crate::cloudflare::kv::kv_client::test::create_kv_client;
+        use crate::cloudflare::kv::{KvError, KvPairMetadata, KvPairMetadataGetInput};
+        use serde_json::{json, Value};
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        #[tokio::test]
+        async fn should_get_existing_kv_pair_metadata() -> Result<(), KvError> {
+            let expected_metadata = Some(HashMap::<String, Value>::from([(
+                "key".to_string(),
+                json!({
+                    "key": {
+                        "subkey": "subvalue"
+                    }
+                }),
+            )]));
+            let input = KvPairMetadataGetInput {
+                account_id: "account_id".to_string(),
+                namespace_id: "namespace_id".to_string(),
+                key: "key1".to_string(),
+            };
+            let mock_server = create_succeeding_mock_server(&input, &expected_metadata).await;
+
+            let kv_client = create_kv_client(mock_server.uri());
+            let metadata = kv_client.get_kv_pair_metadata(input).await?;
+
+            assert_eq!(metadata, expected_metadata);
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_get_undefined_kv_pair_metadata() -> Result<(), KvError> {
+            let expected_metadata = None;
+            let input = KvPairMetadataGetInput {
+                account_id: "account_id".to_string(),
+                namespace_id: "namespace_id".to_string(),
+                key: "key1".to_string(),
+            };
+            let mock_server = create_succeeding_mock_server(&input, &expected_metadata).await;
+
+            let kv_client = create_kv_client(mock_server.uri());
+            let metadata = kv_client.get_kv_pair_metadata(input).await?;
+
+            assert_eq!(metadata, expected_metadata);
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_respond_with_key_not_found_error_if_a_key_not_exist() -> Result<(), KvError>
+        {
+            let get_metadata_input = KvPairMetadataGetInput {
+                account_id: "account_id".to_string(),
+                namespace_id: "namespace_id".to_string(),
+                key: "key".to_string(),
+            };
+            let mock_server = create_failing_mock_server(
+                &get_metadata_input,
+                vec![ApiError {
+                    code: 10009,
+                    message: "metadata: 'key not found'".to_string(),
+                }],
+            )
+            .await;
+
+            let kv = create_kv_client(mock_server.uri());
+            let result = kv.get_kv_pair_metadata(get_metadata_input).await;
+            assert!(result.is_err());
+
+            let error = result.unwrap_err();
+            assert!(matches!(error, KvError::KeyNotFound));
+
+            Ok(())
+        }
+
+        async fn create_succeeding_mock_server(
+            input: &KvPairMetadataGetInput,
+            metadata: &KvPairMetadata,
+        ) -> MockServer {
+            let mock_server = MockServer::start().await;
+            let response_template =
+                ResponseTemplate::new(200).set_body_json(ApiResponse::<KvPairMetadata> {
+                    result: metadata.clone(),
+                });
+
+            Mock::given(method("GET"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/metadata/{}",
+                    input.account_id, input.namespace_id, input.key
+                )))
+                .respond_with(response_template)
+                .mount(&mock_server)
+                .await;
+
+            mock_server
+        }
+
+        async fn create_failing_mock_server(
+            input: &KvPairMetadataGetInput,
+            errors: Vec<ApiError>,
+        ) -> MockServer {
+            let mock_server = MockServer::start().await;
+
+            Mock::given(method("GET"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/metadata/{}",
                     input.account_id, input.namespace_id, input.key
                 )))
                 .respond_with(ResponseTemplate::new(400).set_body_json(ApiErrorResponse { errors }))
