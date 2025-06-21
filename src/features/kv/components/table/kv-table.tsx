@@ -314,7 +314,6 @@ export function KvTable({ namespace }: KvTableProps) {
       <KvPairUpdateSheet
         namespaceId={namespace.id}
         itemKey={kvKeyToEdit?.name ?? ''}
-        itemMetadata={kvKeyToEdit?.metadata ?? null}
         open={isUpdateSheetOpen}
         onUpdate={reloadKeys}
         onOpenChange={setIsUpdateSheetOpen}

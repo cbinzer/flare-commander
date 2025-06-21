@@ -13,10 +13,11 @@ import {
 } from '@/components/ui/sheet.tsx';
 import { Skeleton } from '@/components/ui/skeleton.tsx';
 import { FunctionComponent, KeyboardEvent, ReactNode, useEffect, useRef, useState } from 'react';
-import { KvNamespace, KvNamespaceUpdateInput } from '../kv-models.ts';
+import { KvError, KvNamespace, KvNamespaceUpdateInput } from '../kv-models.ts';
 import { Save } from 'lucide-react';
 import { cn } from '@/lib/utils.ts';
 import { useKvNamespaces } from '@/features/kv/hooks/use-kv-namespaces.ts';
+import { useError } from '@/hooks/use-error.ts';
 
 export interface KvNamespaceUpdateSheetProps {
   namespaceId: string;
@@ -34,6 +35,7 @@ const KvNamespaceUpdateSheet: FunctionComponent<KvNamespaceUpdateSheetProps> = (
   onOpenChange = () => {},
 }) => {
   const { namespace, getNamespace, updateNamespace, isLoadingOne } = useKvNamespaces();
+  const { handleError } = useError();
   const titleInputRef = useRef<HTMLInputElement>(null);
 
   const [isSaving, setIsSaving] = useState(false);
@@ -53,12 +55,14 @@ const KvNamespaceUpdateSheet: FunctionComponent<KvNamespaceUpdateSheetProps> = (
 
     setErrors({});
 
-    getNamespace(namespaceId).then(() => {
-      setTimeout(() => {
-        titleInputRef.current?.focus();
-        titleInputRef.current?.setSelectionRange(0, titleInputRef.current.value.length);
-      }, 100);
-    });
+    getNamespace(namespaceId)
+      .then(() => {
+        setTimeout(() => {
+          titleInputRef.current?.focus();
+          titleInputRef.current?.setSelectionRange(0, titleInputRef.current.value.length);
+        }, 100);
+      })
+      .catch(handleError);
   };
 
   const handleSaveClick = async () => {
@@ -75,7 +79,12 @@ const KvNamespaceUpdateSheet: FunctionComponent<KvNamespaceUpdateSheetProps> = (
       setIsOpen(false);
       onOpenChange(false);
     } catch (e) {
-      setErrors((prevState) => ({ ...prevState, title: e as Error }));
+      const error = e as KvError;
+      if (error.kind === 'NamespaceAlreadyExists') {
+        setErrors((prevState) => ({ ...prevState, title: error }));
+      } else {
+        handleError(error);
+      }
     } finally {
       setIsSaving(false);
     }

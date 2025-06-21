@@ -30,11 +30,11 @@ export function useKvPair() {
     };
 
     try {
-      const item = await invokeGetKvPair(
+      const pair = await invokeGetKvPair(
         { account_id: account?.id ?? '', namespace_id: namespaceId, key },
         credentials,
       );
-      setKvPair(item);
+      setKvPair(pair);
     } catch (e) {
       setError(e as KvError);
     } finally {
@@ -110,6 +110,7 @@ export async function invokeCreateKvPair(
   credentials: UserAuthTokenCredentials,
 ): Promise<KvPair> {
   try {
+    console.log(input);
     const kvPair = await invoke<KvPairDTO>('create_kv_pair', {
       input,
       credentials,

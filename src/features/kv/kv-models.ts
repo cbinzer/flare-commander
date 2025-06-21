@@ -141,7 +141,12 @@ export interface KvTableKey extends KvKey {
   namespaceId: string;
 }
 
-export type KvErrorKind = 'Authentication' | 'Unknown' | 'NamespaceAlreadyExists' | 'KeyAlreadyExists';
+export type KvErrorKind =
+  | 'Authentication'
+  | 'Unknown'
+  | 'NamespaceAlreadyExists'
+  | 'KeyAlreadyExists'
+  | 'InvalidMetadata';
 
 export class KvError extends Error {
   constructor(

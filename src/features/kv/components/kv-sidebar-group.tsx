@@ -68,10 +68,24 @@ export function KvSidebarGroup() {
     }
   };
 
+  const loadNextNamespaces = async () => {
+    try {
+      await listNextNamespaces();
+    } catch (error) {
+      handleError(error as Error);
+    }
+  };
+
   const reloadNamespaces = async () => {
     setIsReloading(true);
-    await relistNamespaces();
-    setIsReloading(false);
+
+    try {
+      await listNamespaces();
+    } catch (error) {
+      handleError(error as Error);
+    } finally {
+      setIsReloading(false);
+    }
   };
 
   useEffect(() => {
@@ -138,7 +152,7 @@ export function KvSidebarGroup() {
             <SidebarMenuItem>
               <SidebarMenuButton
                 className="text-sidebar-foreground/70"
-                onClick={listNextNamespaces}
+                onClick={loadNextNamespaces}
                 disabled={isLoadingNext}
               >
                 {isLoadingNext ? (
@@ -297,6 +311,7 @@ const KvNamespaceDeleteDialog: FunctionComponent<KvNamespaceDeleteDialogProps> =
   onDelete = () => Promise.resolve(),
 }) => {
   const { deleteNamespace } = useKvNamespaces();
+  const { handleError } = useError();
 
   const [isDialogOpen, setIsDialogOpen] = useState(open);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -315,6 +330,8 @@ const KvNamespaceDeleteDialog: FunctionComponent<KvNamespaceDeleteDialogProps> =
       await deleteNamespace(namespace.id);
       await onDelete();
       handleOnOpenChange(false);
+    } catch (e) {
+      handleError(e as Error);
     } finally {
       setIsDeleting(false);
     }

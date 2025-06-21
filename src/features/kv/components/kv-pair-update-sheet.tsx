@@ -16,7 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton.tsx';
 import { Textarea } from '@/components/ui/textarea.tsx';
 import { FunctionComponent, ReactNode, useEffect, useRef, useState } from 'react';
 import { useKvPair } from '../hooks/use-kv-pair.ts';
-import { KvKeyPairWriteInput, KvMetadata } from '../kv-models.ts';
+import { KvError, KvKeyPairWriteInput } from '../kv-models.ts';
 import {
   parseMetadataJSON,
   stringifyMetadataJSON,
@@ -25,11 +25,11 @@ import {
 } from '@/features/kv/lib/kv-utils.ts';
 import { Save } from 'lucide-react';
 import { cn } from '@/lib/utils.ts';
+import { useError } from '@/hooks/use-error.ts';
 
 export interface KvPairUpdateSheetProps {
   namespaceId: string;
   itemKey: string;
-  itemMetadata: KvMetadata;
   open?: boolean;
   onUpdate?: () => Promise<void>;
   onOpenChange?: (open: boolean) => void;
@@ -39,13 +39,13 @@ export interface KvPairUpdateSheetProps {
 const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
   namespaceId,
   itemKey,
-  itemMetadata,
   open = false,
   children,
   onUpdate = () => Promise.resolve(),
   onOpenChange = () => {},
 }) => {
   const { kvPair, getKvPair, writeKvPair, isLoading } = useKvPair();
+  const { handleError } = useError();
   const valueInputRef = useRef<HTMLTextAreaElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
@@ -53,7 +53,7 @@ const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [key, setKey] = useState(kvPair?.key);
   const [value, setValue] = useState(kvPair?.value);
-  const [metadata, setMetadata] = useState(stringifyMetadataJSON(itemMetadata));
+  const [metadata, setMetadata] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
   const [expiration, setExpiration] = useState(kvPair?.expiration);
   const [expirationTTL, setExpirationTTL] = useState('0');
@@ -69,9 +69,9 @@ const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
       return;
     }
 
-    getKvPair(namespaceId, itemKey).then(() =>
-      setSheetContainer(document.querySelector('[role="dialog"]') as HTMLElement),
-    );
+    getKvPair(namespaceId, itemKey)
+      .then(() => setSheetContainer(document.querySelector('[role="dialog"]') as HTMLElement))
+      .catch(handleError);
   };
 
   const validateAndSetMetadata = (value: string) => {
@@ -108,8 +108,12 @@ const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
       setIsOpen(false);
       onOpenChange(false);
     } catch (e) {
-      console.error('Error parsing metadata:', e);
-      setErrors((prevState) => ({ ...prevState, metadata: e as Error }));
+      const error = e as KvError;
+      if (error.kind === 'InvalidMetadata') {
+        setErrors((prevState) => ({ ...prevState, metadata: error }));
+      } else {
+        handleError(error);
+      }
     } finally {
       setIsSaving(false);
     }
@@ -125,6 +129,7 @@ const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
     setKey(kvPair?.key);
     setValue(kvPair?.value);
     setExpiration(kvPair?.expiration);
+    setMetadata(stringifyMetadataJSON(kvPair?.metadata ?? ''));
     setExpirationTTL('0');
   }, [kvPair]);
 

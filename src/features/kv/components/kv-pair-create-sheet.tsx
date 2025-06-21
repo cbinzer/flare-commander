@@ -19,6 +19,7 @@ import { KvPair, KvPairCreateInput } from '../kv-models.ts';
 import { parseMetadataJSON, validateExpirationTTL, validateMetadata } from '@/features/kv/lib/kv-utils.ts';
 import { cn } from '@/lib/utils.ts';
 import { PlusIcon } from 'lucide-react';
+import { useError } from '@/hooks/use-error.ts';
 
 export interface KvPairCreateSheetProps {
   namespaceId: string;
@@ -32,6 +33,7 @@ const KvPairCreateSheet: FunctionComponent<KvPairCreateSheetProps> = ({
   onCreate = () => Promise.resolve(),
 }) => {
   const { kvPair, error, createKvPair } = useKvPair();
+  const { handleError } = useError();
 
   const valueInputRef = useRef<HTMLTextAreaElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -95,8 +97,7 @@ const KvPairCreateSheet: FunctionComponent<KvPairCreateSheetProps> = ({
       };
       await createKvPair(createInput);
     } catch (e) {
-      console.error('Error parsing metadata:', e);
-      setErrors((prev) => ({ ...prev, metadata: e as Error }));
+      // Error handling is done in the useEffect hook
     }
   };
 
@@ -104,6 +105,7 @@ const KvPairCreateSheet: FunctionComponent<KvPairCreateSheetProps> = ({
     if (kvPair) {
       onCreate(kvPair)
         .then(() => setIsOpen(false))
+        .catch(handleError)
         .finally(() => setIsSaving(false));
     }
   }, [kvPair]);
@@ -126,8 +128,10 @@ const KvPairCreateSheet: FunctionComponent<KvPairCreateSheetProps> = ({
           ...prev,
           key: error,
         }));
+      } else if (error.kind === 'InvalidMetadata') {
+        setErrors((prev) => ({ ...prev, metadata: error }));
       } else {
-        console.error('Error creating KV item:', error);
+        handleError(error);
       }
     }
   }, [error]);
