@@ -77,7 +77,7 @@ const DateTimePicker: FunctionComponent<DateTimePickerProps> = ({
 
       <PopoverContent className="w-auto p-0" container={container}>
         <div className="sm:flex">
-          <Calendar mode="single" selected={date} onSelect={handleDateSelect} initialFocus />
+          <Calendar mode="single" selected={date} onSelect={handleDateSelect} autoFocus />
 
           <div className="flex flex-col sm:flex-row sm:h-[300px] divide-y sm:divide-y-0 sm:divide-x">
             <ScrollArea className="w-64 sm:w-auto">
