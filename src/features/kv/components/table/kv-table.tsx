@@ -272,7 +272,7 @@ export function KvTable({ namespace }: KvTableProps) {
           <KvPairCreateSheet namespaceId={namespace.id} onCreate={async () => await reloadKeys()}>
             <Button variant="outline" size="sm" disabled={isRefreshing}>
               <PlusIcon />
-              <span className="hidden lg:inline">Add Item</span>
+              <span className="hidden lg:inline">Add Pair</span>
             </Button>
           </KvPairCreateSheet>
           <Button variant="outline" size="sm" disabled={isRefreshing} onClick={refreshKeys}>
