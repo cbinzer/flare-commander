@@ -1,6 +1,8 @@
 <div style="text-align: center;">
-  <img src="src/assets/logo.svg" alt="FlareCommander" width="120px" height="120px">
-  <h1 style="margin-top: 0;">FlareCommander</h1>
+
+<img src="public/logo.svg" alt="FlareCommander" width="120px" height="120px">
+    
+<h1 style="margin-top: 0;">FlareCommander</h1>
 
 ![set url](public/flare-commander.png 'FlareCommander Screenshot')
 
