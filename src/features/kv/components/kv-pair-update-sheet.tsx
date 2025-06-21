@@ -16,7 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton.tsx';
 import { Textarea } from '@/components/ui/textarea.tsx';
 import { FunctionComponent, ReactNode, useEffect, useRef, useState } from 'react';
 import { useKvPair } from '../hooks/use-kv-pair.ts';
-import { KvError, KvKeyPairWriteInput } from '../kv-models.ts';
+import { KvKeyPairWriteInput } from '../kv-models.ts';
 import {
   parseMetadataJSON,
   stringifyMetadataJSON,
@@ -44,7 +44,7 @@ const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
   onUpdate = () => Promise.resolve(),
   onOpenChange = () => {},
 }) => {
-  const { kvPair, getKvPair, writeKvPair, isLoading } = useKvPair();
+  const { kvPair, getKvPair, writeKvPair, isLoading, error } = useKvPair();
   const { handleError } = useError();
   const valueInputRef = useRef<HTMLTextAreaElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -94,7 +94,7 @@ const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
 
     try {
       const parsedMetadata = parseMetadataJSON(metadata);
-      const upsertInput: Omit<KvKeyPairWriteInput, 'account_id'> = {
+      const writeInput: Omit<KvKeyPairWriteInput, 'account_id'> = {
         namespace_id: namespaceId,
         key: key ?? '',
         value,
@@ -102,18 +102,11 @@ const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
         expiration_ttl: Number(expirationTTL),
         metadata: parsedMetadata,
       };
-      await writeKvPair(upsertInput);
+      await writeKvPair(writeInput);
       await onUpdate();
 
       setIsOpen(false);
       onOpenChange(false);
-    } catch (e) {
-      const error = e as KvError;
-      if (error.kind === 'InvalidMetadata') {
-        setErrors((prevState) => ({ ...prevState, metadata: error }));
-      } else {
-        handleError(error);
-      }
     } finally {
       setIsSaving(false);
     }
@@ -126,7 +119,6 @@ const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
   }, [sheetContainer]);
 
   useEffect(() => {
-    console.log(kvPair);
     setKey(kvPair?.key);
     setValue(kvPair?.value);
     setExpiration(kvPair?.expiration);
@@ -135,6 +127,14 @@ const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
   }, [kvPair]);
 
   useEffect(() => loadKvPairOnOpenChange(open), [open]);
+
+  useEffect(() => {
+    if (error?.kind === 'InvalidMetadata') {
+      setErrors((prevState) => ({ ...prevState, metadata: error }));
+    } else if (error) {
+      handleError(error);
+    }
+  }, [error]);
 
   return (
     <Sheet open={isOpen} onOpenChange={loadKvPairOnOpenChange}>

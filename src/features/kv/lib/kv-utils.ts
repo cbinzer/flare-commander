@@ -48,7 +48,12 @@ export function validateExpirationTTL(value: string): boolean {
   return expirationTTL === 0 || expirationTTL >= 60;
 }
 
-export function convertPlainToKvErrorClass(kvError: KvError): KvError {
+export function convertPlainToKvErrorClass(kvError: KvError | string): KvError {
   console.error(kvError);
+
+  if (typeof kvError === 'string') {
+    return new KvError(kvError, 'Unknown');
+  }
+
   return new KvError(kvError.message, kvError.kind);
 }
