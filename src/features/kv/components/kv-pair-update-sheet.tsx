@@ -126,10 +126,11 @@ const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
   }, [sheetContainer]);
 
   useEffect(() => {
+    console.log(kvPair);
     setKey(kvPair?.key);
     setValue(kvPair?.value);
     setExpiration(kvPair?.expiration);
-    setMetadata(stringifyMetadataJSON(kvPair?.metadata ?? ''));
+    setMetadata(stringifyMetadataJSON(kvPair?.metadata ?? null));
     setExpirationTTL('0');
   }, [kvPair]);
 
