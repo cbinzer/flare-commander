@@ -1,7 +1,11 @@
-# Tauri + React + Typescript
+<div style="text-align: center;">
+  <img src="src/assets/logo.svg" alt="FlareCommander" width="120px" height="120px">
+  <h1 style="margin-top: 0;">FlareCommander</h1>
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+![set url](public/flare-commander.png 'FlareCommander Screenshot')
 
-## Recommended IDE Setup
+**FlareCommander** is a minimal GUI tool for macOS that makes it easy to manage your Cloudflare KV pairs and namespaces.
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+[Download](https://github.com/cbinzer/flare-commander/releases)
+
+</div>
