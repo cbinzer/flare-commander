@@ -1,4 +1,4 @@
-<div style="text-align: center;">
+<div align="center" style="text-align: center;">
 
 <img src="public/logo.svg" alt="FlareCommander" width="120px" height="120px">
     
