@@ -11,3 +11,7 @@
 [Download](https://github.com/cbinzer/flare-commander/releases)
 
 </div>
+
+## Prerequisites
+
+You need to have a Cloudflare User API Token with the following permissions: **Workers KV Storage:Edit**. 
