@@ -25,7 +25,7 @@ export function useKvKeys(namespaceId: string) {
   const [hasNextKeys, setHasNextKeys] = useState<boolean>(false);
   const [error, setError] = useState<KvError | null>(null);
 
-  const loadKeys = async (cursor?: string, limit?: number, prefix?: string) => {
+  const loadKeys = async (cursor?: string, limit = 20, prefix?: string) => {
     setIsLoading(true);
 
     const credentials: UserAuthTokenCredentials = {
