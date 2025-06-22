@@ -125,6 +125,7 @@ pub enum KvCommandErrorKind {
     KeyNotFound,
     KeyAlreadyExists,
     InvalidMetadata,
+    InvalidExpiration,
 
     Authentication,
     Unknown,
@@ -156,6 +157,10 @@ impl From<KvError> for KvCommandError {
             KvError::InvalidMetadata => KvCommandError {
                 kind: KvCommandErrorKind::InvalidMetadata,
                 message: "Metadata must be valid json".to_string(),
+            },
+            KvError::InvalidExpiration => KvCommandError {
+                kind: KvCommandErrorKind::InvalidExpiration,
+                message: "Invalid expiration date. Please specify integer greater than the current number of seconds since the UNIX epoch.".to_string(),
             },
             KvError::Token(token_err) => {
                 error!(

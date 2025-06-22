@@ -273,6 +273,7 @@ pub enum KvError {
     KeyNotFound,
     KeyAlreadyExists(String),
     InvalidMetadata,
+    InvalidExpiration,
 
     Token(TokenError),
 

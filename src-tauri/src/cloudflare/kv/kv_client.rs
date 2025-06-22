@@ -338,6 +338,7 @@ impl KvClient {
             10013 => KvError::NamespaceNotFound,
             10014 => KvError::NamespaceAlreadyExists(error.message.clone()),
             10019 => KvError::NamespaceTitleMissing(error.message.clone()),
+            10033 => KvError::InvalidExpiration,
             10147 => KvError::InvalidMetadata,
             _ => KvError::Unknown(error.message.clone()),
         }
@@ -1736,6 +1737,38 @@ mod test {
 
             let error = result.unwrap_err();
             assert!(matches!(error, KvError::InvalidMetadata));
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_respond_with_invalid_expiration_error_if_a_expiration_is_invalid(
+        ) -> Result<(), KvError> {
+            let write_input = KvPairWriteInput {
+                account_id: "my_account_id".to_string(),
+                namespace_id: "my_namespace".to_string(),
+                key: "key1".to_string(),
+                value: None,
+                expiration: Some(Utc::now()),
+                expiration_ttl: None,
+                metadata: None,
+            };
+            let mock_server = create_failing_mock_server(
+                &write_input,
+                vec![ApiError {
+                    code: 10033,
+                    message: "put: 'Invalid expiration of 1750594320. Please specify integer greater than the current number of seconds since the UNIX epoch.'".to_string(),
+                }],
+            )
+            .await;
+
+            let kv = create_kv_client(mock_server.uri());
+            let result = kv.write_kv_pair(write_input).await;
+
+            assert!(result.is_err());
+
+            let error = result.unwrap_err();
+            assert!(matches!(error, KvError::InvalidExpiration));
 
             Ok(())
         }
