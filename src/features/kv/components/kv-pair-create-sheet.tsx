@@ -46,9 +46,12 @@ const KvPairCreateSheet: FunctionComponent<KvPairCreateSheetProps> = ({
   const [metadata, setMetadata] = useState('');
   const [expiration, setExpiration] = useState<Date | undefined>(undefined);
   const [expirationTTL, setExpirationTTL] = useState('0');
-  const [errors, setErrors] = useState<{ key?: Error; metadata?: Error; expirationTTL?: Error }>({});
+  const [errors, setErrors] = useState<{ key?: Error; metadata?: Error; expiration?: Error; expirationTTL?: Error }>(
+    {},
+  );
 
-  const isSaveButtonDisabled = isSaving || !key || !!errors.key || !!errors.metadata || !!errors.expirationTTL;
+  const isSaveButtonDisabled =
+    isSaving || !key || !!errors.key || !!errors.metadata || !!errors.expiration || !!errors.expirationTTL;
 
   const setContainerOnOpenChange = (open: boolean) => {
     setIsOpen(open);
@@ -85,20 +88,21 @@ const KvPairCreateSheet: FunctionComponent<KvPairCreateSheetProps> = ({
   const handleSaveClick = async () => {
     setIsSaving(true);
 
-    try {
-      const parsedMetadata = parseMetadataJSON(metadata);
-      const createInput: Omit<KvPairCreateInput, 'account_id'> = {
-        namespace_id: namespaceId,
-        key: key ?? '',
-        value,
-        expiration,
-        expiration_ttl: Number(expirationTTL),
-        metadata: parsedMetadata,
-      };
-      await createKvPair(createInput);
-    } catch (e) {
-      // Error handling is done in the useEffect hook
-    }
+    const parsedMetadata = parseMetadataJSON(metadata);
+    const createInput: Omit<KvPairCreateInput, 'account_id'> = {
+      namespace_id: namespaceId,
+      key: key ?? '',
+      value,
+      expiration,
+      expiration_ttl: Number(expirationTTL),
+      metadata: parsedMetadata,
+    };
+    await createKvPair(createInput);
+  };
+
+  const changeExpiration = (date: Date | undefined) => {
+    setExpiration(date);
+    setErrors((prevState) => ({ ...prevState, expiration: undefined }));
   };
 
   useEffect(() => {
@@ -130,6 +134,8 @@ const KvPairCreateSheet: FunctionComponent<KvPairCreateSheetProps> = ({
         }));
       } else if (error.kind === 'InvalidMetadata') {
         setErrors((prev) => ({ ...prev, metadata: error }));
+      } else if (error.kind === 'InvalidExpiration') {
+        setErrors((prev) => ({ ...prev, expiration: error }));
       } else {
         handleError(error);
       }
@@ -201,13 +207,19 @@ const KvPairCreateSheet: FunctionComponent<KvPairCreateSheetProps> = ({
             <Label htmlFor="expiration" className="text-right">
               Expiration
             </Label>
-            <div className="w-full">
+            <div className="space-y-2">
               <DateTimePicker
                 container={sheetContainer}
                 value={expiration}
                 disabled={isSaving}
-                onChange={(date) => setExpiration(date)}
+                onChange={changeExpiration}
+                className={cn(errors.expiration && 'border-red-500 focus-visible:ring-red-500')}
               />
+              {errors.expiration && (
+                <p className={cn('text-[0.8rem] font-medium text-destructive')}>
+                  Invalid expiration date. Date has to be in the future.
+                </p>
+              )}
             </div>
           </div>
 

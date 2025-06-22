@@ -139,6 +139,7 @@ const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
     setExpiration(kvPair?.expiration);
     setMetadata(stringifyMetadataJSON(kvPair?.metadata ?? null));
     setExpirationTTL('0');
+    setErrors({});
   }, [kvPair]);
 
   useEffect(() => loadKvPairOnOpenChange(open), [open]);
@@ -233,7 +234,7 @@ const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
                   />
                   {errors.expiration && (
                     <p className={cn('text-[0.8rem] font-medium text-destructive')}>
-                      Invalid expiration date. Date have to be in the future.
+                      Invalid expiration date. Date has to be in the future.
                     </p>
                   )}
                 </div>
