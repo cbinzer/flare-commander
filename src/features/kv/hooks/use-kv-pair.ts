@@ -23,6 +23,7 @@ export function useKvPair() {
   const getKvPair = async (namespaceId: string, key: string) => {
     setIsLoading(true);
     setKvPair(null);
+    setError(null);
 
     const credentials: UserAuthTokenCredentials = {
       type: CredentialsType.UserAuthToken,
@@ -44,6 +45,7 @@ export function useKvPair() {
 
   const createKvPair = async (input: Omit<KvPairCreateInput, 'account_id'>) => {
     setIsCreating(true);
+    setError(null);
 
     const credentials: UserAuthTokenCredentials = {
       type: CredentialsType.UserAuthToken,
@@ -61,6 +63,7 @@ export function useKvPair() {
 
   const writeKvPair = async (input: Omit<KvKeyPairWriteInput, 'account_id'>) => {
     setIsWriting(true);
+    setError(null);
 
     const credentials: UserAuthTokenCredentials = {
       type: CredentialsType.UserAuthToken,

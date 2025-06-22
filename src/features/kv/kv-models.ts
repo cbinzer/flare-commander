@@ -146,7 +146,8 @@ export type KvErrorKind =
   | 'Unknown'
   | 'NamespaceAlreadyExists'
   | 'KeyAlreadyExists'
-  | 'InvalidMetadata';
+  | 'InvalidMetadata'
+  | 'InvalidExpiration';
 
 export class KvError extends Error {
   constructor(

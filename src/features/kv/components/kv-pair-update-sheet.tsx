@@ -44,7 +44,7 @@ const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
   onUpdate = () => Promise.resolve(),
   onOpenChange = () => {},
 }) => {
-  const { kvPair, getKvPair, writeKvPair, isLoading, error } = useKvPair();
+  const { kvPair, getKvPair, writeKvPair, isLoading, isWriting, error } = useKvPair();
   const { handleError } = useError();
   const valueInputRef = useRef<HTMLTextAreaElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -57,9 +57,10 @@ const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [expiration, setExpiration] = useState(kvPair?.expiration);
   const [expirationTTL, setExpirationTTL] = useState('0');
-  const [errors, setErrors] = useState<{ metadata?: Error; expirationTTL?: Error }>({});
+  const [errors, setErrors] = useState<{ metadata?: Error; expiration?: Error; expirationTTL?: Error }>({});
 
-  const isSaveButtonDisabled = isLoading || isSaving || !key || !!errors.metadata;
+  const isSaveButtonDisabled =
+    isLoading || isSaving || !key || !!errors.metadata || !!errors.expiration || !!errors.expirationTTL;
 
   const loadKvPairOnOpenChange = (open: boolean) => {
     onOpenChange(open);
@@ -92,25 +93,39 @@ const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
   const handleSaveClick = async () => {
     setIsSaving(true);
 
-    try {
-      const parsedMetadata = parseMetadataJSON(metadata);
-      const writeInput: Omit<KvKeyPairWriteInput, 'account_id'> = {
-        namespace_id: namespaceId,
-        key: key ?? '',
-        value,
-        expiration,
-        expiration_ttl: Number(expirationTTL),
-        metadata: parsedMetadata,
-      };
-      await writeKvPair(writeInput);
-      await onUpdate();
-
-      setIsOpen(false);
-      onOpenChange(false);
-    } finally {
-      setIsSaving(false);
-    }
+    const parsedMetadata = parseMetadataJSON(metadata);
+    const writeInput: Omit<KvKeyPairWriteInput, 'account_id'> = {
+      namespace_id: namespaceId,
+      key: key ?? '',
+      value,
+      expiration,
+      expiration_ttl: Number(expirationTTL),
+      metadata: parsedMetadata,
+    };
+    await writeKvPair(writeInput);
   };
+
+  const changeExpiration = (date: Date | undefined) => {
+    setExpiration(date);
+    setErrors((prevState) => ({ ...prevState, expiration: undefined }));
+  };
+
+  useEffect(() => {
+    if (!isWriting && error) {
+      setIsSaving(false);
+      return;
+    }
+
+    // If writing is done and there is no error, close the sheet
+    if (!isWriting && !error) {
+      onUpdate().then(() => {
+        setIsSaving(false);
+        setIsOpen(false);
+        onOpenChange(false);
+        setErrors({});
+      });
+    }
+  }, [isWriting]);
 
   useEffect(() => {
     valueInputRef.current?.focus();
@@ -131,6 +146,8 @@ const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
   useEffect(() => {
     if (error?.kind === 'InvalidMetadata') {
       setErrors((prevState) => ({ ...prevState, metadata: error }));
+    } else if (error?.kind === 'InvalidExpiration') {
+      setErrors((prevState) => ({ ...prevState, expiration: error }));
     } else if (error) {
       handleError(error);
     }
@@ -206,12 +223,20 @@ const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
               {isLoading ? (
                 <Skeleton className="w-full h-[36px] rounded-md" />
               ) : (
-                <DateTimePicker
-                  container={sheetContainer}
-                  value={expiration}
-                  disabled={isSaving}
-                  onChange={(date) => setExpiration(date)}
-                />
+                <div className="space-y-2">
+                  <DateTimePicker
+                    container={sheetContainer}
+                    value={expiration}
+                    disabled={isSaving}
+                    onChange={changeExpiration}
+                    className={cn(errors.expiration && 'border-red-500 focus-visible:ring-red-500')}
+                  />
+                  {errors.expiration && (
+                    <p className={cn('text-[0.8rem] font-medium text-destructive')}>
+                      Invalid expiration date. Date have to be in the future.
+                    </p>
+                  )}
+                </div>
               )}
             </div>
           </div>

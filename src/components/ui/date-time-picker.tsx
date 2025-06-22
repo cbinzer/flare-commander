@@ -10,6 +10,7 @@ import { CalendarIcon, XIcon } from 'lucide-react';
 import { FunctionComponent, MouseEvent, useEffect, useState } from 'react';
 
 export interface DateTimePickerProps {
+  className?: string;
   value?: Date;
   disabled?: boolean;
   container?: Element | null | undefined;
@@ -17,6 +18,7 @@ export interface DateTimePickerProps {
 }
 
 const DateTimePicker: FunctionComponent<DateTimePickerProps> = ({
+  className = '',
   value,
   container,
   disabled = false,
@@ -60,7 +62,12 @@ const DateTimePicker: FunctionComponent<DateTimePickerProps> = ({
   return (
     <Popover open={isOpen} onOpenChange={executeOnChangeAndSetOpenState}>
       <PopoverTrigger asChild>
-        <div className="grid grid-cols-[1fr_auto] w-full border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground rounded-md">
+        <div
+          className={cn(
+            'grid grid-cols-[1fr_auto] w-full border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground rounded-md',
+            className,
+          )}
+        >
           <Button
             disabled={disabled}
             variant="blank"
