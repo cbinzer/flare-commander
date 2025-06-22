@@ -271,6 +271,7 @@ const KvSidebarMenu: FunctionComponent<KvSidebarMenuProps> = ({
       />
       {namespaceToDelete && (
         <KvNamespaceDeleteDialog
+          activeNamespace={activeNamespace}
           namespace={namespaceToDelete}
           open={isDeleteDialogOpen}
           onDelete={() => onNamespaceChanged(namespaceToDelete)}
@@ -298,6 +299,7 @@ const KvSidebarMenuSkeleton: FunctionComponent = () => {
 };
 
 interface KvNamespaceDeleteDialogProps {
+  activeNamespace?: KvNamespace;
   namespace: KvNamespace;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -305,11 +307,13 @@ interface KvNamespaceDeleteDialogProps {
 }
 
 const KvNamespaceDeleteDialog: FunctionComponent<KvNamespaceDeleteDialogProps> = ({
+  activeNamespace,
   namespace,
   open = false,
   onOpenChange = () => {},
   onDelete = () => Promise.resolve(),
 }) => {
+  const navigate = useNavigate();
   const { deleteNamespace } = useKvNamespaces();
   const { handleError } = useError();
 
@@ -328,6 +332,10 @@ const KvNamespaceDeleteDialog: FunctionComponent<KvNamespaceDeleteDialogProps> =
 
     try {
       await deleteNamespace(namespace.id);
+      if (namespace.id === activeNamespace?.id) {
+        navigate('/');
+      }
+
       await onDelete();
       handleOnOpenChange(false);
     } catch (e) {
