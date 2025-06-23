@@ -106,7 +106,7 @@ impl Credentials {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 pub struct Token {
     pub id: String,
     pub status: TokenStatus,

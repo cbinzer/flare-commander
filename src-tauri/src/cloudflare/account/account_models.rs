@@ -1,4 +1,4 @@
-use crate::cloudflare::common::ApiResponse;
+use crate::cloudflare::common::{ApiResponse, TokenError};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
@@ -27,7 +27,9 @@ pub struct AccountSettings {
 
 #[derive(Debug)]
 pub enum AccountError {
-    InvalidIdAccountId,
+    InvalidAccountId,
+
+    Token(TokenError),
 
     Reqwest(reqwest::Error),
     Unknown(String),

@@ -89,11 +89,18 @@ impl From<UserError> for AuthenticationCommandError {
 impl From<AccountError> for AuthenticationCommandError {
     fn from(error: AccountError) -> Self {
         match error {
-            AccountError::InvalidIdAccountId => {
+            AccountError::InvalidAccountId => {
                 error!("Invalid account id error occurred");
                 AuthenticationCommandError {
                     kind: AuthenticationCommandErrorKind::InvalidAccountId,
                     message: "Account ID is invalid".to_string(),
+                }
+            }
+            AccountError::Token(token_error) => {
+                error!("Token error occurred: {}", token_error);
+                AuthenticationCommandError {
+                    kind: AuthenticationCommandErrorKind::InvalidToken,
+                    message: "Token is invalid".to_string(),
                 }
             }
             AccountError::Reqwest(reqwest_err) => {
