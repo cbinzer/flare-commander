@@ -70,6 +70,7 @@ impl Display for OrderDirection {
 pub enum Credentials {
     UserAuthKey { email: String, key: String },
     UserAuthToken { token: String },
+    AccountAuthToken { token: String },
     Service { key: String },
 }
 
@@ -89,6 +90,12 @@ impl Credentials {
                 );
             }
             Self::UserAuthToken { token } => {
+                headers.insert(
+                    "Authorization",
+                    HeaderValue::from_str(&format!("Bearer {}", token)).expect("Invalid token"),
+                );
+            }
+            Self::AccountAuthToken { token } => {
                 headers.insert(
                     "Authorization",
                     HeaderValue::from_str(&format!("Bearer {}", token)).expect("Invalid token"),

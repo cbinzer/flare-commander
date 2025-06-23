@@ -11,10 +11,18 @@ pub async fn verify_account_and_credentials(
     credentials: Credentials,
 ) -> Result<AccountWithCredentials, AuthenticationCommandError> {
     let cloudflare_client = Cloudflare::new(credentials.clone(), None);
-    let user_client = cloudflare_client.user;
     let account_client = cloudflare_client.accounts;
 
-    let verified_token = user_client.verify_token().await?;
+    let verified_token = match credentials {
+        Credentials::AccountAuthToken { token: _ } => {
+            account_client.verify_token(&account_id).await?
+        }
+        _ => {
+            let user_client = cloudflare_client.user;
+            user_client.verify_token().await?
+        }
+    };
+
     match verified_token.status {
         TokenStatus::Active => {
             let account = account_client.get_account(&account_id).await?;
