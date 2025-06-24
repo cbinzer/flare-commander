@@ -21,7 +21,11 @@ export interface AccountWithCredentials {
   credentials: AccountCredentials;
 }
 
-export type Credentials = UserAuthKeyCredentials | UserAuthTokenCredentials | ServiceCredentials;
+export type Credentials =
+  | UserAuthKeyCredentials
+  | UserAuthTokenCredentials
+  | AccountAuthTokenCredentials
+  | ServiceCredentials;
 
 export interface CredentialsBase {
   type: CredentialsType;
@@ -30,6 +34,7 @@ export interface CredentialsBase {
 export enum CredentialsType {
   UserAuthKey = 'UserAuthKey',
   UserAuthToken = 'UserAuthToken',
+  AccountAuthToken = 'AccountAuthToken',
   Service = 'Service',
 }
 
@@ -41,6 +46,11 @@ export interface UserAuthKeyCredentials extends CredentialsBase {
 
 export interface UserAuthTokenCredentials extends CredentialsBase {
   type: CredentialsType.UserAuthToken;
+  token: string;
+}
+
+export interface AccountAuthTokenCredentials extends CredentialsBase {
+  type: CredentialsType.AccountAuthToken;
   token: string;
 }
 
