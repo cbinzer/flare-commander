@@ -26,6 +26,7 @@ import {
 import { Save } from 'lucide-react';
 import { cn } from '@/lib/utils.ts';
 import { useError } from '@/hooks/use-error.ts';
+import TextFileInput from '@/components/ui/text-file-input.tsx';
 
 export interface KvPairUpdateSheetProps {
   namespaceId: string;
@@ -183,7 +184,7 @@ const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
             {isLoading ? (
               <Skeleton id="value" className="w-full h-[200px] rounded-md" />
             ) : (
-              <Textarea
+              <TextFileInput
                 id="value"
                 value={value}
                 onChange={(e) => setValue(e.target.value)}

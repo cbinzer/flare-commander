@@ -20,6 +20,7 @@ import { parseMetadataJSON, validateExpirationTTL, validateMetadata } from '@/fe
 import { cn } from '@/lib/utils.ts';
 import { PlusIcon } from 'lucide-react';
 import { useError } from '@/hooks/use-error.ts';
+import TextFileInput from '@/components/ui/text-file-input.tsx';
 
 export interface KvPairCreateSheetProps {
   namespaceId: string;
@@ -175,7 +176,7 @@ const KvPairCreateSheet: FunctionComponent<KvPairCreateSheetProps> = ({
             <Label htmlFor="value" className="self-start text-right mt-3">
               Value
             </Label>
-            <Textarea
+            <TextFileInput
               id="value"
               value={value}
               onChange={(e) => setValue(e.target.value)}
