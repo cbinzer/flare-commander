@@ -10,7 +10,7 @@ use crate::cloudflare::kv::{
     KvNamespacesListInput, KvPairMetadata, KvPairMetadataGetInput, KvPairWriteInput,
 };
 use chrono::DateTime;
-use reqwest::multipart::Form;
+use reqwest::multipart::{Form, Part};
 use reqwest::{Response, StatusCode};
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -191,7 +191,7 @@ impl KvClient {
                     .and_then(|header_val| header_val.to_str().ok())
                     .and_then(|str_val| str_val.parse::<i64>().ok())
                     .and_then(|timestamp| DateTime::from_timestamp(timestamp, 0));
-                let value = response.text().await?;
+                let value = response.bytes().await?.to_vec();
 
                 Ok(KvPair {
                     key: input.key,
@@ -267,9 +267,9 @@ impl KvClient {
             metadata = serde_json::to_string(&metadata_value).unwrap_or_default();
         }
 
-        let form_data = Form::new()
-            .text("value", value.clone())
-            .text("metadata", metadata);
+        let value_as_bytes: Vec<u8> = Vec::from(value.clone());
+        let part = Part::bytes(value_as_bytes);
+        let form_data = Form::new().part("value", part).text("metadata", metadata);
         let response = request.multipart(form_data).send().await?;
 
         match response.status() {
@@ -1250,7 +1250,7 @@ mod test {
         async fn should_get_kv_pair() -> Result<(), KvError> {
             let expected_kv_pair = KvPair {
                 key: "key1".to_string(),
-                value: "value".to_string(),
+                value: Vec::from("value"),
                 expiration: DateTime::from_timestamp(Utc::now().timestamp(), 0),
                 metadata: Some(HashMap::from([(
                     "key".to_string(),
@@ -1518,7 +1518,7 @@ mod test {
         async fn should_create_a_kv_pair() -> Result<(), KvError> {
             let expected_kv_pair = KvPair {
                 key: "key1".to_string(),
-                value: "value".to_string(),
+                value: Vec::from("value"),
                 expiration: DateTime::from_timestamp(Utc::now().timestamp(), 0),
                 metadata: Some(HashMap::<String, Value>::from([(
                     "key".to_string(),
@@ -1650,7 +1650,7 @@ mod test {
         async fn should_write_kv_pair() -> Result<(), KvError> {
             let expected_kv_pair = KvPair {
                 key: "key1".to_string(),
-                value: "value".to_string(),
+                value: Vec::from("value"),
                 expiration: DateTime::from_timestamp(Utc::now().timestamp(), 0),
                 metadata: Some(HashMap::<String, Value>::from([(
                     "key".to_string(),

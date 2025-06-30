@@ -165,7 +165,7 @@ pub struct KvPairGetInput {
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct KvPair {
     pub key: String,
-    pub value: String,
+    pub value: Vec<u8>,
 
     #[serde(default)]
     pub metadata: KvPairMetadata,
@@ -204,7 +204,7 @@ pub struct KvPairCreateInput {
     pub account_id: String,
     pub namespace_id: String,
     pub key: String,
-    pub value: Option<String>,
+    pub value: Option<Vec<u8>>,
     pub expiration: Option<DateTime<Utc>>,
     pub expiration_ttl: Option<u32>,
     pub metadata: KvPairMetadata,
@@ -239,7 +239,7 @@ pub struct KvPairWriteInput {
     pub account_id: String,
     pub namespace_id: String,
     pub key: String,
-    pub value: Option<String>,
+    pub value: Option<Vec<u8>>,
     pub expiration: Option<DateTime<Utc>>,
     pub expiration_ttl: Option<u32>,
     pub metadata: KvPairMetadata,
