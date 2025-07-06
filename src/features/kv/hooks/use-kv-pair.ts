@@ -101,6 +101,7 @@ export async function invokeGetKvPair(input: KvPairGetInput, credentials: UserAu
 
     return {
       ...kvPair,
+      value: new Uint8Array(kvPair.value ?? []),
       expiration: kvPair.expiration ? new Date(kvPair.expiration * 1000) : undefined,
     };
   } catch (e) {
@@ -113,7 +114,6 @@ export async function invokeCreateKvPair(
   credentials: UserAuthTokenCredentials,
 ): Promise<KvPair> {
   try {
-    console.log(input);
     const kvPair = await invoke<KvPairDTO>('create_kv_pair', {
       input,
       credentials,
@@ -121,6 +121,7 @@ export async function invokeCreateKvPair(
 
     return {
       ...kvPair,
+      value: new Uint8Array(kvPair.value ?? []),
       expiration: kvPair.expiration ? new Date(kvPair.expiration * 1000) : undefined,
     };
   } catch (e) {
@@ -140,6 +141,7 @@ export async function invokeWriteKvPair(
 
     return {
       ...kvPair,
+      value: new Uint8Array(kvPair.value ?? []),
       expiration: kvPair.expiration ? new Date(kvPair.expiration * 1000) : undefined,
     };
   } catch (e) {

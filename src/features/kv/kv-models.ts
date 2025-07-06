@@ -64,7 +64,7 @@ export interface KvNamespaceDeleteInput {
 
 export interface KvPair {
   key: string;
-  value?: string;
+  value?: Uint8Array;
   expiration?: Date;
   metadata?: KvMetadata;
 }
@@ -77,7 +77,7 @@ export interface KvPairGetInput {
 
 export interface KvPairDTO {
   key: string;
-  value?: string;
+  value?: number[];
   expiration?: number;
   metadata?: KvMetadata;
 }
@@ -86,7 +86,7 @@ export interface KvPairCreateInput {
   account_id: string;
   namespace_id: string;
   key: string;
-  value?: string;
+  value?: Uint8Array;
   expiration?: Date;
   expiration_ttl?: number;
   metadata?: KvMetadata;
@@ -96,7 +96,7 @@ export interface KvKeyPairWriteInput {
   account_id: string;
   namespace_id: string;
   key: string;
-  value?: string;
+  value?: Uint8Array;
   expiration?: Date;
   expiration_ttl?: number;
   metadata?: KvMetadata;

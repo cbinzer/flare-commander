@@ -58,10 +58,18 @@ const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [expiration, setExpiration] = useState(kvPair?.expiration);
   const [expirationTTL, setExpirationTTL] = useState('0');
-  const [errors, setErrors] = useState<{ metadata?: Error; expiration?: Error; expirationTTL?: Error }>({});
+  const [errors, setErrors] = useState<{ value?: Error; metadata?: Error; expiration?: Error; expirationTTL?: Error }>(
+    {},
+  );
 
   const isSaveButtonDisabled =
-    isLoading || isSaving || !key || !!errors.metadata || !!errors.expiration || !!errors.expirationTTL;
+    isLoading ||
+    isSaving ||
+    !key ||
+    !!errors.value ||
+    !!errors.metadata ||
+    !!errors.expiration ||
+    !!errors.expirationTTL;
 
   const loadKvPairOnOpenChange = (open: boolean) => {
     onOpenChange(open);
@@ -94,21 +102,28 @@ const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
   const handleSaveClick = async () => {
     setIsSaving(true);
 
-    const parsedMetadata = parseMetadataJSON(metadata);
-    const writeInput: Omit<KvKeyPairWriteInput, 'account_id'> = {
-      namespace_id: namespaceId,
-      key: key ?? '',
-      value,
-      expiration,
-      expiration_ttl: Number(expirationTTL),
-      metadata: parsedMetadata,
-    };
-    await writeKvPair(writeInput);
+    setTimeout(async () => {
+      const parsedMetadata = parseMetadataJSON(metadata);
+      const writeInput: Omit<KvKeyPairWriteInput, 'account_id'> = {
+        namespace_id: namespaceId,
+        key: key ?? '',
+        value,
+        expiration,
+        expiration_ttl: Number(expirationTTL),
+        metadata: parsedMetadata,
+      };
+      await writeKvPair(writeInput);
+    }, 20);
   };
 
   const changeExpiration = (date: Date | undefined) => {
     setExpiration(date);
     setErrors((prevState) => ({ ...prevState, expiration: undefined }));
+  };
+
+  const handleChangeValue = (val: Uint8Array) => {
+    setValue(val);
+    setErrors((prevState) => ({ ...prevState, value: undefined }));
   };
 
   useEffect(() => {
@@ -182,12 +197,20 @@ const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
               Value
             </Label>
             {isLoading ? (
-              <Skeleton id="value" className="w-full h-[200px] rounded-md" />
+              <div>
+                <Skeleton id="value" className="w-full h-[200px] rounded-md" />
+                <div className="grid grid-cols-[1fr_auto_auto] mt-2">
+                  <div />
+                  <Skeleton id="value" className="h-9 w-9 mr-2 rounded-md" />
+                  <Skeleton id="value" className="h-9 w-9 rounded-md" />
+                </div>
+              </div>
             ) : (
               <TextFileInput
                 id="value"
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
+                value={kvPair?.value}
+                onChangeValue={handleChangeValue}
+                onValueError={(error) => setErrors((prevState) => ({ ...prevState, value: error }))}
                 className="min-h-[200px]"
                 ref={valueInputRef}
                 disabled={isSaving}

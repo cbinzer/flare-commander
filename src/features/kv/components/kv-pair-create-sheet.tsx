@@ -43,16 +43,26 @@ const KvPairCreateSheet: FunctionComponent<KvPairCreateSheetProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [key, setKey] = useState<string | undefined>(undefined);
-  const [value, setValue] = useState<string | undefined>(undefined);
+  const [value, setValue] = useState<Uint8Array | undefined>(undefined);
   const [metadata, setMetadata] = useState('');
   const [expiration, setExpiration] = useState<Date | undefined>(undefined);
   const [expirationTTL, setExpirationTTL] = useState('0');
-  const [errors, setErrors] = useState<{ key?: Error; metadata?: Error; expiration?: Error; expirationTTL?: Error }>(
-    {},
-  );
+  const [errors, setErrors] = useState<{
+    key?: Error;
+    value?: Error;
+    metadata?: Error;
+    expiration?: Error;
+    expirationTTL?: Error;
+  }>({});
 
   const isSaveButtonDisabled =
-    isSaving || !key || !!errors.key || !!errors.metadata || !!errors.expiration || !!errors.expirationTTL;
+    isSaving ||
+    !key ||
+    !!errors.key ||
+    !!errors.value ||
+    !!errors.metadata ||
+    !!errors.expiration ||
+    !!errors.expirationTTL;
 
   const setContainerOnOpenChange = (open: boolean) => {
     setIsOpen(open);
@@ -104,6 +114,11 @@ const KvPairCreateSheet: FunctionComponent<KvPairCreateSheetProps> = ({
   const changeExpiration = (date: Date | undefined) => {
     setExpiration(date);
     setErrors((prevState) => ({ ...prevState, expiration: undefined }));
+  };
+
+  const handleChangeValue = (val: Uint8Array) => {
+    setValue(val);
+    setErrors((prevState) => ({ ...prevState, value: undefined }));
   };
 
   useEffect(() => {
@@ -179,7 +194,8 @@ const KvPairCreateSheet: FunctionComponent<KvPairCreateSheetProps> = ({
             <TextFileInput
               id="value"
               value={value}
-              onChange={(e) => setValue(e.target.value)}
+              onChangeValue={handleChangeValue}
+              onValueError={(error) => setErrors((prevState) => ({ ...prevState, value: error }))}
               className="min-h-[200px]"
               ref={valueInputRef}
               disabled={isSaving}
