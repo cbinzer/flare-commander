@@ -99,16 +99,18 @@ const KvPairCreateSheet: FunctionComponent<KvPairCreateSheetProps> = ({
   const handleSaveClick = async () => {
     setIsSaving(true);
 
-    const parsedMetadata = parseMetadataJSON(metadata);
-    const createInput: Omit<KvPairCreateInput, 'account_id'> = {
-      namespace_id: namespaceId,
-      key: key ?? '',
-      value,
-      expiration,
-      expiration_ttl: Number(expirationTTL),
-      metadata: parsedMetadata,
-    };
-    await createKvPair(createInput);
+    setTimeout(async () => {
+      const parsedMetadata = parseMetadataJSON(metadata);
+      const createInput: Omit<KvPairCreateInput, 'account_id'> = {
+        namespace_id: namespaceId,
+        key: key ?? '',
+        value,
+        expiration,
+        expiration_ttl: Number(expirationTTL),
+        metadata: parsedMetadata,
+      };
+      await createKvPair(createInput);
+    }, 20);
   };
 
   const changeExpiration = (date: Date | undefined) => {
