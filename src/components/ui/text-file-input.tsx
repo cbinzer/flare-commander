@@ -231,9 +231,7 @@ function hasUnreadableSigns(uint8array: Uint8Array): boolean {
       return true;
     }
 
-    if (byte > 126) {
-      return true;
-    }
+    return false;
   });
 }
 
