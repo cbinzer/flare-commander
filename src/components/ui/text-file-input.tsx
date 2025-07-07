@@ -147,6 +147,9 @@ const TextFileInput = forwardRef<HTMLTextAreaElement, TextFileInputProps>(
           </div>
         ) : (
           <Textarea
+            autoCapitalize="off"
+            autoCorrect="off"
+            autoComplete="off"
             className={cn(className)}
             ref={ref}
             disabled={valueType.isBinary || disabled}

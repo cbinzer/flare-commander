@@ -177,6 +177,9 @@ const KvPairCreateSheet: FunctionComponent<KvPairCreateSheetProps> = ({
             <div className="space-y-2">
               <Input
                 id="key"
+                autoCapitalize="off"
+                autoComplete="off"
+                autoCorrect="off"
                 value={key}
                 ref={nameInputRef}
                 disabled={isSaving}
