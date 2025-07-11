@@ -18,7 +18,7 @@ export class AuthenticationError extends Error {
 export interface AccountWithCredentials {
   id: string;
   name: string;
-  credentials: AccountCredentials;
+  credentials: Credentials;
 }
 
 export type Credentials =
@@ -55,27 +55,6 @@ export interface AccountAuthTokenCredentials extends CredentialsBase {
 }
 
 export interface ServiceCredentials extends CredentialsBase {
-  type: CredentialsType.Service;
-  key: string;
-}
-
-export type AccountCredentials =
-  | AccountUserAuthKeyCredentials
-  | AccountUserAuthTokenCredentials
-  | AccountServiceCredentials;
-
-export interface AccountUserAuthKeyCredentials {
-  type: CredentialsType.UserAuthKey;
-  email: string;
-  key: string;
-}
-
-export interface AccountUserAuthTokenCredentials {
-  type: CredentialsType.UserAuthToken;
-  token: string;
-}
-
-export interface AccountServiceCredentials {
   type: CredentialsType.Service;
   key: string;
 }
