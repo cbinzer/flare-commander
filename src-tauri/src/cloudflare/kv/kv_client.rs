@@ -1,4 +1,7 @@
-use super::{KvPair, KvPairCreateInput, KvPairGetInput, KvPairsDeleteInput, KvPairsDeleteResult};
+use super::{
+    KvPair, KvPairCreateInput, KvPairGetInput, KvPairsDeleteInput, KvPairsDeleteResult,
+    KvPairsGetInput, KvValues, KvValuesGetInput, KvValuesRaw, KvValuesResult,
+};
 use crate::cloudflare::common::{
     ApiCursorPaginatedResponse, ApiError, ApiErrorResponse, ApiPaginatedResponse, ApiResponse,
     Credentials, TokenError, API_URL,
@@ -227,6 +230,73 @@ impl KvClient {
             .await
     }
 
+    pub async fn get_kv_pairs(&self, input: KvPairsGetInput) -> Result<Vec<KvPair>, KvError> {
+        let kv_values_result = self.get_kv_values(input.clone().into()).await;
+        match kv_values_result {
+            Ok(kv_values) => match kv_values {
+                KvValuesResult::Raw(_) => {
+                    Err(KvError::Unknown("Cannot handle raw KV values.".to_string()))
+                }
+                KvValuesResult::WithMetadata(values_with_metadata) => Ok(values_with_metadata
+                    .values
+                    .iter()
+                    .map(|(key, value)| KvPair {
+                        key: key.clone(),
+                        value: value.value.to_string().into_bytes(),
+                        expiration: value.expiration,
+                        metadata: value.metadata.clone(),
+                    })
+                    .collect()),
+            },
+            Err(error) => match error {
+                KvError::NonTextValue => {
+                    let mut kv_pairs = Vec::<KvPair>::new();
+                    for key in input.keys {
+                        let kv_pair_get_input = KvPairGetInput {
+                            account_id: input.account_id.clone(),
+                            namespace_id: input.namespace_id.clone(),
+                            key: key.clone(),
+                        };
+                        let kv_pair = self.get_kv_pair(kv_pair_get_input).await?;
+                        kv_pairs.push(kv_pair);
+                    }
+
+                    Ok(kv_pairs)
+                }
+                _ => Err(error),
+            },
+        }
+    }
+
+    pub async fn get_kv_values(&self, input: KvValuesGetInput) -> Result<KvValuesResult, KvError> {
+        let url = format!(
+            "{}/accounts/{}/storage/kv/namespaces/{}/bulk/get",
+            self.api_url, input.account_id, input.namespace_id
+        );
+
+        let response = self
+            .http_client
+            .post(&url)
+            .json(&input)
+            .headers(self.credentials.headers())
+            .send()
+            .await?;
+
+        if let Some(with_metadata) = input.with_metadata {
+            if with_metadata {
+                let values_with_metadata = self
+                    .handle_api_response::<ApiResponse<KvValues>, KvValues>(response)
+                    .await?;
+                return Ok(KvValuesResult::WithMetadata(values_with_metadata));
+            }
+        }
+
+        let values_raw = self
+            .handle_api_response::<ApiResponse<KvValuesRaw>, KvValuesRaw>(response)
+            .await?;
+        Ok(KvValuesResult::Raw(values_raw))
+    }
+
     pub async fn create_kv_pair(&self, input: KvPairCreateInput) -> Result<KvPair, KvError> {
         // Check if the item already exists
         let kv_pair_result = self.get_kv_pair((&input).into()).await;
@@ -338,6 +408,7 @@ impl KvClient {
             10013 => KvError::NamespaceNotFound,
             10014 => KvError::NamespaceAlreadyExists(error.message.clone()),
             10019 => KvError::NamespaceTitleMissing(error.message.clone()),
+            10029 => KvError::NonTextValue,
             10033 => KvError::InvalidExpiration,
             10147 => KvError::InvalidMetadata,
             _ => KvError::Unknown(error.message.clone()),
@@ -1503,6 +1574,355 @@ mod test {
         }
     }
 
+    mod get_kv_pairs {
+        use crate::cloudflare::common::{ApiError, ApiErrorResponse, ApiResponse};
+        use crate::cloudflare::kv::kv_client::test::create_kv_client;
+        use crate::cloudflare::kv::{
+            KvError, KvPair, KvPairMetadata, KvPairsGetInput, KvValue, KvValues,
+        };
+        use chrono::{DateTime, Utc};
+        use std::collections::HashMap;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        #[tokio::test]
+        async fn should_get_kv_pairs_with_text_values() -> Result<(), KvError> {
+            let kv_values = KvValues {
+                values: HashMap::from([
+                    (
+                        "key1".to_string(),
+                        KvValue {
+                            value: "string value".into(),
+                            metadata: Some(HashMap::from([("key".to_string(), "value".into())])),
+                            expiration: None,
+                        },
+                    ),
+                    (
+                        "key2".to_string(),
+                        KvValue {
+                            value: "string value".into(),
+                            metadata: None,
+                            expiration: DateTime::from_timestamp(Utc::now().timestamp(), 0),
+                        },
+                    ),
+                ]),
+            };
+            let input = KvPairsGetInput {
+                account_id: "account_id".to_string(),
+                namespace_id: "namespace_id".to_string(),
+                keys: kv_values.values.keys().cloned().collect(),
+            };
+            let mock_server =
+                create_succeeding_mock_server_with_text_values(&input, &kv_values).await;
+
+            let mut expected_kv_pairs = kv_values
+                .values
+                .iter()
+                .map(|(k, v)| KvPair {
+                    key: k.clone(),
+                    value: v.value.clone().to_string().into_bytes(),
+                    metadata: v.metadata.clone(),
+                    expiration: v.expiration,
+                })
+                .collect::<Vec<KvPair>>();
+            expected_kv_pairs.sort_by_key(|pair| pair.key.clone());
+
+            let kv = create_kv_client(mock_server.uri());
+            let mut kv_pairs = kv.get_kv_pairs(input).await?;
+            kv_pairs.sort_by_key(|pair| pair.key.clone());
+
+            assert_eq!(expected_kv_pairs, kv_pairs);
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_get_kv_pairs_with_binary_values() -> Result<(), KvError> {
+            let expected_kv_pairs = vec![
+                KvPair {
+                    key: "key1".to_string(),
+                    value: "value 1".as_bytes().to_vec(),
+                    metadata: Some(HashMap::from([("key".to_string(), "value".into())])),
+                    expiration: DateTime::from_timestamp(Utc::now().timestamp(), 0),
+                },
+                KvPair {
+                    key: "key2".to_string(),
+                    value: "value 2".as_bytes().to_vec(),
+                    metadata: None,
+                    expiration: DateTime::from_timestamp(Utc::now().timestamp(), 0),
+                },
+            ];
+            let input = KvPairsGetInput {
+                account_id: "account_id".to_string(),
+                namespace_id: "namespace_id".to_string(),
+                keys: expected_kv_pairs
+                    .iter()
+                    .map(|pair| pair.key.clone())
+                    .collect(),
+            };
+            let mock_server =
+                create_succeeding_mock_server_with_binary_values(&input, &expected_kv_pairs).await;
+
+            let kv = create_kv_client(mock_server.uri());
+            let kv_pairs = kv.get_kv_pairs(input).await?;
+
+            assert_eq!(expected_kv_pairs, kv_pairs);
+
+            Ok(())
+        }
+
+        async fn create_succeeding_mock_server_with_text_values(
+            input: &KvPairsGetInput,
+            values: &KvValues,
+        ) -> MockServer {
+            let mock_server = MockServer::start().await;
+            let response_template =
+                ResponseTemplate::new(200).set_body_json(ApiResponse::<KvValues> {
+                    result: values.clone(),
+                });
+
+            Mock::given(method("POST"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/bulk/get",
+                    input.account_id, input.namespace_id,
+                )))
+                .respond_with(response_template)
+                .mount(&mock_server)
+                .await;
+
+            mock_server
+        }
+
+        async fn create_succeeding_mock_server_with_binary_values(
+            input: &KvPairsGetInput,
+            pairs: &[KvPair],
+        ) -> MockServer {
+            let mock_server = MockServer::start().await;
+
+            Mock::given(method("POST"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/bulk/get",
+                    input.account_id, input.namespace_id,
+                )))
+                .respond_with(ResponseTemplate::new(400).set_body_json(ApiErrorResponse {
+                    errors: vec![ApiError {
+                        code: 10029,
+                        message: "bulk get keys: 'At least one of the requested keys corresponds to a non-text value'".to_string(),
+                    }],
+                }))
+                .mount(&mock_server)
+                .await;
+
+            for pair in pairs.iter() {
+                let response_template = ResponseTemplate::new(200)
+                    .set_body_string(pair.value.clone())
+                    .append_header("expiration", pair.expiration.unwrap().timestamp());
+
+                Mock::given(method("GET"))
+                    .and(path(format!(
+                        "/client/v4/accounts/{}/storage/kv/namespaces/{}/values/{}",
+                        input.account_id, input.namespace_id, pair.key
+                    )))
+                    .respond_with(response_template)
+                    .mount(&mock_server)
+                    .await;
+
+                Mock::given(method("GET"))
+                    .and(path(format!(
+                        "/client/v4/accounts/{}/storage/kv/namespaces/{}/metadata/{}",
+                        input.account_id, input.namespace_id, pair.key
+                    )))
+                    .respond_with(ResponseTemplate::new(200).set_body_json(ApiResponse::<
+                        KvPairMetadata,
+                    > {
+                        result: pair.metadata.clone(),
+                    }))
+                    .mount(&mock_server)
+                    .await;
+            }
+
+            mock_server
+        }
+    }
+
+    mod get_kv_values {
+        use crate::cloudflare::common::{ApiError, ApiErrorResponse, ApiResponse};
+        use crate::cloudflare::kv::kv_client::test::create_kv_client;
+        use crate::cloudflare::kv::{
+            KvError, KvValue, KvValues, KvValuesGetInput, KvValuesRaw, KvValuesResult,
+        };
+        use chrono::{DateTime, Utc};
+        use serde_json::json;
+        use std::collections::HashMap;
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        #[tokio::test]
+        async fn should_get_kv_values_raw() -> Result<(), KvError> {
+            let expected_values = KvValuesRaw {
+                values: HashMap::from([
+                    ("key1".to_string(), "string value".into()),
+                    ("key2".to_string(), 1.into()),
+                    ("key3".to_string(), true.into()),
+                    ("key4".to_string(), json!({"subkey":"value"})),
+                ]),
+            };
+            let input = KvValuesGetInput {
+                account_id: "account_id".to_string(),
+                namespace_id: "namespace_id".to_string(),
+                keys: expected_values.values.keys().cloned().collect(),
+                value_type: None,
+                with_metadata: None,
+            };
+            let mock_server = create_succeeding_mock_server(
+                &input,
+                &KvValuesResult::Raw(expected_values.clone()),
+            )
+            .await;
+
+            let kv = create_kv_client(mock_server.uri());
+            let values_result = kv.get_kv_values(input).await?;
+
+            let values_raw = if let KvValuesResult::Raw(values) = values_result {
+                values
+            } else {
+                panic!(
+                    "Expected KvValuesResult::Raw,
+                            but got a different variant"
+                );
+            };
+            assert_eq!(expected_values, values_raw);
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_get_kv_values_with_metadata() -> Result<(), KvError> {
+            let expected_values = KvValues {
+                values: HashMap::from([
+                    (
+                        "key1".to_string(),
+                        KvValue {
+                            value: "string value".into(),
+                            metadata: Some(HashMap::from([("key".to_string(), "value".into())])),
+                            expiration: None,
+                        },
+                    ),
+                    (
+                        "key2".to_string(),
+                        KvValue {
+                            value: "string value".into(),
+                            metadata: None,
+                            expiration: DateTime::from_timestamp(Utc::now().timestamp(), 0),
+                        },
+                    ),
+                ]),
+            };
+            let input = KvValuesGetInput {
+                account_id: "account_id".to_string(),
+                namespace_id: "namespace_id".to_string(),
+                keys: expected_values.values.keys().cloned().collect(),
+                value_type: None,
+                with_metadata: Some(true),
+            };
+            let mock_server = create_succeeding_mock_server(
+                &input,
+                &KvValuesResult::WithMetadata(expected_values.clone()),
+            )
+            .await;
+
+            let kv = create_kv_client(mock_server.uri());
+            let values_result = kv.get_kv_values(input).await?;
+
+            let values_with_meta = if let KvValuesResult::WithMetadata(values) = values_result {
+                values
+            } else {
+                panic!(
+                    "Expected KvValuesResult::Raw,
+                            but got a different variant"
+                );
+            };
+            assert_eq!(expected_values, values_with_meta);
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_respond_with_a_non_text_value_error() -> Result<(), KvError> {
+            let input = KvValuesGetInput {
+                account_id: "account_id".to_string(),
+                namespace_id: "namespace_id".to_string(),
+                keys: vec!["key1".to_string()],
+                value_type: None,
+                with_metadata: Some(true),
+            };
+            let mock_server = create_failing_mock_server(
+                &input,
+                vec![ApiError {
+                    code: 10029,
+                    message: "bulk get keys: 'At least one of the requested keys corresponds to a non-text value'".to_string(),
+                }],
+            )
+                .await;
+
+            let kv = create_kv_client(mock_server.uri());
+            let values_result = kv.get_kv_values(input).await;
+            assert!(values_result.is_err());
+
+            let error = values_result.unwrap_err();
+            assert!(matches!(error, KvError::NonTextValue));
+
+            Ok(())
+        }
+
+        async fn create_succeeding_mock_server(
+            input: &KvValuesGetInput,
+            values: &KvValuesResult,
+        ) -> MockServer {
+            let mock_server = MockServer::start().await;
+            let response_template = match &values {
+                KvValuesResult::Raw(values_raw) => {
+                    ResponseTemplate::new(200).set_body_json(ApiResponse::<KvValuesRaw> {
+                        result: values_raw.clone(),
+                    })
+                }
+                KvValuesResult::WithMetadata(values_with_meta) => ResponseTemplate::new(200)
+                    .set_body_json(ApiResponse::<KvValues> {
+                        result: values_with_meta.clone(),
+                    }),
+            };
+
+            Mock::given(method("POST"))
+                .and(path(format!(
+                    " / client/v4/accounts/{} / storage/kv/namespaces/{} / bulk/get",
+                    input.account_id, input.namespace_id,
+                )))
+                .respond_with(response_template)
+                .mount(&mock_server)
+                .await;
+
+            mock_server
+        }
+
+        async fn create_failing_mock_server(
+            input: &KvValuesGetInput,
+            errors: Vec<ApiError>,
+        ) -> MockServer {
+            let mock_server = MockServer::start().await;
+
+            Mock::given(method("POST"))
+                .and(path(format!(
+                    " / client/v4/accounts/{} / storage/kv/namespaces/{} / bulk/get",
+                    input.account_id, input.namespace_id,
+                )))
+                .respond_with(ResponseTemplate::new(400).set_body_json(ApiErrorResponse { errors }))
+                .mount(&mock_server)
+                .await;
+
+            mock_server
+        }
+    }
+
     mod create_kv_pair {
         use std::collections::HashMap;
 
@@ -1581,7 +2001,7 @@ mod test {
                 });
             Mock::given(method("GET"))
                 .and(path(format!(
-                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/values/{}",
+                    " / client/v4/accounts/{} / storage/kv/namespaces/{} / values/{}",
                     input.account_id, input.namespace_id, input.key
                 )))
                 .respond_with(response_template_get)
@@ -1591,7 +2011,7 @@ mod test {
             let response_template_write = ResponseTemplate::new(200).set_body_string("");
             Mock::given(method("PUT"))
                 .and(path(format!(
-                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/values/{}",
+                    " / client/v4/accounts/{} / storage/kv/namespaces/{} / values/{}",
                     input.account_id, input.namespace_id, input.key,
                 )))
                 .and(query_param(
@@ -1609,7 +2029,7 @@ mod test {
             let mock_server = MockServer::start().await;
             Mock::given(method("GET"))
                 .and(path(format!(
-                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/values/{}",
+                    " / client/v4/accounts/{} / storage/kv/namespaces/{} / values/{}",
                     input.account_id, input.namespace_id, input.key
                 )))
                 .respond_with(ResponseTemplate::new(200).set_body_string(""))
@@ -1618,7 +2038,7 @@ mod test {
 
             Mock::given(method("GET"))
                 .and(path(format!(
-                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/metadata/{}",
+                    " / client/v4/accounts/{} / storage/kv/namespaces/{} / metadata/{}",
                     input.account_id, input.namespace_id, input.key
                 )))
                 .respond_with(ResponseTemplate::new(200).set_body_json(ApiResponse::<
@@ -1760,7 +2180,7 @@ mod test {
                     message: "put: 'Invalid expiration of 1750594320. Please specify integer greater than the current number of seconds since the UNIX epoch.'".to_string(),
                 }],
             )
-            .await;
+                .await;
 
             let kv = create_kv_client(mock_server.uri());
             let result = kv.write_kv_pair(write_input).await;
@@ -1778,7 +2198,7 @@ mod test {
             let response_template = ResponseTemplate::new(200).set_body_string("");
             Mock::given(method("PUT"))
                 .and(path(format!(
-                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/values/{}",
+                    " / client/v4/accounts/{} / storage/kv/namespaces/{} / values/{}",
                     input.account_id, input.namespace_id, input.key,
                 )))
                 .and(query_param(
@@ -1804,7 +2224,7 @@ mod test {
 
             Mock::given(method("PUT"))
                 .and(path(format!(
-                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/values/{}",
+                    " / client/v4/accounts/{} / storage/kv/namespaces/{} / values/{}",
                     input.account_id, input.namespace_id, input.key,
                 )))
                 .respond_with(ResponseTemplate::new(400).set_body_json(ApiErrorResponse { errors }))
@@ -1907,7 +2327,7 @@ mod test {
 
             Mock::given(method("POST"))
                 .and(path(format!(
-                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/bulk/delete",
+                    " / client/v4/accounts/{} / storage/kv/namespaces/{} / bulk/delete",
                     input.account_id, input.namespace_id
                 )))
                 .respond_with(response_template_value)
@@ -1927,7 +2347,7 @@ mod test {
 
             Mock::given(method("POST"))
                 .and(path(format!(
-                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/bulk/delete",
+                    " / client/v4/accounts/{} / storage/kv/namespaces/{} / bulk/delete",
                     input.account_id, input.namespace_id
                 )))
                 .respond_with(response_template_value)
@@ -1943,7 +2363,7 @@ mod test {
             Arc::new(Credentials::UserAuthToken {
                 token: "12345".to_string(),
             }),
-            Some(Arc::new(format!("{}/client/v4", host_url))),
+            Some(Arc::new(format!("{host_url}/client/v4"))),
             None,
         )
     }

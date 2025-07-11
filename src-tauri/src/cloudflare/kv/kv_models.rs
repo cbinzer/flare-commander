@@ -163,6 +163,84 @@ pub struct KvPairGetInput {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct KvPairsGetInput {
+    pub account_id: String,
+    pub namespace_id: String,
+    pub keys: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct KvValuesGetInput {
+    pub account_id: String,
+    pub namespace_id: String,
+    pub keys: Vec<String>,
+
+    #[serde(rename = "type")]
+    pub value_type: Option<KvValueType>,
+
+    #[serde(rename = "withMetadata")]
+    pub with_metadata: Option<bool>,
+}
+
+impl From<KvPairsGetInput> for KvValuesGetInput {
+    fn from(value: KvPairsGetInput) -> Self {
+        Self {
+            account_id: value.account_id,
+            namespace_id: value.namespace_id,
+            keys: value.keys,
+            value_type: Some(KvValueType::Text),
+            with_metadata: Some(true),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub enum KvValueType {
+    #[serde(rename = "text")]
+    Text,
+
+    #[serde(rename = "binary")]
+    Json,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub enum KvValuesResult {
+    Raw(KvValuesRaw),
+    WithMetadata(KvValues),
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct KvValuesRaw {
+    pub values: HashMap<String, Value>,
+}
+
+impl From<ApiResponse<KvValuesRaw>> for KvValuesRaw {
+    fn from(response: ApiResponse<KvValuesRaw>) -> Self {
+        response.result
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct KvValues {
+    pub values: HashMap<String, KvValue>,
+}
+
+impl From<ApiResponse<KvValues>> for KvValues {
+    fn from(response: ApiResponse<KvValues>) -> Self {
+        response.result
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct KvValue {
+    pub value: Value,
+    pub metadata: KvPairMetadata,
+
+    #[serde(with = "ts_seconds_option")]
+    pub expiration: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct KvPair {
     pub key: String,
     pub value: Vec<u8>,
@@ -274,6 +352,8 @@ pub enum KvError {
     KeyAlreadyExists(String),
     InvalidMetadata,
     InvalidExpiration,
+
+    NonTextValue,
 
     Token(TokenError),
 

@@ -127,6 +127,8 @@ pub enum KvCommandErrorKind {
     InvalidMetadata,
     InvalidExpiration,
 
+    NonTextValue,
+
     Authentication,
     Unknown,
 }
@@ -187,6 +189,13 @@ impl From<KvError> for KvCommandError {
                 KvCommandError {
                     kind: KvCommandErrorKind::Unknown,
                     message: "An unknown error occurred".to_string(),
+                }
+            }
+            KvError::NonTextValue => {
+                error!("At least one of the requested keys corresponds to a non-text value.");
+                KvCommandError {
+                    kind: KvCommandErrorKind::NonTextValue,
+                    message: "At least one of the requested keys corresponds to a non-text value.".to_string(),
                 }
             }
         }
