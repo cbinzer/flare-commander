@@ -12,6 +12,7 @@ import { FocusEvent, FunctionComponent, KeyboardEvent, useEffect, useMemo, useSt
 import KvPairUpdateSheet from '../kv-pair-update-sheet.tsx';
 import {
   ArrowDown,
+  DownloadIcon,
   EditIcon,
   MoreVerticalIcon,
   PlusIcon,
@@ -38,6 +39,10 @@ import {
 } from '@/components/ui/dialog.tsx';
 import { Input } from '@/components/ui/input.tsx';
 import { useKvKeys } from '@/features/kv/hooks/use-kv-keys.ts';
+import { save } from '@tauri-apps/plugin-dialog';
+import { writeFile } from '@tauri-apps/plugin-fs';
+import { useKvPairs } from '@/features/kv/hooks/use-kv-pairs.ts';
+import { toast } from 'sonner';
 
 interface KvTableProps {
   namespace: KvNamespace;
@@ -50,6 +55,7 @@ export function KvTable({ namespace }: KvTableProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [kvKeyToEdit, setKvKeyToEdit] = useState<KvTableKey | null>(null);
   const [kvKeysToDelete, setKvKeysToDelete] = useState<KvTableKey[]>([]);
   const {
@@ -63,6 +69,7 @@ export function KvTable({ namespace }: KvTableProps) {
     setPrefix,
     deleteKeys,
   } = useKvKeys(namespace.id);
+  const { exportKvPairs } = useKvPairs();
 
   const openKvPairUpdateSheet = (key: KvTableKey) => {
     setKvKeyToEdit(key);
@@ -78,6 +85,34 @@ export function KvTable({ namespace }: KvTableProps) {
     const selectedKeys = table.getSelectedRowModel().rows.map((row) => row.original);
     setKvKeysToDelete(selectedKeys);
     setIsDialogOpen(true);
+  };
+
+  const triggerExportKvPairs = async () => {
+    const path = await save({ filters: [{ name: 'JSON', extensions: ['json'] }] });
+    if (path) {
+      setIsExporting(true);
+
+      toast.promise(
+        async () => {
+          const selectedKeys = table
+            .getSelectedRowModel()
+            .rows.map((row) => row.original)
+            .map((tableKey) => tableKey.name);
+          const kvPairsExport = await exportKvPairs(namespace.id, selectedKeys);
+
+          if (kvPairsExport) {
+            await writeFile(path, kvPairsExport);
+          }
+        },
+        {
+          position: 'top-center',
+          loading: 'Exporting KV Pairs...',
+          success: () => `KV Pairs successfully exported!`,
+          error: (error) => `Error exporting KV Pairs: ${error.message}`,
+          finally: () => setIsExporting(false),
+        },
+      );
+    }
   };
 
   const closeKvKeysDeleteDialog = () => {
@@ -243,7 +278,7 @@ export function KvTable({ namespace }: KvTableProps) {
   }, [kvKeys]);
   useEffect(() => setRowSelection({}), [namespace]);
 
-  const deleteButtonEnabled = table.getIsAllPageRowsSelected() || table.getIsSomePageRowsSelected();
+  const actionButtonsEnabled = table.getIsAllPageRowsSelected() || table.getIsSomePageRowsSelected();
   return (
     <div>
       <div className="w-full grid grid-cols-[1fr_auto] gap-2 align-items-right py-4">
@@ -259,15 +294,24 @@ export function KvTable({ namespace }: KvTableProps) {
           />
         </div>
 
-        <div className="grid grid-cols-[auto_auto_auto] gap-2">
+        <div className="grid grid-cols-[auto_auto_auto_auto] gap-2">
           <Button
             variant="outline"
             size="sm"
-            disabled={!deleteButtonEnabled || isRefreshing}
+            disabled={!actionButtonsEnabled || isRefreshing || isExporting}
             onClick={openKvKeysDeleteDialogWithSelectedItems}
           >
             <Trash2Icon />
             <span className="hidden lg:inline">Delete</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!actionButtonsEnabled || isRefreshing || isExporting}
+            onClick={triggerExportKvPairs}
+          >
+            <DownloadIcon />
+            <span className="hidden lg:inline">Export</span>
           </Button>
           <KvPairCreateSheet namespaceId={namespace.id} onCreate={async () => await reloadKeys()}>
             <Button variant="outline" size="sm" disabled={isRefreshing}>

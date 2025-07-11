@@ -70,9 +70,15 @@ export interface KvPair {
 }
 
 export interface KvPairGetInput {
-  account_id: String;
-  namespace_id: String;
-  key: String;
+  account_id: string;
+  namespace_id: string;
+  key: string;
+}
+
+export interface KvPairsGetInput {
+  account_id: string;
+  namespace_id: string;
+  keys: string[];
 }
 
 export interface KvPairDTO {
