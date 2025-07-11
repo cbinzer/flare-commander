@@ -234,9 +234,12 @@ impl From<ApiResponse<KvValues>> for KvValues {
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct KvValue {
     pub value: Value,
+
+    #[serde(default)]
     pub metadata: KvPairMetadata,
 
     #[serde(with = "ts_seconds_option")]
+    #[serde(default)]
     pub expiration: Option<DateTime<Utc>>,
 }
 
@@ -249,6 +252,7 @@ pub struct KvPair {
     pub metadata: KvPairMetadata,
 
     #[serde(with = "ts_seconds_option")]
+    #[serde(default)]
     pub expiration: Option<DateTime<Utc>>,
 }
 

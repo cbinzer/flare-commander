@@ -240,11 +240,18 @@ impl KvClient {
                 KvValuesResult::WithMetadata(values_with_metadata) => Ok(values_with_metadata
                     .values
                     .iter()
-                    .map(|(key, value)| KvPair {
-                        key: key.clone(),
-                        value: value.value.to_string().into_bytes(),
-                        expiration: value.expiration,
-                        metadata: value.metadata.clone(),
+                    .map(|(key, value)| {
+                        let mut byte_value: Vec<u8> = vec![];
+                        if let Some(value_str) = value.value.as_str() {
+                            byte_value = value_str.as_bytes().to_vec();
+                        }
+
+                        KvPair {
+                            key: key.clone(),
+                            value: byte_value,
+                            expiration: value.expiration,
+                            metadata: value.metadata.clone(),
+                        }
                     })
                     .collect()),
             },
@@ -1620,7 +1627,7 @@ mod test {
                 .iter()
                 .map(|(k, v)| KvPair {
                     key: k.clone(),
-                    value: v.value.clone().to_string().into_bytes(),
+                    value: v.value.clone().as_str().unwrap().as_bytes().to_vec(),
                     metadata: v.metadata.clone(),
                     expiration: v.expiration,
                 })
@@ -1894,7 +1901,7 @@ mod test {
 
             Mock::given(method("POST"))
                 .and(path(format!(
-                    " / client/v4/accounts/{} / storage/kv/namespaces/{} / bulk/get",
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/bulk/get",
                     input.account_id, input.namespace_id,
                 )))
                 .respond_with(response_template)
@@ -1912,7 +1919,7 @@ mod test {
 
             Mock::given(method("POST"))
                 .and(path(format!(
-                    " / client/v4/accounts/{} / storage/kv/namespaces/{} / bulk/get",
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/bulk/get",
                     input.account_id, input.namespace_id,
                 )))
                 .respond_with(ResponseTemplate::new(400).set_body_json(ApiErrorResponse { errors }))
@@ -2001,7 +2008,7 @@ mod test {
                 });
             Mock::given(method("GET"))
                 .and(path(format!(
-                    " / client/v4/accounts/{} / storage/kv/namespaces/{} / values/{}",
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/values/{}",
                     input.account_id, input.namespace_id, input.key
                 )))
                 .respond_with(response_template_get)
@@ -2011,7 +2018,7 @@ mod test {
             let response_template_write = ResponseTemplate::new(200).set_body_string("");
             Mock::given(method("PUT"))
                 .and(path(format!(
-                    " / client/v4/accounts/{} / storage/kv/namespaces/{} / values/{}",
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/values/{}",
                     input.account_id, input.namespace_id, input.key,
                 )))
                 .and(query_param(
@@ -2029,7 +2036,7 @@ mod test {
             let mock_server = MockServer::start().await;
             Mock::given(method("GET"))
                 .and(path(format!(
-                    " / client/v4/accounts/{} / storage/kv/namespaces/{} / values/{}",
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/values/{}",
                     input.account_id, input.namespace_id, input.key
                 )))
                 .respond_with(ResponseTemplate::new(200).set_body_string(""))
@@ -2038,7 +2045,7 @@ mod test {
 
             Mock::given(method("GET"))
                 .and(path(format!(
-                    " / client/v4/accounts/{} / storage/kv/namespaces/{} / metadata/{}",
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/metadata/{}",
                     input.account_id, input.namespace_id, input.key
                 )))
                 .respond_with(ResponseTemplate::new(200).set_body_json(ApiResponse::<
@@ -2198,7 +2205,7 @@ mod test {
             let response_template = ResponseTemplate::new(200).set_body_string("");
             Mock::given(method("PUT"))
                 .and(path(format!(
-                    " / client/v4/accounts/{} / storage/kv/namespaces/{} / values/{}",
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/values/{}",
                     input.account_id, input.namespace_id, input.key,
                 )))
                 .and(query_param(
@@ -2224,7 +2231,7 @@ mod test {
 
             Mock::given(method("PUT"))
                 .and(path(format!(
-                    " / client/v4/accounts/{} / storage/kv/namespaces/{} / values/{}",
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/values/{}",
                     input.account_id, input.namespace_id, input.key,
                 )))
                 .respond_with(ResponseTemplate::new(400).set_body_json(ApiErrorResponse { errors }))
@@ -2327,7 +2334,7 @@ mod test {
 
             Mock::given(method("POST"))
                 .and(path(format!(
-                    " / client/v4/accounts/{} / storage/kv/namespaces/{} / bulk/delete",
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/bulk/delete",
                     input.account_id, input.namespace_id
                 )))
                 .respond_with(response_template_value)
@@ -2347,7 +2354,7 @@ mod test {
 
             Mock::given(method("POST"))
                 .and(path(format!(
-                    " / client/v4/accounts/{} / storage/kv/namespaces/{} / bulk/delete",
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/bulk/delete",
                     input.account_id, input.namespace_id
                 )))
                 .respond_with(response_template_value)

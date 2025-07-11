@@ -2,7 +2,7 @@ use crate::cloudflare::common::Credentials;
 use crate::cloudflare::kv::{
     KvError, KvKeys, KvKeysListInput, KvNamespace, KvNamespaceCreateInput, KvNamespaceGetInput,
     KvNamespaces, KvNamespacesListInput, KvPair, KvPairCreateInput, KvPairGetInput,
-    KvPairWriteInput, KvPairsDeleteInput, KvPairsDeleteResult,
+    KvPairWriteInput, KvPairsDeleteInput, KvPairsDeleteResult, KvPairsGetInput,
 };
 use crate::cloudflare::kv::{KvNamespaceDeleteInput, KvNamespaceUpdateInput};
 use crate::cloudflare::Cloudflare;
@@ -68,6 +68,16 @@ pub async fn get_kv_pair(
     let cloudflare_client = Cloudflare::new(credentials, None);
     let kv = cloudflare_client.kv;
     Ok(kv.get_kv_pair(input).await?)
+}
+
+#[tauri::command]
+pub async fn get_kv_pairs(
+    credentials: Credentials,
+    input: KvPairsGetInput,
+) -> Result<Vec<KvPair>, KvCommandError> {
+    let cloudflare_client = Cloudflare::new(credentials, None);
+    let kv = cloudflare_client.kv;
+    Ok(kv.get_kv_pairs(input).await?)
 }
 
 #[tauri::command]

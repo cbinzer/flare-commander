@@ -1,6 +1,6 @@
 use crate::authentication::authentication_commands::verify_account_and_credentials;
 use crate::kv::kv_commands::{
-    create_kv_pair, create_namespace, delete_kv_pairs, delete_namespace, get_kv_pair,
+    create_kv_pair, create_namespace, delete_kv_pairs, delete_namespace, get_kv_pair, get_kv_pairs,
     get_namespace, list_kv_keys, list_namespaces, update_namespace, write_kv_pair,
 };
 
@@ -23,6 +23,7 @@ pub fn run() {
             update_namespace,
             delete_namespace,
             get_kv_pair,
+            get_kv_pairs,
             list_kv_keys,
             create_kv_pair,
             write_kv_pair,
