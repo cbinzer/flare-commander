@@ -89,7 +89,7 @@ export function KvTable({ namespace }: KvTableProps) {
     setIsDialogOpen(true);
   };
 
-  const triggerExportKvPairs = async () => {
+  const exportKvPairs = async () => {
     const path = await save({ filters: [{ name: 'JSON', extensions: ['json'] }] });
     if (path) {
       setIsExporting(true);
@@ -114,7 +114,7 @@ export function KvTable({ namespace }: KvTableProps) {
     }
   };
 
-  const triggerExportKvPair = async (key: string) => {
+  const exportKvPair = async (key: string) => {
     const path = await save({ filters: [{ name: 'JSON', extensions: ['json'] }] });
     if (path) {
       setIsExporting(true);
@@ -269,7 +269,7 @@ export function KvTable({ namespace }: KvTableProps) {
                 Delete
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => triggerExportKvPair(cell.row.original.name)}>
+              <DropdownMenuItem onClick={() => exportKvPair(cell.row.original.name)} disabled={isExporting}>
                 <DownloadIcon />
                 Export
               </DropdownMenuItem>
@@ -278,7 +278,7 @@ export function KvTable({ namespace }: KvTableProps) {
         ),
       },
     ];
-  }, []);
+  }, [isExporting]);
 
   const table = useReactTable({
     data: tableData,
@@ -332,7 +332,7 @@ export function KvTable({ namespace }: KvTableProps) {
             variant="outline"
             size="sm"
             disabled={!actionButtonsEnabled || isRefreshing || isExporting}
-            onClick={triggerExportKvPairs}
+            onClick={exportKvPairs}
           >
             <DownloadIcon />
             <span className="hidden lg:inline">Export</span>
