@@ -70,7 +70,7 @@ export function KvTable({ namespace }: KvTableProps) {
     setPrefix,
     deleteKeys,
   } = useKvKeys(namespace.id);
-  const { createKvPairJSONExport } = useKvPair();
+  const { createKvPairJSONExport, createKvValueExport } = useKvPair();
   const { createKvPairsJSONExport } = useKvPairs();
 
   const openKvPairUpdateSheet = (key: KvTableKey) => {
@@ -129,6 +129,27 @@ export function KvTable({ namespace }: KvTableProps) {
           loading: `Exporting KV Pair with key '${key}'...`,
           success: () => `KV Pair with key '${key}' successfully exported!`,
           error: (error) => `Error exporting KV Pair with key '${key}': ${error.message}`,
+          finally: () => setIsExporting(false),
+        },
+      );
+    }
+  };
+
+  const exportKvValue = async (key: string) => {
+    const path = await save();
+    if (path) {
+      setIsExporting(true);
+
+      toast.promise(
+        async () => {
+          const kvValueExport = await createKvValueExport(namespace.id, key);
+          await writeFile(path, kvValueExport);
+        },
+        {
+          position: 'top-center',
+          loading: `Exporting KV Value from key '${key}'...`,
+          success: () => `KV Value from key '${key}' successfully exported!`,
+          error: (error) => `Error exporting KV Pair from key '${key}': ${error.message}`,
           finally: () => setIsExporting(false),
         },
       );
@@ -259,7 +280,7 @@ export function KvTable({ namespace }: KvTableProps) {
                 <span className="sr-only">Open menu</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-32">
+            <DropdownMenuContent align="end" className="w-36">
               <DropdownMenuItem onClick={() => openKvPairUpdateSheet(cell.row.original)}>
                 <EditIcon />
                 Edit
@@ -272,6 +293,10 @@ export function KvTable({ namespace }: KvTableProps) {
               <DropdownMenuItem onClick={() => exportKvPair(cell.row.original.name)} disabled={isExporting}>
                 <DownloadIcon />
                 Export
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => exportKvValue(cell.row.original.name)} disabled={isExporting}>
+                <DownloadIcon />
+                Export Value
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

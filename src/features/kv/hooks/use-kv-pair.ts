@@ -56,6 +56,15 @@ export function useKvPair() {
     return encoder.encode(kvPairJSON);
   };
 
+  const createKvValueExport = async (namespaceId: string, key: string): Promise<Uint8Array> => {
+    const kvPair = await invokeGetKvPair(
+      { account_id: account?.id as string, namespace_id: namespaceId, key },
+      account?.credentials as Credentials,
+    );
+
+    return kvPair.value ?? new Uint8Array();
+  };
+
   const createKvPair = async (input: Omit<KvPairCreateInput, 'account_id'>) => {
     setIsCreating(true);
     setError(null);
@@ -99,6 +108,7 @@ export function useKvPair() {
     createKvPair,
     writeKvPair,
     createKvPairJSONExport,
+    createKvValueExport,
     isLoading,
     isCreating,
     isWriting,
