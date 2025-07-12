@@ -71,7 +71,7 @@ export function KvTable({ namespace }: KvTableProps) {
     deleteKeys,
   } = useKvKeys(namespace.id);
   const { createKvPairJSONExport } = useKvPair();
-  const { exportKvPairs } = useKvPairs();
+  const { createKvPairsJSONExport } = useKvPairs();
 
   const openKvPairUpdateSheet = (key: KvTableKey) => {
     setKvKeyToEdit(key);
@@ -100,7 +100,7 @@ export function KvTable({ namespace }: KvTableProps) {
             .getSelectedRowModel()
             .rows.map((row) => row.original)
             .map((tableKey) => tableKey.name);
-          const kvPairsExport = await exportKvPairs(namespace.id, selectedKeys);
+          const kvPairsExport = await createKvPairsJSONExport(namespace.id, selectedKeys);
           await writeFile(path, kvPairsExport);
         },
         {

@@ -10,7 +10,7 @@ export function useKvPairs() {
   const [isExporting, setIsExporting] = useState(false);
   const [kvPairsExport, setKvPairsExport] = useState<Uint8Array | null>(null);
 
-  const exportKvPairs = async (namespaceId: string, keys: string[]): Promise<Uint8Array> => {
+  const createKvPairsJSONExport = async (namespaceId: string, keys: string[]): Promise<Uint8Array> => {
     setIsExporting(true);
     setKvPairsExport(null);
 
@@ -42,7 +42,7 @@ export function useKvPairs() {
   };
 
   return {
-    exportKvPairs,
+    createKvPairsJSONExport,
     isExporting,
     kvPairsExport,
   };
