@@ -43,6 +43,7 @@ import { save } from '@tauri-apps/plugin-dialog';
 import { writeFile } from '@tauri-apps/plugin-fs';
 import { useKvPairs } from '@/features/kv/hooks/use-kv-pairs.ts';
 import { toast } from 'sonner';
+import { useKvPair } from '@/features/kv/hooks/use-kv-pair.ts';
 
 interface KvTableProps {
   namespace: KvNamespace;
@@ -69,6 +70,7 @@ export function KvTable({ namespace }: KvTableProps) {
     setPrefix,
     deleteKeys,
   } = useKvKeys(namespace.id);
+  const { createKvPairJSONExport } = useKvPair();
   const { exportKvPairs } = useKvPairs();
 
   const openKvPairUpdateSheet = (key: KvTableKey) => {
@@ -99,16 +101,34 @@ export function KvTable({ namespace }: KvTableProps) {
             .rows.map((row) => row.original)
             .map((tableKey) => tableKey.name);
           const kvPairsExport = await exportKvPairs(namespace.id, selectedKeys);
-
-          if (kvPairsExport) {
-            await writeFile(path, kvPairsExport);
-          }
+          await writeFile(path, kvPairsExport);
         },
         {
           position: 'top-center',
           loading: 'Exporting KV Pairs...',
           success: () => `KV Pairs successfully exported!`,
           error: (error) => `Error exporting KV Pairs: ${error.message}`,
+          finally: () => setIsExporting(false),
+        },
+      );
+    }
+  };
+
+  const triggerExportKvPair = async (key: string) => {
+    const path = await save({ filters: [{ name: 'JSON', extensions: ['json'] }] });
+    if (path) {
+      setIsExporting(true);
+
+      toast.promise(
+        async () => {
+          const kvPairsExport = await createKvPairJSONExport(namespace.id, key);
+          await writeFile(path, kvPairsExport);
+        },
+        {
+          position: 'top-center',
+          loading: `Exporting KV Pair with key '${key}'...`,
+          success: () => `KV Pair with key '${key}' successfully exported!`,
+          error: (error) => `Error exporting KV Pair with key '${key}': ${error.message}`,
           finally: () => setIsExporting(false),
         },
       );
@@ -244,10 +264,14 @@ export function KvTable({ namespace }: KvTableProps) {
                 <EditIcon />
                 Edit
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => openKvKeysDeleteDialog([cell.row.original])}>
                 <TrashIcon />
                 Delete
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => triggerExportKvPair(cell.row.original.name)}>
+                <DownloadIcon />
+                Export
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

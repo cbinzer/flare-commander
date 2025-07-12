@@ -1,4 +1,4 @@
-import { CredentialsType, UserAuthTokenCredentials } from '@/features/authentication/auth-models.ts';
+import { Credentials, CredentialsType, UserAuthTokenCredentials } from '@/features/authentication/auth-models.ts';
 import { useAuth } from '@/features/authentication/hooks/use-auth.ts';
 import {
   KvError,
@@ -25,15 +25,10 @@ export function useKvPair() {
     setKvPair(null);
     setError(null);
 
-    const credentials: UserAuthTokenCredentials = {
-      type: CredentialsType.UserAuthToken,
-      token: (account?.credentials as UserAuthTokenCredentials).token,
-    };
-
     try {
       const pair = await invokeGetKvPair(
-        { account_id: account?.id ?? '', namespace_id: namespaceId, key },
-        credentials,
+        { account_id: account?.id as string, namespace_id: namespaceId, key },
+        account?.credentials as Credentials,
       );
       setKvPair(pair);
     } catch (e) {
@@ -41,6 +36,24 @@ export function useKvPair() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const createKvPairJSONExport = async (namespaceId: string, key: string): Promise<Uint8Array> => {
+    const kvPair = await invokeGetKvPair(
+      { account_id: account?.id as string, namespace_id: namespaceId, key },
+      account?.credentials as Credentials,
+    );
+
+    const kvPairJSON = JSON.stringify(kvPair, (_, value) => {
+      if (value instanceof Uint8Array) {
+        return Array.from(value);
+      }
+
+      return value;
+    });
+
+    const encoder = new TextEncoder();
+    return encoder.encode(kvPairJSON);
   };
 
   const createKvPair = async (input: Omit<KvPairCreateInput, 'account_id'>) => {
@@ -85,6 +98,7 @@ export function useKvPair() {
     getKvPair,
     createKvPair,
     writeKvPair,
+    createKvPairJSONExport,
     isLoading,
     isCreating,
     isWriting,
@@ -92,7 +106,7 @@ export function useKvPair() {
   };
 }
 
-export async function invokeGetKvPair(input: KvPairGetInput, credentials: UserAuthTokenCredentials): Promise<KvPair> {
+export async function invokeGetKvPair(input: KvPairGetInput, credentials: Credentials): Promise<KvPair> {
   try {
     const kvPair = await invoke<KvPairDTO>('get_kv_pair', {
       input,
