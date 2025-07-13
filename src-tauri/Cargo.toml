@@ -19,6 +19,7 @@ tauri-build = { version = "2.2.0", features = [] }
 
 [dependencies]
 chrono = { version = "0.4.41", features = ["serde"] }
+futures = "0.3.31"
 log = "0.4.27"
 tauri = { version = "2.5.1", features = [] }
 tauri-plugin = "2.2.0"

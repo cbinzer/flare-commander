@@ -13,6 +13,7 @@ use crate::cloudflare::kv::{
     KvNamespacesListInput, KvPairMetadata, KvPairMetadataGetInput, KvPairWriteInput,
 };
 use chrono::DateTime;
+use futures::future::try_join_all;
 use reqwest::multipart::{Form, Part};
 use reqwest::{Response, StatusCode};
 use serde::Deserialize;
@@ -257,16 +258,20 @@ impl KvClient {
             },
             Err(error) => match error {
                 KvError::NonTextValue => {
-                    let mut kv_pairs = Vec::<KvPair>::new();
-                    for key in input.keys {
-                        let kv_pair_get_input = KvPairGetInput {
-                            account_id: input.account_id.clone(),
-                            namespace_id: input.namespace_id.clone(),
-                            key: key.clone(),
-                        };
-                        let kv_pair = self.get_kv_pair(kv_pair_get_input).await?;
-                        kv_pairs.push(kv_pair);
-                    }
+                    let kv_pair_futures: Vec<_> = input
+                        .keys
+                        .iter()
+                        .map(|key| {
+                            let kv_pair_get_input = KvPairGetInput {
+                                account_id: input.account_id.clone(),
+                                namespace_id: input.namespace_id.clone(),
+                                key: key.clone(),
+                            };
+                            self.get_kv_pair(kv_pair_get_input)
+                        })
+                        .collect();
+
+                    let kv_pairs = try_join_all(kv_pair_futures).await?;
 
                     Ok(kv_pairs)
                 }

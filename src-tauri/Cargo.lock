@@ -1152,6 +1152,7 @@ name = "flare-commander"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "futures",
  "log",
  "percent-encoding",
  "reqwest",
