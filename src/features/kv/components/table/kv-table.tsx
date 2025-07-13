@@ -8,10 +8,11 @@ import { KvTableBody } from '@/features/kv/components/table/kv-table-body.tsx';
 import { KvTableHeader } from '@/features/kv/components/table/kv-table-header.tsx';
 import { ColumnDef, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { format } from 'date-fns';
-import { FocusEvent, FunctionComponent, KeyboardEvent, useEffect, useMemo, useState } from 'react';
+import { FocusEvent, FunctionComponent, KeyboardEvent, MouseEventHandler, useEffect, useMemo, useState } from 'react';
 import KvPairUpdateSheet from '../kv-pair-update-sheet.tsx';
 import {
   ArrowDown,
+  ChevronDown,
   DownloadIcon,
   EditIcon,
   MoreVerticalIcon,
@@ -20,6 +21,7 @@ import {
   Search,
   Trash2Icon,
   TrashIcon,
+  UploadIcon,
 } from 'lucide-react';
 import KvPairCreateSheet from '@/features/kv/components/kv-pair-create-sheet.tsx';
 import {
@@ -39,8 +41,8 @@ import {
 } from '@/components/ui/dialog.tsx';
 import { Input } from '@/components/ui/input.tsx';
 import { useKvKeys } from '@/features/kv/hooks/use-kv-keys.ts';
-import { save } from '@tauri-apps/plugin-dialog';
-import { writeFile } from '@tauri-apps/plugin-fs';
+import { open, save } from '@tauri-apps/plugin-dialog';
+import { readTextFile, writeFile } from '@tauri-apps/plugin-fs';
 import { useKvPairs } from '@/features/kv/hooks/use-kv-pairs.ts';
 import { toast } from 'sonner';
 import { useKvPair } from '@/features/kv/hooks/use-kv-pair.ts';
@@ -57,6 +59,8 @@ export function KvTable({ namespace }: KvTableProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importFileName, setImportFileName] = useState('');
   const [kvKeyToEdit, setKvKeyToEdit] = useState<KvTableKey | null>(null);
   const [kvKeysToDelete, setKvKeysToDelete] = useState<KvTableKey[]>([]);
   const {
@@ -153,6 +157,20 @@ export function KvTable({ namespace }: KvTableProps) {
           finally: () => setIsExporting(false),
         },
       );
+    }
+  };
+
+  const importKvPairsFromJSON = async () => {
+    const path = await open({ filters: [{ name: 'JSON', extensions: ['json'] }] });
+    if (path) {
+      setIsImporting(true);
+      setImportFileName(path.split('/').pop() || '');
+
+      const kvPairsImport = await readTextFile(path);
+      const kvPairsJSONImport = JSON.parse(kvPairsImport);
+      console.log(kvPairsJSONImport);
+
+      setTimeout(() => setIsImporting(false), 5000);
     }
   };
 
@@ -363,10 +381,7 @@ export function KvTable({ namespace }: KvTableProps) {
             <span className="hidden lg:inline">Export</span>
           </Button>
           <KvPairCreateSheet namespaceId={namespace.id} onCreate={async () => await reloadKeys()}>
-            <Button variant="outline" size="sm" disabled={isRefreshing}>
-              <PlusIcon />
-              <span className="hidden lg:inline">Add Pair</span>
-            </Button>
+            <AddButton disabled={isRefreshing} onClickImport={importKvPairsFromJSON} />
           </KvPairCreateSheet>
           <Button variant="outline" size="sm" disabled={isRefreshing} onClick={refreshKeys}>
             <RefreshCcwIcon className={isRefreshing ? 'animate-spin' : ''} />
@@ -439,6 +454,7 @@ export function KvTable({ namespace }: KvTableProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <KvPairsImportDialog open={isImporting} fileName={importFileName} />
     </div>
   );
 }
@@ -475,5 +491,48 @@ const EmptyTableBody: FunctionComponent<{ columnsLength: number }> = ({ columnsL
         </TableCell>
       </TableRow>
     </TableBody>
+  );
+};
+
+const AddButton: FunctionComponent<{
+  disabled?: boolean;
+  onClick?: MouseEventHandler<HTMLButtonElement> | undefined;
+  onClickImport?: MouseEventHandler<HTMLDivElement> | undefined;
+}> = ({ disabled, onClick, onClickImport }) => {
+  return (
+    <div className="flex">
+      <Button variant="outline" size="sm" disabled={disabled} className="rounded-r-none" onClick={onClick}>
+        <PlusIcon />
+        <span className="hidden lg:inline">Add Pair</span>
+      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" className={'rounded-l-none border-l-0 px-2'} disabled={disabled}>
+            <ChevronDown />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem className="h-8 rounded-md px-3 text-xs" onClick={onClickImport} disabled={disabled}>
+            <UploadIcon />
+            Import from JSON
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+};
+
+const KvPairsImportDialog: FunctionComponent<{ open?: boolean; fileName?: string }> = ({ open, fileName = '' }) => {
+  return (
+    <Dialog open={open}>
+      <DialogContent closeDisabled={true} closeVisible={false}>
+        <div className="grid grid-cols-[auto_1fr] items-center gap-2">
+          <LoadingSpinner className="inline h-[18px] w-[18px]" />
+          <span>
+            Importing KV Pairs from <b>{fileName}</b>...
+          </span>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
