@@ -327,6 +327,35 @@ pub struct KvPairWriteInput {
     pub metadata: KvPairMetadata,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct KvPairsWriteInput {
+    pub account_id: String,
+    pub namespace_id: String,
+    pub pairs: Vec<KvPairBulkWriteInput>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct KvPairBulkWriteInput {
+    pub key: String,
+    pub value: KvPairValue,
+    pub expiration: Option<DateTime<Utc>>,
+    pub expiration_ttl: Option<u32>,
+    pub metadata: KvPairMetadata,
+    pub base64: Option<bool>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub enum KvPairValue {
+    Text(String),
+    Binary(Vec<u8>),
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
+pub struct KvPairsWriteResult {
+    pub successful_key_count: u32,
+    pub unsuccessful_keys: Vec<String>,
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct KvPairsDeleteInput {
     pub account_id: String,

@@ -1,6 +1,7 @@
 use super::{
     KvPair, KvPairCreateInput, KvPairGetInput, KvPairsDeleteInput, KvPairsDeleteResult,
-    KvPairsGetInput, KvValues, KvValuesGetInput, KvValuesRaw, KvValuesResult,
+    KvPairsGetInput, KvPairsWriteInput, KvPairsWriteResult, KvValues, KvValuesGetInput,
+    KvValuesRaw, KvValuesResult,
 };
 use crate::cloudflare::common::{
     ApiCursorPaginatedResponse, ApiError, ApiErrorResponse, ApiPaginatedResponse, ApiResponse,
@@ -363,6 +364,13 @@ impl KvClient {
             }),
             _ => Err(self.handle_api_error_response(response).await),
         }
+    }
+
+    pub async fn write_kv_pairs(
+        self,
+        input: KvPairsWriteInput,
+    ) -> Result<KvPairsWriteResult, KvError> {
+        todo!()
     }
 
     pub async fn delete_kv_pairs(
@@ -2240,6 +2248,103 @@ mod test {
                     input.account_id, input.namespace_id, input.key,
                 )))
                 .respond_with(ResponseTemplate::new(400).set_body_json(ApiErrorResponse { errors }))
+                .mount(&mock_server)
+                .await;
+
+            mock_server
+        }
+    }
+
+    mod write_kv_pairs {
+        use crate::cloudflare::common::ApiResponse;
+        use crate::cloudflare::kv::kv_client::test::create_kv_client;
+        use crate::cloudflare::kv::{
+            KvError, KvPairBulkWriteInput, KvPairValue, KvPairsWriteInput, KvPairsWriteResult,
+        };
+        use wiremock::matchers::{body_json, method, path};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        #[tokio::test]
+        async fn should_write_kv_pairs() -> Result<(), KvError> {
+            let expected_result = KvPairsWriteResult {
+                successful_key_count: 2,
+                unsuccessful_keys: vec![],
+            };
+            let write_input = KvPairsWriteInput {
+                account_id: "account_id".to_string(),
+                namespace_id: "my_namespace".to_string(),
+                pairs: vec![
+                    KvPairBulkWriteInput {
+                        key: "key1".to_string(),
+                        value: KvPairValue::Binary("value1".as_bytes().to_vec()),
+                        expiration: None,
+                        expiration_ttl: None,
+                        metadata: None,
+                        base64: None,
+                    },
+                    KvPairBulkWriteInput {
+                        key: "key2".to_string(),
+                        value: KvPairValue::Binary("value2".as_bytes().to_vec()),
+                        expiration: None,
+                        expiration_ttl: None,
+                        metadata: None,
+                        base64: None,
+                    },
+                ],
+            };
+
+            let mock_server = create_succeeding_mock_server(&write_input).await;
+            let kv = create_kv_client(mock_server.uri());
+            let write_result = kv.write_kv_pairs(write_input).await?;
+
+            assert_eq!(expected_result, write_result);
+
+            Ok(())
+        }
+
+        async fn create_succeeding_mock_server(input: &KvPairsWriteInput) -> MockServer {
+            let mock_server = MockServer::start().await;
+
+            let text_based_pairs = input
+                .clone()
+                .pairs
+                .into_iter()
+                .map(|pair| {
+                    let text_value = match pair.value {
+                        KvPairValue::Text(text) => text,
+                        KvPairValue::Binary(binary) => String::from_utf8(binary).unwrap(),
+                    };
+
+                    KvPairBulkWriteInput {
+                        key: pair.key.clone(),
+                        value: KvPairValue::Text(text_value),
+                        expiration: pair.expiration,
+                        expiration_ttl: pair.expiration_ttl,
+                        metadata: pair.metadata.clone(),
+                        base64: pair.base64.clone(),
+                    }
+                })
+                .collect::<Vec<KvPairBulkWriteInput>>();
+
+            let result = KvPairsWriteResult {
+                successful_key_count: input.pairs.len() as u32,
+                unsuccessful_keys: vec![],
+            };
+
+            let response_template =
+                ResponseTemplate::new(200)
+                    .set_body_json(ApiResponse::<KvPairsWriteResult> { result });
+            Mock::given(method("PUT"))
+                .and(path(format!(
+                    "/client/v4/accounts/{}/storage/kv/namespaces/{}/bulk",
+                    input.account_id, input.namespace_id,
+                )))
+                .and(body_json(KvPairsWriteInput {
+                    account_id: input.account_id.clone(),
+                    namespace_id: input.namespace_id.clone(),
+                    pairs: text_based_pairs,
+                }))
+                .respond_with(response_template)
                 .mount(&mock_server)
                 .await;
 
