@@ -2,7 +2,8 @@ use crate::cloudflare::common::Credentials;
 use crate::cloudflare::kv::{
     KvError, KvKeys, KvKeysListInput, KvNamespace, KvNamespaceCreateInput, KvNamespaceGetInput,
     KvNamespaces, KvNamespacesListInput, KvPair, KvPairCreateInput, KvPairGetInput,
-    KvPairWriteInput, KvPairsDeleteInput, KvPairsDeleteResult, KvPairsGetInput,
+    KvPairWriteInput, KvPairsDeleteInput, KvPairsDeleteResult, KvPairsGetInput, KvPairsWriteInput,
+    KvPairsWriteResult,
 };
 use crate::cloudflare::kv::{KvNamespaceDeleteInput, KvNamespaceUpdateInput};
 use crate::cloudflare::Cloudflare;
@@ -91,6 +92,16 @@ pub async fn write_kv_pair(
 }
 
 #[tauri::command]
+pub async fn write_kv_pairs(
+    credentials: Credentials,
+    input: KvPairsWriteInput,
+) -> Result<KvPairsWriteResult, KvCommandError> {
+    let cloudflare_client = Cloudflare::new(credentials, None);
+    let kv = cloudflare_client.kv;
+    Ok(kv.write_kv_pairs(input).await?)
+}
+
+#[tauri::command]
 pub async fn create_kv_pair(
     credentials: Credentials,
     input: KvPairCreateInput,
@@ -164,7 +175,7 @@ impl From<KvError> for KvCommandError {
             },
             KvError::KeyAlreadyExists(key) => KvCommandError {
                 kind: KvCommandErrorKind::KeyAlreadyExists,
-                message: format!("An item with the key {} already exists", key),
+                message: format!("An item with the key {key} already exists"),
             },
             KvError::InvalidMetadata => KvCommandError {
                 kind: KvCommandErrorKind::InvalidMetadata,
@@ -176,8 +187,7 @@ impl From<KvError> for KvCommandError {
             },
             KvError::Token(token_err) => {
                 error!(
-                    "A token error occurred on interacting with kv: {}",
-                    token_err
+                    "A token error occurred on interacting with kv: {token_err}"
                 );
                 KvCommandError {
                     kind: KvCommandErrorKind::Authentication,
@@ -186,8 +196,7 @@ impl From<KvError> for KvCommandError {
             }
             KvError::Reqwest(reqwest_err) => {
                 error!(
-                    "A reqwest error occurred on interacting with kv: {}",
-                    reqwest_err
+                    "A reqwest error occurred on interacting with kv: {reqwest_err}"
                 );
                 KvCommandError {
                     kind: KvCommandErrorKind::Unknown,
@@ -195,7 +204,7 @@ impl From<KvError> for KvCommandError {
                 }
             }
             KvError::Unknown(unknown_err) => {
-                error!("An unknown kv error occurred: {}", unknown_err);
+                error!("An unknown kv error occurred: {unknown_err}");
                 KvCommandError {
                     kind: KvCommandErrorKind::Unknown,
                     message: "An unknown error occurred".to_string(),

@@ -344,6 +344,22 @@ pub struct KvPairBulkWriteInput {
     pub base64: Option<bool>,
 }
 
+impl KvPairBulkWriteInput {
+    pub fn into_text_value(self) -> Self {
+        match self.value {
+            KvPairValue::Text(_) => self,
+            KvPairValue::Binary(binary_val) => Self {
+                key: self.key,
+                value: KvPairValue::Text(String::from_utf8(binary_val).unwrap_or_default()),
+                expiration: self.expiration,
+                expiration_ttl: self.expiration_ttl,
+                metadata: self.metadata,
+                base64: None,
+            },
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub enum KvPairValue {
     Text(String),
@@ -354,6 +370,12 @@ pub enum KvPairValue {
 pub struct KvPairsWriteResult {
     pub successful_key_count: u32,
     pub unsuccessful_keys: Vec<String>,
+}
+
+impl From<ApiResponse<KvPairsWriteResult>> for KvPairsWriteResult {
+    fn from(response: ApiResponse<KvPairsWriteResult>) -> Self {
+        response.result
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]

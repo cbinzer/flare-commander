@@ -1,7 +1,7 @@
 use crate::authentication::authentication_commands::verify_account_and_credentials;
 use crate::kv::kv_commands::{
     create_kv_pair, create_namespace, delete_kv_pairs, delete_namespace, get_kv_pair, get_kv_pairs,
-    get_namespace, list_kv_keys, list_namespaces, update_namespace, write_kv_pair,
+    get_namespace, list_kv_keys, list_namespaces, update_namespace, write_kv_pair, write_kv_pairs,
 };
 
 mod authentication;
@@ -27,6 +27,7 @@ pub fn run() {
             list_kv_keys,
             create_kv_pair,
             write_kv_pair,
+            write_kv_pairs,
             delete_kv_pairs,
         ])
         .run(tauri::generate_context!())

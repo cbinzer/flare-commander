@@ -1,7 +1,7 @@
 use super::{
-    KvPair, KvPairCreateInput, KvPairGetInput, KvPairsDeleteInput, KvPairsDeleteResult,
-    KvPairsGetInput, KvPairsWriteInput, KvPairsWriteResult, KvValues, KvValuesGetInput,
-    KvValuesRaw, KvValuesResult,
+    KvPair, KvPairBulkWriteInput, KvPairCreateInput, KvPairGetInput, KvPairsDeleteInput,
+    KvPairsDeleteResult, KvPairsGetInput, KvPairsWriteInput, KvPairsWriteResult, KvValues,
+    KvValuesGetInput, KvValuesRaw, KvValuesResult,
 };
 use crate::cloudflare::common::{
     ApiCursorPaginatedResponse, ApiError, ApiErrorResponse, ApiPaginatedResponse, ApiResponse,
@@ -370,7 +370,30 @@ impl KvClient {
         self,
         input: KvPairsWriteInput,
     ) -> Result<KvPairsWriteResult, KvError> {
-        todo!()
+        let url = format!(
+            "{}/accounts/{}/storage/kv/namespaces/{}/bulk",
+            self.api_url, input.account_id, input.namespace_id
+        );
+
+        let pairs: Vec<KvPairBulkWriteInput> = input
+            .pairs
+            .into_iter()
+            .map(|pair| pair.into_text_value())
+            .collect();
+
+        let response = self
+            .http_client
+            .put(&url)
+            .json(&pairs)
+            .headers(self.credentials.headers())
+            .send()
+            .await?;
+
+        let write_result = self
+            .handle_api_response::<ApiResponse<KvPairsWriteResult>, KvPairsWriteResult>(response)
+            .await?;
+
+        Ok(write_result)
     }
 
     pub async fn delete_kv_pairs(
@@ -2321,7 +2344,7 @@ mod test {
                         expiration: pair.expiration,
                         expiration_ttl: pair.expiration_ttl,
                         metadata: pair.metadata.clone(),
-                        base64: pair.base64.clone(),
+                        base64: pair.base64,
                     }
                 })
                 .collect::<Vec<KvPairBulkWriteInput>>();
@@ -2339,11 +2362,7 @@ mod test {
                     "/client/v4/accounts/{}/storage/kv/namespaces/{}/bulk",
                     input.account_id, input.namespace_id,
                 )))
-                .and(body_json(KvPairsWriteInput {
-                    account_id: input.account_id.clone(),
-                    namespace_id: input.namespace_id.clone(),
-                    pairs: text_based_pairs,
-                }))
+                .and(body_json(text_based_pairs))
                 .respond_with(response_template)
                 .mount(&mock_server)
                 .await;
