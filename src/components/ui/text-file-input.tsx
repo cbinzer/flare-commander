@@ -23,6 +23,7 @@ interface ValueType {
 const TextFileInput = forwardRef<HTMLTextAreaElement, TextFileInputProps>(
   ({ className, disabled, value, onChange, onChangeValue, onValueError, ...props }, ref) => {
     const [texValue, setTexValue] = useState<string>('');
+    const [internalValue, setInternalValue] = useState<Uint8Array | undefined>();
     const [valueType, setValueType] = useState<ValueType>({
       type: 'unknown',
       isBinary: true,
@@ -44,7 +45,11 @@ const TextFileInput = forwardRef<HTMLTextAreaElement, TextFileInputProps>(
 
       const path = await save(dialogOptions);
       if (path) {
-        await writeFile(path, encodeValue(texValue ?? ''));
+        if (valueType.isBinary) {
+          await writeFile(path, internalValue ?? new Uint8Array());
+        } else {
+          await writeFile(path, encodeValue(texValue ?? ''));
+        }
       }
     };
 
@@ -52,6 +57,8 @@ const TextFileInput = forwardRef<HTMLTextAreaElement, TextFileInputProps>(
       const path = await open();
       if (path) {
         const fileContent = await readFile(path);
+        setInternalValue(fileContent);
+
         const valueType = await determineValueType(fileContent);
         setValueType(valueType);
 
@@ -116,6 +123,7 @@ const TextFileInput = forwardRef<HTMLTextAreaElement, TextFileInputProps>(
     useEffect(() => {
       determineValueType(value ?? new Uint8Array()).then((newValueType) => {
         setValueType(newValueType);
+        setInternalValue(value);
 
         if (!value || newValueType.isBinary) {
           setTexValue('');
