@@ -16,7 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton.tsx';
 import { Textarea } from '@/components/ui/textarea.tsx';
 import { FunctionComponent, ReactNode, useEffect, useRef, useState } from 'react';
 import { useKvPair } from '../hooks/use-kv-pair.ts';
-import { KvKeyPairWriteInput } from '../kv-models.ts';
+import { KvPairWriteInput } from '../kv-models.ts';
 import {
   parseMetadataJSON,
   stringifyMetadataJSON,
@@ -104,7 +104,7 @@ const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
 
     setTimeout(async () => {
       const parsedMetadata = parseMetadataJSON(metadata);
-      const writeInput: Omit<KvKeyPairWriteInput, 'account_id'> = {
+      const writeInput: Omit<KvPairWriteInput, 'account_id'> = {
         namespace_id: namespaceId,
         key: key ?? '',
         value,

@@ -2,7 +2,7 @@ import { Credentials, CredentialsType, UserAuthTokenCredentials } from '@/featur
 import { useAuth } from '@/features/authentication/hooks/use-auth.ts';
 import {
   KvError,
-  KvKeyPairWriteInput,
+  KvPairWriteInput,
   KvPair,
   KvPairCreateInput,
   KvPairDTO,
@@ -83,7 +83,7 @@ export function useKvPair() {
     }
   };
 
-  const writeKvPair = async (input: Omit<KvKeyPairWriteInput, 'account_id'>) => {
+  const writeKvPair = async (input: Omit<KvPairWriteInput, 'account_id'>) => {
     setIsWriting(true);
     setError(null);
 
@@ -154,7 +154,7 @@ export async function invokeCreateKvPair(
 }
 
 export async function invokeWriteKvPair(
-  input: KvKeyPairWriteInput,
+  input: KvPairWriteInput,
   credentials: UserAuthTokenCredentials,
 ): Promise<KvPair> {
   try {

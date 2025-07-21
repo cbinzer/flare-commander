@@ -98,7 +98,7 @@ export interface KvPairCreateInput {
   metadata?: KvMetadata;
 }
 
-export interface KvKeyPairWriteInput {
+export interface KvPairWriteInput {
   account_id: string;
   namespace_id: string;
   key: string;
@@ -106,6 +106,19 @@ export interface KvKeyPairWriteInput {
   expiration?: Date;
   expiration_ttl?: number;
   metadata?: KvMetadata;
+}
+
+export interface KvPairsWriteInput {
+  account_id: string;
+  namespace_id: string;
+  pairs: KvPairsWriteInputPair[];
+}
+
+export type KvPairsWriteInputPair = Omit<KvPairWriteInput, 'account_id' | 'namespace_id'> & { value: number[] };
+
+export interface KvPairsWriteResult {
+  successful_key_count: number;
+  unsuccessful_keys: string[];
 }
 
 export interface KvPairsDeleteInput {

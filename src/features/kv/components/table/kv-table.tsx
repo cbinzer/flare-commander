@@ -75,7 +75,7 @@ export function KvTable({ namespace }: KvTableProps) {
     deleteKeys,
   } = useKvKeys(namespace.id);
   const { createKvPairJSONExport, createKvValueExport } = useKvPair();
-  const { createKvPairsJSONExport } = useKvPairs();
+  const { createKvPairsJSONExport, writeKvPairs } = useKvPairs();
 
   const openKvPairUpdateSheet = (key: KvTableKey) => {
     setKvKeyToEdit(key);
@@ -166,11 +166,22 @@ export function KvTable({ namespace }: KvTableProps) {
       setIsImporting(true);
       setImportFileName(path.split('/').pop() || '');
 
-      const kvPairsImport = await readTextFile(path);
-      const kvPairsJSONImport = JSON.parse(kvPairsImport);
-      console.log(kvPairsJSONImport);
+      try {
+        const kvPairsImport = await readTextFile(path);
+        let kvPairsJSONImport = JSON.parse(kvPairsImport);
+        if (!Array.isArray(kvPairsJSONImport)) {
+          kvPairsJSONImport = [kvPairsJSONImport];
+        }
 
-      setTimeout(() => setIsImporting(false), 5000);
+        // TODO: Validate kvPairsJSONImport structure
+
+        await writeKvPairs(namespace.id, kvPairsJSONImport);
+        await reloadKeys();
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsImporting(false);
+      }
     }
   };
 

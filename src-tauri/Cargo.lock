@@ -1151,6 +1151,7 @@ dependencies = [
 name = "flare-commander"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "chrono",
  "futures",
  "log",

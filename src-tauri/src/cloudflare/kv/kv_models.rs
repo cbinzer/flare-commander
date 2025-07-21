@@ -3,6 +3,8 @@ use crate::cloudflare::common::{
     TokenError,
 };
 
+use base64::prelude::BASE64_STANDARD;
+use base64::Engine;
 use chrono::serde::ts_seconds_option;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -348,19 +350,27 @@ impl KvPairBulkWriteInput {
     pub fn into_text_value(self) -> Self {
         match self.value {
             KvPairValue::Text(_) => self,
-            KvPairValue::Binary(binary_val) => Self {
-                key: self.key,
-                value: KvPairValue::Text(String::from_utf8(binary_val).unwrap_or_default()),
-                expiration: self.expiration,
-                expiration_ttl: self.expiration_ttl,
-                metadata: self.metadata,
-                base64: None,
-            },
+            KvPairValue::Binary(binary_val) => {
+                let (value, base64) = String::from_utf8(binary_val.clone()).map_or_else(
+                    |_| (BASE64_STANDARD.encode(&binary_val), true),
+                    |text_val| (text_val, false),
+                );
+
+                Self {
+                    key: self.key,
+                    value: KvPairValue::Text(value),
+                    expiration: self.expiration,
+                    expiration_ttl: self.expiration_ttl,
+                    metadata: self.metadata,
+                    base64: Some(base64),
+                }
+            }
         }
     }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[serde(untagged)]
 pub enum KvPairValue {
     Text(String),
     Binary(Vec<u8>),
