@@ -3,7 +3,7 @@ import { Checkbox } from '@/components/ui/checkbox.tsx';
 import { LoadingSpinner } from '@/components/ui/loading-spinner.tsx';
 import { Skeleton } from '@/components/ui/skeleton.tsx';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table.tsx';
-import { KvNamespace, KvTableKey } from '@/features/kv/kv-models.ts';
+import { KvNamespace, kvPairsImportParser, KvTableKey } from '@/features/kv/kv-models.ts';
 import { KvTableBody } from '@/features/kv/components/table/kv-table-body.tsx';
 import { KvTableHeader } from '@/features/kv/components/table/kv-table-header.tsx';
 import { ColumnDef, getCoreRowModel, useReactTable } from '@tanstack/react-table';
@@ -46,6 +46,7 @@ import { readTextFile, writeFile } from '@tauri-apps/plugin-fs';
 import { useKvPairs } from '@/features/kv/hooks/use-kv-pairs.ts';
 import { toast } from 'sonner';
 import { useKvPair } from '@/features/kv/hooks/use-kv-pair.ts';
+import { useError } from '@/hooks/use-error.ts';
 
 interface KvTableProps {
   namespace: KvNamespace;
@@ -76,6 +77,7 @@ export function KvTable({ namespace }: KvTableProps) {
   } = useKvKeys(namespace.id);
   const { createKvPairJSONExport, createKvValueExport } = useKvPair();
   const { createKvPairsJSONExport, writeKvPairs } = useKvPairs();
+  const { handleError } = useError();
 
   const openKvPairUpdateSheet = (key: KvTableKey) => {
     setKvKeyToEdit(key);
@@ -169,16 +171,18 @@ export function KvTable({ namespace }: KvTableProps) {
       try {
         const kvPairsImport = await readTextFile(path);
         let kvPairsJSONImport = JSON.parse(kvPairsImport);
-        if (!Array.isArray(kvPairsJSONImport)) {
+        if (Array.isArray(kvPairsJSONImport)) {
+          kvPairsJSONImport = [...kvPairsJSONImport]; // If we don't do this, the zod parser will not work correctly
+        } else {
           kvPairsJSONImport = [kvPairsJSONImport];
         }
 
-        // TODO: Validate kvPairsJSONImport structure
+        kvPairsJSONImport = kvPairsImportParser.parse(kvPairsJSONImport);
 
         await writeKvPairs(namespace.id, kvPairsJSONImport);
         await reloadKeys();
       } catch (e) {
-        console.error(e);
+        handleError(e as Error, 'Error importing KV Pairs from JSON');
       } finally {
         setIsImporting(false);
       }

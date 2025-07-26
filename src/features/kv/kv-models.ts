@@ -1,3 +1,5 @@
+import * as zod from 'zod';
+
 export interface KvNamespaces {
   items: KvNamespace[];
   page_info: PageInfo;
@@ -68,6 +70,15 @@ export interface KvPair {
   expiration?: Date;
   metadata?: KvMetadata;
 }
+
+export const kvPairsImportParser = zod.array(
+  zod.object({
+    key: zod.string(),
+    value: zod.optional(zod.array(zod.uint32())),
+    expiration: zod.optional(zod.iso.datetime()),
+    metadata: zod.optional(zod.json()),
+  }),
+);
 
 export interface KvPairGetInput {
   account_id: string;
