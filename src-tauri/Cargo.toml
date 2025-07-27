@@ -22,17 +22,17 @@ base64 = "0.22.1"
 chrono = { version = "0.4.41", features = ["serde"] }
 futures = "0.3.31"
 log = "0.4.27"
-tauri = { version = "2.5.1", features = [] }
-tauri-plugin = "2.2.0"
-tauri-plugin-opener = "2.2.7"
-tauri-plugin-log = "2.4.0"
-tauri-plugin-dialog = "2.3.0"
-tauri-plugin-fs = "2.4.0"
+tauri = { version = "2.7.0", features = [] }
+tauri-plugin = "2.3.1"
+tauri-plugin-opener = "2.4.0"
+tauri-plugin-log = "2.6.0"
+tauri-plugin-dialog = "2.3.1"
+tauri-plugin-fs = "2.4.1"
 serde = { version = "1.0.219", features = ["derive"] }
-serde_json = "1.0.140"
-reqwest = { version = "0.12.20", features = ["multipart", "json"] }
-tokio = { version = "1.45.1", features = ["macros"] }
+serde_json = "1.0.141"
+reqwest = { version = "0.12.22", features = ["multipart", "json"] }
+tokio = { version = "1.47.0", features = ["macros"] }
 percent-encoding = "2.3.1"
 
 [dev-dependencies]
-wiremock = "0.6.3"
+wiremock = "0.6.4"
