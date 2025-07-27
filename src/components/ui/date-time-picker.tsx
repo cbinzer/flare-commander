@@ -64,7 +64,7 @@ const DateTimePicker: FunctionComponent<DateTimePickerProps> = ({
       <PopoverTrigger asChild>
         <div
           className={cn(
-            'grid grid-cols-[1fr_auto] w-full border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground rounded-md',
+            'grid grid-cols-[1fr_auto] w-full border border-input bg-background shadow-xs hover:bg-accent hover:text-accent-foreground rounded-md',
             className,
           )}
         >

@@ -40,7 +40,7 @@ export function AccountSidebarMenu() {
           </DropdownMenuTrigger>
 
           <DropdownMenuContent
-            className="w-[--radix-dropdown-menu-trigger-width] min-w-72 rounded-lg"
+            className="w-(--radix-dropdown-menu-trigger-width) min-w-72 rounded-lg"
             side={isMobile ? 'bottom' : 'right'}
             align="end"
             sideOffset={4}

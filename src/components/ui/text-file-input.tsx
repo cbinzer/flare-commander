@@ -139,7 +139,7 @@ const TextFileInput = forwardRef<HTMLTextAreaElement, TextFileInputProps>(
           <div
             className={cn(
               className,
-              'grid rounded-md border border-input bg-transparent px-3 py-2 shadow-sm relative',
+              'grid rounded-md border border-input bg-transparent px-3 py-2 shadow-xs relative',
               disabled ? 'opacity-50' : '',
               error ? 'border-red-500 focus-visible:ring-red-500' : '',
             )}
@@ -235,11 +235,7 @@ async function determineValueType(value: Uint8Array): Promise<ValueType> {
 function hasUnreadableSigns(uint8array: Uint8Array): boolean {
   return uint8array.some((byte) => {
     // Allow: tab (9), newline (10), carriage return (13), space (32) to tilde (126)
-    if (byte < 32 && byte !== 9 && byte !== 10 && byte !== 13) {
-      return true;
-    }
-
-    return false;
+    return byte < 32 && byte !== 9 && byte !== 10 && byte !== 13;
   });
 }
 
