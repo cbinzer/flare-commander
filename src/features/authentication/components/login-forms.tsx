@@ -5,10 +5,9 @@ import { Input } from '@/components/ui/input.tsx';
 import { Label } from '@/components/ui/label.tsx';
 import { ComponentPropsWithoutRef, FormEvent, FunctionComponent, useState } from 'react';
 import { useAuth } from '@/features/authentication/hooks/use-auth.ts';
-import { LoadingSpinner } from '@/components/ui/loading-spinner.tsx';
 import { AuthenticationError, Credentials, CredentialsType } from '@/features/authentication/auth-models.ts';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert.tsx';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Loader2Icon } from 'lucide-react';
 import logoUrl from '../../../assets/logo.svg';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.tsx';
 
@@ -163,7 +162,7 @@ const LoginForm: FunctionComponent<LoginFormProps> = ({ credentialsType }) => {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? (
                 <>
-                  <LoadingSpinner /> Login...
+                  <Loader2Icon className="animate-spin" /> Login...
                 </>
               ) : (
                 'Login'

@@ -1,7 +1,6 @@
 import { Button } from '@/components/ui/button.tsx';
 import { Input } from '@/components/ui/input.tsx';
 import { Label } from '@/components/ui/label.tsx';
-import { LoadingSpinner } from '@/components/ui/loading-spinner.tsx';
 import {
   Sheet,
   SheetContent,
@@ -14,7 +13,7 @@ import {
 import { ChangeEvent, FunctionComponent, KeyboardEvent, ReactNode, useEffect, useRef, useState } from 'react';
 
 import { KvNamespace } from '../kv-models.ts';
-import { PlusIcon } from 'lucide-react';
+import { Loader2Icon, PlusIcon } from 'lucide-react';
 import { cn } from '@/lib/utils.ts';
 import { useKvNamespaces } from '@/features/kv/hooks/use-kv-namespaces.ts';
 import { useError } from '@/hooks/use-error.ts';
@@ -141,7 +140,7 @@ const KvNamespaceCreateSheet: FunctionComponent<KvNamespaceCreateSheetProps> = (
           <Button type="submit" disabled={isSaveButtonDisabled} onClick={handleSaveClick}>
             {isCreating ? (
               <>
-                <LoadingSpinner /> Creating...
+                <Loader2Icon className="animate-spin" /> Creating...
               </>
             ) : (
               <>

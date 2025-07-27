@@ -1,6 +1,15 @@
 'use client';
 
-import { ArrowDown, EditIcon, FolderKey, MoreHorizontal, PlusIcon, RefreshCcwIcon, TrashIcon } from 'lucide-react';
+import {
+  ArrowDown,
+  EditIcon,
+  FolderKey,
+  Loader2Icon,
+  MoreHorizontal,
+  PlusIcon,
+  RefreshCcwIcon,
+  TrashIcon,
+} from 'lucide-react';
 import {
   SidebarGroup,
   SidebarMenu,
@@ -35,7 +44,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog.tsx';
 import { Button } from '@/components/ui/button.tsx';
-import { LoadingSpinner } from '@/components/ui/loading-spinner.tsx';
 import { useKvNamespaces } from '@/features/kv/hooks/use-kv-namespaces.ts';
 import { useError } from '@/hooks/use-error.ts';
 
@@ -157,7 +165,7 @@ export function KvSidebarGroup() {
               >
                 {isLoadingNext ? (
                   <>
-                    <LoadingSpinner /> Loading...
+                    <Loader2Icon className="animate-spin" /> Loading...
                   </>
                 ) : (
                   <>
@@ -365,7 +373,7 @@ const KvNamespaceDeleteDialog: FunctionComponent<KvNamespaceDeleteDialogProps> =
           <Button variant="destructive" disabled={isDeleting} onClick={deleteNamespaceAndCloseDialog}>
             {isDeleting ? (
               <>
-                <LoadingSpinner /> Deleting...
+                <Loader2Icon className="animate-spin" /> Deleting...
               </>
             ) : (
               <>

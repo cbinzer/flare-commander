@@ -2,7 +2,6 @@ import { Button } from '@/components/ui/button.tsx';
 import DateTimePicker from '@/components/ui/date-time-picker.tsx';
 import { Input } from '@/components/ui/input.tsx';
 import { Label } from '@/components/ui/label.tsx';
-import { LoadingSpinner } from '@/components/ui/loading-spinner.tsx';
 import {
   Sheet,
   SheetContent,
@@ -18,7 +17,7 @@ import { useKvPair } from '../hooks/use-kv-pair.ts';
 import { KvPair, KvPairCreateInput } from '../kv-models.ts';
 import { parseMetadataJSON, validateExpirationTTL, validateMetadata } from '@/features/kv/lib/kv-utils.ts';
 import { cn } from '@/lib/utils.ts';
-import { PlusIcon } from 'lucide-react';
+import { Loader2Icon, PlusIcon } from 'lucide-react';
 import { useError } from '@/hooks/use-error.ts';
 import TextFileInput from '@/components/ui/text-file-input.tsx';
 
@@ -269,7 +268,7 @@ const KvPairCreateSheet: FunctionComponent<KvPairCreateSheetProps> = ({
           <Button type="submit" disabled={isSaveButtonDisabled} onClick={handleSaveClick}>
             {isSaving ? (
               <>
-                <LoadingSpinner /> Creating...
+                <Loader2Icon className="animate-spin" /> Creating...
               </>
             ) : (
               <>

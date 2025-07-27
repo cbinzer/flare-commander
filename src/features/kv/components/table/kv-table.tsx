@@ -1,6 +1,5 @@
 import { Button } from '@/components/ui/button.tsx';
 import { Checkbox } from '@/components/ui/checkbox.tsx';
-import { LoadingSpinner } from '@/components/ui/loading-spinner.tsx';
 import { Skeleton } from '@/components/ui/skeleton.tsx';
 import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table.tsx';
 import { KvNamespace, kvPairsImportParser, KvTableKey } from '@/features/kv/kv-models.ts';
@@ -15,6 +14,7 @@ import {
   ChevronDown,
   DownloadIcon,
   EditIcon,
+  Loader2Icon,
   MoreVerticalIcon,
   PlusIcon,
   RefreshCcwIcon,
@@ -423,7 +423,7 @@ export function KvTable({ namespace }: KvTableProps) {
           <Button variant="outline" size="sm" onClick={loadNextKeys} disabled={isLoadingNextKeys}>
             {isLoadingNextKeys ? (
               <>
-                <LoadingSpinner /> Loading...
+                <Loader2Icon className="animate-spin" /> Loading...
               </>
             ) : (
               <>
@@ -458,7 +458,7 @@ export function KvTable({ namespace }: KvTableProps) {
             <Button variant="destructive" disabled={isDeleting} onClick={deleteKvPairAndReload}>
               {isDeleting ? (
                 <>
-                  <LoadingSpinner /> Deleting...
+                  <Loader2Icon className="animate-spin" /> Deleting...
                 </>
               ) : (
                 <>
@@ -542,7 +542,7 @@ const KvPairsImportDialog: FunctionComponent<{ open?: boolean; fileName?: string
     <Dialog open={open}>
       <DialogContent closeDisabled={true} closeVisible={false}>
         <div className="grid grid-cols-[auto_1fr] items-center gap-2">
-          <LoadingSpinner className="inline h-[18px] w-[18px]" />
+          <Loader2Icon className="animate-spin inline h-[18px] w-[18px]" />
           <span>
             Importing KV Pairs from <b>{fileName}</b>...
           </span>
