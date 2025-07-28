@@ -540,7 +540,7 @@ const AddButton: FunctionComponent<{
 const KvPairsImportDialog: FunctionComponent<{ open?: boolean; fileName?: string }> = ({ open, fileName = '' }) => {
   return (
     <Dialog open={open}>
-      <DialogContent closeDisabled={true} closeVisible={false}>
+      <DialogContent closeDisabled={true} showCloseButton={false}>
         <div className="grid grid-cols-[auto_1fr] items-center gap-2">
           <Loader2Icon className="animate-spin inline h-[18px] w-[18px]" />
           <span>
