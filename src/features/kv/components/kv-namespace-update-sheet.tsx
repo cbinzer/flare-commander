@@ -116,7 +116,7 @@ const KvNamespaceUpdateSheet: FunctionComponent<KvNamespaceUpdateSheetProps> = (
           <SheetDescription>Edit the title</SheetDescription>
         </SheetHeader>
 
-        <div className="grid gap-4 py-4">
+        <div className="grid gap-4 p-4">
           <div className="grid grid-cols-[100px_1fr] items-center gap-4">
             <Label htmlFor="id" className="text-right">
               Id *
@@ -177,7 +177,7 @@ const KvNamespaceUpdateSheet: FunctionComponent<KvNamespaceUpdateSheetProps> = (
         </div>
 
         <SheetFooter>
-          <Button type="submit" disabled={isSaveButtonDisabled} onClick={handleSaveClick}>
+          <Button type="submit" disabled={isSaveButtonDisabled} onClick={handleSaveClick} className="w-fit self-end">
             {isSaving ? (
               <>
                 <Loader2Icon className="animate-spin" /> Saving...
