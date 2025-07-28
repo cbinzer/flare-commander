@@ -234,7 +234,7 @@ const KvSidebarMenu: FunctionComponent<KvSidebarMenuProps> = ({
     <SidebarMenuSub>
       {namespaces.map((namespace) => (
         <TooltipProvider delayDuration={1000} key={namespace.id}>
-          <Tooltip>
+          <Tooltip delayDuration={2000}>
             <TooltipTrigger asChild>
               <SidebarMenuSubItem>
                 <SidebarMenuSubButton asChild isActive={activeNamespace?.id === namespace.id}>
