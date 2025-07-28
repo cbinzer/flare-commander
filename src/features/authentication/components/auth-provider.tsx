@@ -33,7 +33,7 @@ const AuthProvider: FunctionComponent<AuthProviderProps> = ({ children }) => {
 
   const value: AuthContextValue = {
     account,
-    verifyCredentials: verifyCredentials,
+    verifyCredentials,
     resetCredentials: logout,
   };
 
