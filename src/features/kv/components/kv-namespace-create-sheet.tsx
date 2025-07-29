@@ -17,6 +17,7 @@ import { Loader2Icon, PlusIcon } from 'lucide-react';
 import { cn } from '@/lib/utils.ts';
 import { useKvNamespaces } from '@/features/kv/hooks/use-kv-namespaces.ts';
 import { useError } from '@/hooks/use-error.ts';
+import { ScrollArea } from '@/components/ui/scroll-area.tsx';
 
 export interface KvNamespaceCreateSheetProps {
   open?: boolean;
@@ -106,35 +107,37 @@ const KvNamespaceCreateSheet: FunctionComponent<KvNamespaceCreateSheetProps> = (
   return (
     <Sheet open={isOpen} onOpenChange={setFocusOnOpenChange}>
       <SheetTrigger asChild>{children}</SheetTrigger>
-      <SheetContent closeDisabled={isCreating} className="w-[550px] sm:max-w-[550px]">
+      <SheetContent closeDisabled={isCreating} className="grid grid-rows-[auto_1fr_auto] w-[550px] sm:max-w-[550px]">
         <SheetHeader>
           <SheetTitle>Create KV Namespace</SheetTitle>
           <SheetDescription>Set title to create a namespace</SheetDescription>
         </SheetHeader>
 
-        <div className="grid gap-4 py-4 px-4">
-          <div className="grid grid-cols-[100px_1fr] items-center gap-4">
-            <Label htmlFor="title" className="text-right">
-              Title *
-            </Label>
-            <div className="space-y-2">
-              <Input
-                id="title"
-                value={title}
-                ref={titleInputRef}
-                disabled={isCreating}
-                onChange={handleTitleChange}
-                onKeyDown={createOnEnter}
-                className={cn(errors.title && 'border-red-500 focus-visible:ring-red-500')}
-              />
-              {errors.title && (
-                <p className={cn('text-[0.8rem] font-medium text-destructive')}>
-                  A namespace with this title already exists
-                </p>
-              )}
+        <ScrollArea className="min-h-0">
+          <div className="grid gap-4 py-4 px-4">
+            <div className="grid grid-cols-[100px_1fr] items-center gap-4">
+              <Label htmlFor="title" className="text-right">
+                Title *
+              </Label>
+              <div className="space-y-2">
+                <Input
+                  id="title"
+                  value={title}
+                  ref={titleInputRef}
+                  disabled={isCreating}
+                  onChange={handleTitleChange}
+                  onKeyDown={createOnEnter}
+                  className={cn(errors.title && 'border-red-500 focus-visible:ring-red-500')}
+                />
+                {errors.title && (
+                  <p className={cn('text-[0.8rem] font-medium text-destructive')}>
+                    A namespace with this title already exists
+                  </p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        </ScrollArea>
 
         <SheetFooter>
           <Button type="submit" disabled={isSaveButtonDisabled} onClick={handleSaveClick} className="w-fit self-end">

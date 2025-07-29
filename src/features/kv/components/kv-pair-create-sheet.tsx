@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils.ts';
 import { Loader2Icon, PlusIcon } from 'lucide-react';
 import { useError } from '@/hooks/use-error.ts';
 import TextFileInput from '@/components/ui/text-file-input.tsx';
+import { ScrollArea } from '@/components/ui/scroll-area.tsx';
 
 export interface KvPairCreateSheetProps {
   namespaceId: string;
@@ -162,107 +163,111 @@ const KvPairCreateSheet: FunctionComponent<KvPairCreateSheetProps> = ({
   return (
     <Sheet open={isOpen} onOpenChange={setContainerOnOpenChange}>
       <SheetTrigger asChild>{children}</SheetTrigger>
-      <SheetContent closeDisabled={isSaving} className="w-[550px] sm:max-w-[550px]">
+      <SheetContent closeDisabled={isSaving} className="grid grid-rows-[auto_1fr_auto] w-[550px] sm:max-w-[550px]">
         <SheetHeader>
           <SheetTitle>Create KV Pair</SheetTitle>
           <SheetDescription>Set key, value, metadata and expiration date</SheetDescription>
         </SheetHeader>
 
-        <div className="grid gap-4 p-4">
-          <div className="grid grid-cols-[100px_1fr] items-center gap-4">
-            <Label htmlFor="key" className="text-right">
-              Key *
-            </Label>
-            <div className="space-y-2">
-              <Input
-                id="key"
-                autoCapitalize="off"
-                autoComplete="off"
-                autoCorrect="off"
-                value={key}
-                ref={nameInputRef}
-                disabled={isSaving}
-                onChange={handleKeyChange}
-                className={cn(errors.key && 'border-red-500 focus-visible:ring-red-500')}
-              />
-              {errors.key && (
-                <p className={cn('text-[0.8rem] font-medium text-destructive')}>A pair with this key already exists</p>
-              )}
+        <ScrollArea className="min-h-0">
+          <div className="grid gap-4 p-4">
+            <div className="grid grid-cols-[100px_1fr] items-center gap-4">
+              <Label htmlFor="key" className="text-right">
+                Key *
+              </Label>
+              <div className="space-y-2">
+                <Input
+                  id="key"
+                  autoCapitalize="off"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  value={key}
+                  ref={nameInputRef}
+                  disabled={isSaving}
+                  onChange={handleKeyChange}
+                  className={cn(errors.key && 'border-red-500 focus-visible:ring-red-500')}
+                />
+                {errors.key && (
+                  <p className={cn('text-[0.8rem] font-medium text-destructive')}>
+                    A pair with this key already exists
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-[100px_1fr] items-center gap-4">
-            <Label htmlFor="value" className="self-start text-right mt-3">
-              Value
-            </Label>
-            <TextFileInput
-              id="value"
-              value={value}
-              onChangeValue={handleChangeValue}
-              onValueError={(error) => setErrors((prevState) => ({ ...prevState, value: error }))}
-              className="min-h-[200px]"
-              ref={valueInputRef}
-              disabled={isSaving}
-            />
-          </div>
-
-          <div className="grid grid-cols-[100px_1fr] items-center gap-4">
-            <Label htmlFor="metadata" className="self-start text-right mt-3">
-              Metadata
-            </Label>
-            <div className="space-y-2">
-              <Textarea
-                id="metadata"
-                value={metadata}
-                onChange={(e) => validateAndSetMetadata(e.target.value)}
-                className={cn('min-h-[200px]', errors.metadata && 'border-red-500 focus-visible:ring-red-500')}
+            <div className="grid grid-cols-[100px_1fr] items-center gap-4">
+              <Label htmlFor="value" className="self-start text-right mt-3">
+                Value
+              </Label>
+              <TextFileInput
+                id="value"
+                value={value}
+                onChangeValue={handleChangeValue}
+                onValueError={(error) => setErrors((prevState) => ({ ...prevState, value: error }))}
+                className="min-h-[200px]"
+                ref={valueInputRef}
                 disabled={isSaving}
               />
-              {errors.metadata && (
-                <p className={cn('text-[0.8rem] font-medium text-destructive')}>Must be a valid JSON</p>
-              )}
             </div>
-          </div>
 
-          <div className="grid grid-cols-[100px_1fr] items-center gap-4">
-            <Label htmlFor="expiration" className="text-right">
-              Expiration
-            </Label>
-            <div className="space-y-2">
-              <DateTimePicker
-                container={sheetContainer}
-                value={expiration}
-                disabled={isSaving}
-                onChange={changeExpiration}
-                className={cn(errors.expiration && 'border-red-500 focus-visible:ring-red-500')}
-              />
-              {errors.expiration && (
-                <p className={cn('text-[0.8rem] font-medium text-destructive')}>
-                  Invalid expiration date. Date has to be in the future.
-                </p>
-              )}
+            <div className="grid grid-cols-[100px_1fr] items-center gap-4">
+              <Label htmlFor="metadata" className="self-start text-right mt-3">
+                Metadata
+              </Label>
+              <div className="space-y-2">
+                <Textarea
+                  id="metadata"
+                  value={metadata}
+                  onChange={(e) => validateAndSetMetadata(e.target.value)}
+                  className={cn('min-h-[200px]', errors.metadata && 'border-red-500 focus-visible:ring-red-500')}
+                  disabled={isSaving}
+                />
+                {errors.metadata && (
+                  <p className={cn('text-[0.8rem] font-medium text-destructive')}>Must be a valid JSON</p>
+                )}
+              </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-[100px_1fr] items-center gap-4">
-            <Label htmlFor="expirationTTL" className="text-right">
-              Expiration TTL
-            </Label>
-            <div className="space-y-2">
-              <Input
-                id="expirationTTL"
-                type="text"
-                value={expirationTTL}
-                disabled={isSaving}
-                onChange={(e) => validateAndSetExpirationTTL(e.target.value)}
-                className={cn(errors.expirationTTL && 'border-red-500 focus-visible:ring-red-500')}
-              />
-              {errors.expirationTTL && (
-                <p className={cn('text-[0.8rem] font-medium text-destructive')}>{errors.expirationTTL.message}</p>
-              )}
+            <div className="grid grid-cols-[100px_1fr] items-center gap-4">
+              <Label htmlFor="expiration" className="text-right">
+                Expiration
+              </Label>
+              <div className="space-y-2">
+                <DateTimePicker
+                  container={sheetContainer}
+                  value={expiration}
+                  disabled={isSaving}
+                  onChange={changeExpiration}
+                  className={cn(errors.expiration && 'border-red-500 focus-visible:ring-red-500')}
+                />
+                {errors.expiration && (
+                  <p className={cn('text-[0.8rem] font-medium text-destructive')}>
+                    Invalid expiration date. Date has to be in the future.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-[100px_1fr] items-center gap-4">
+              <Label htmlFor="expirationTTL" className="text-right">
+                Expiration TTL
+              </Label>
+              <div className="space-y-2">
+                <Input
+                  id="expirationTTL"
+                  type="text"
+                  value={expirationTTL}
+                  disabled={isSaving}
+                  onChange={(e) => validateAndSetExpirationTTL(e.target.value)}
+                  className={cn(errors.expirationTTL && 'border-red-500 focus-visible:ring-red-500')}
+                />
+                {errors.expirationTTL && (
+                  <p className={cn('text-[0.8rem] font-medium text-destructive')}>{errors.expirationTTL.message}</p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        </ScrollArea>
 
         <SheetFooter>
           <Button type="submit" disabled={isSaveButtonDisabled} onClick={handleSaveClick} className="w-fit self-end">

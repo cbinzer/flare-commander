@@ -17,6 +17,7 @@ import { Loader2Icon, Save } from 'lucide-react';
 import { cn } from '@/lib/utils.ts';
 import { useKvNamespaces } from '@/features/kv/hooks/use-kv-namespaces.ts';
 import { useError } from '@/hooks/use-error.ts';
+import { ScrollArea } from '@/components/ui/scroll-area.tsx';
 
 export interface KvNamespaceUpdateSheetProps {
   namespaceId: string;
@@ -110,71 +111,73 @@ const KvNamespaceUpdateSheet: FunctionComponent<KvNamespaceUpdateSheetProps> = (
     <Sheet open={isOpen} onOpenChange={loadKvNamespaceOnOpenChange}>
       <SheetTrigger asChild>{children}</SheetTrigger>
 
-      <SheetContent closeDisabled={isSaving} className="w-[550px] sm:max-w-[550px]">
+      <SheetContent closeDisabled={isSaving} className="grid grid-rows-[auto_1fr_auto] w-[550px] sm:max-w-[550px]">
         <SheetHeader>
           <SheetTitle>Edit KV Namespace</SheetTitle>
           <SheetDescription>Edit the title</SheetDescription>
         </SheetHeader>
 
-        <div className="grid gap-4 p-4">
-          <div className="grid grid-cols-[100px_1fr] items-center gap-4">
-            <Label htmlFor="id" className="text-right">
-              Id *
-            </Label>
-            {isLoadingOne ? (
-              <Skeleton id="id" className="w-full h-[36px] rounded-md" />
-            ) : (
-              <Input id="id" value={namespace?.id} disabled={true} />
-            )}
-          </div>
+        <ScrollArea className="min-h-0">
+          <div className="grid gap-4 p-4">
+            <div className="grid grid-cols-[100px_1fr] items-center gap-4">
+              <Label htmlFor="id" className="text-right">
+                Id *
+              </Label>
+              {isLoadingOne ? (
+                <Skeleton id="id" className="w-full h-[36px] rounded-md" />
+              ) : (
+                <Input id="id" value={namespace?.id} disabled={true} />
+              )}
+            </div>
 
-          <div className="grid grid-cols-[100px_1fr] items-center gap-4">
-            <Label htmlFor="title" className="text-right">
-              Title *
-            </Label>
-            {isLoadingOne ? (
-              <Skeleton id="title" className="w-full h-[36px] rounded-md" />
-            ) : (
-              <div className="space-y-2">
-                <Input
-                  id="title"
-                  value={title}
-                  disabled={isSaving}
-                  onKeyDown={saveOnEnter}
-                  onChange={(e) => changeTitle(e.target.value)}
-                  ref={titleInputRef}
-                />
-                {errors.title && (
-                  <p className={cn('text-[0.8rem] font-medium text-destructive')}>
-                    A namespace with this title already exists
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
+            <div className="grid grid-cols-[100px_1fr] items-center gap-4">
+              <Label htmlFor="title" className="text-right">
+                Title *
+              </Label>
+              {isLoadingOne ? (
+                <Skeleton id="title" className="w-full h-[36px] rounded-md" />
+              ) : (
+                <div className="space-y-2">
+                  <Input
+                    id="title"
+                    value={title}
+                    disabled={isSaving}
+                    onKeyDown={saveOnEnter}
+                    onChange={(e) => changeTitle(e.target.value)}
+                    ref={titleInputRef}
+                  />
+                  {errors.title && (
+                    <p className={cn('text-[0.8rem] font-medium text-destructive')}>
+                      A namespace with this title already exists
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
 
-          <div className="grid grid-cols-[100px_1fr] items-center gap-4">
-            <Label htmlFor="beta" className="text-right">
-              Beta
-            </Label>
-            {isLoadingOne ? (
-              <Skeleton id="beta" className="w-full h-[36px] rounded-md" />
-            ) : (
-              <Input id="beta" value={namespace?.beta?.toString()} disabled={true} />
-            )}
-          </div>
+            <div className="grid grid-cols-[100px_1fr] items-center gap-4">
+              <Label htmlFor="beta" className="text-right">
+                Beta
+              </Label>
+              {isLoadingOne ? (
+                <Skeleton id="beta" className="w-full h-[36px] rounded-md" />
+              ) : (
+                <Input id="beta" value={namespace?.beta?.toString()} disabled={true} />
+              )}
+            </div>
 
-          <div className="grid grid-cols-[100px_1fr] items-center gap-4">
-            <Label htmlFor="supportsUrlEncoding" className=" text-right">
-              URL Encoding
-            </Label>
-            {isLoadingOne ? (
-              <Skeleton id="supportsUrlEncoding" className="w-full h-[36px] rounded-md" />
-            ) : (
-              <Input id="supportsUrlEncoding" value={namespace?.supports_url_encoding?.toString()} disabled={true} />
-            )}
+            <div className="grid grid-cols-[100px_1fr] items-center gap-4">
+              <Label htmlFor="supportsUrlEncoding" className=" text-right">
+                URL Encoding
+              </Label>
+              {isLoadingOne ? (
+                <Skeleton id="supportsUrlEncoding" className="w-full h-[36px] rounded-md" />
+              ) : (
+                <Input id="supportsUrlEncoding" value={namespace?.supports_url_encoding?.toString()} disabled={true} />
+              )}
+            </div>
           </div>
-        </div>
+        </ScrollArea>
 
         <SheetFooter>
           <Button type="submit" disabled={isSaveButtonDisabled} onClick={handleSaveClick} className="w-fit self-end">
