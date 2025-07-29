@@ -28,13 +28,14 @@ function TableFooter({ className, ...props }: React.ComponentProps<'tfoot'>) {
   );
 }
 
-function TableRow({ className, ...props }: React.ComponentProps<'tr'>) {
+function TableRow({ selectable = true, className, ...props }: React.ComponentProps<'tr'> & { selectable?: boolean }) {
+  let selectableClasses = '';
+  if (selectable) {
+    selectableClasses = 'hover:bg-muted/50 data-[state=selected]:bg-muted';
+  }
+
   return (
-    <tr
-      data-slot="table-row"
-      className={cn('hover:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors', className)}
-      {...props}
-    />
+    <tr data-slot="table-row" className={cn(selectableClasses, 'border-b transition-colors', className)} {...props} />
   );
 }
 

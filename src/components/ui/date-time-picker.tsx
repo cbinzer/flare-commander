@@ -13,14 +13,12 @@ export interface DateTimePickerProps {
   className?: string;
   value?: Date;
   disabled?: boolean;
-  container?: Element | null | undefined;
   onChange?: (date: Date | undefined) => void;
 }
 
 const DateTimePicker: FunctionComponent<DateTimePickerProps> = ({
   className = '',
   value,
-  container,
   disabled = false,
   onChange = () => {},
 }) => {
@@ -82,7 +80,7 @@ const DateTimePicker: FunctionComponent<DateTimePickerProps> = ({
         </div>
       </PopoverTrigger>
 
-      <PopoverContent className="w-auto p-0" container={container}>
+      <PopoverContent className="w-auto p-0">
         <div className="sm:flex">
           <Calendar mode="single" selected={date} onSelect={handleDateSelect} autoFocus />
 

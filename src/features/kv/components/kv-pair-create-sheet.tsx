@@ -39,7 +39,6 @@ const KvPairCreateSheet: FunctionComponent<KvPairCreateSheetProps> = ({
   const valueInputRef = useRef<HTMLTextAreaElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
-  const [sheetContainer, setSheetContainer] = useState<HTMLElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [key, setKey] = useState<string | undefined>(undefined);
@@ -71,7 +70,6 @@ const KvPairCreateSheet: FunctionComponent<KvPairCreateSheetProps> = ({
     }
 
     setTimeout(() => {
-      setSheetContainer(document.querySelector('[role="dialog"]') as HTMLElement);
       nameInputRef.current?.focus();
     }, 100);
   };
@@ -234,7 +232,6 @@ const KvPairCreateSheet: FunctionComponent<KvPairCreateSheetProps> = ({
               </Label>
               <div className="space-y-2">
                 <DateTimePicker
-                  container={sheetContainer}
                   value={expiration}
                   disabled={isSaving}
                   onChange={changeExpiration}

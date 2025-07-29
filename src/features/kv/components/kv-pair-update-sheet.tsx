@@ -257,7 +257,6 @@ const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
                 ) : (
                   <div className="space-y-2">
                     <DateTimePicker
-                      container={sheetContainer}
                       value={expiration}
                       disabled={isSaving}
                       onChange={changeExpiration}
