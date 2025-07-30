@@ -4,8 +4,8 @@ use super::{
     KvValuesGetInput, KvValuesRaw, KvValuesResult,
 };
 use crate::cloudflare::common::{
-    ApiCursorPaginatedResponse, ApiError, ApiErrorResponse, ApiPaginatedResponse, ApiResponse,
-    Credentials, TokenError, API_URL,
+    API_URL, ApiCursorPaginatedResponse, ApiError, ApiErrorResponse, ApiPaginatedResponse,
+    ApiResponse, Credentials, TokenError,
 };
 use crate::cloudflare::kv::utils::url_encode_key;
 use crate::cloudflare::kv::{
@@ -530,8 +530,8 @@ mod test {
         }
 
         #[tokio::test]
-        async fn should_respond_with_an_unknown_error_if_no_errors_are_available(
-        ) -> Result<(), TokenError> {
+        async fn should_respond_with_an_unknown_error_if_no_errors_are_available()
+        -> Result<(), TokenError> {
             let account_id = "account_id".to_string();
             let mock_server = create_failing_mock_server(&account_id, vec![]).await;
 
@@ -561,8 +561,8 @@ mod test {
         }
 
         #[tokio::test]
-        async fn should_respond_with_an_token_error_if_the_request_could_not_be_authenticated(
-        ) -> Result<(), TokenError> {
+        async fn should_respond_with_an_token_error_if_the_request_could_not_be_authenticated()
+        -> Result<(), TokenError> {
             let account_id = "account_id".to_string();
             let error_message = "Unable to authenticate request";
             let mock_server = create_failing_mock_server(
@@ -1263,8 +1263,8 @@ mod test {
         }
 
         #[tokio::test]
-        async fn should_respond_with_namespace_not_found_error_if_a_namespace_not_exist(
-        ) -> Result<(), KvError> {
+        async fn should_respond_with_namespace_not_found_error_if_a_namespace_not_exist()
+        -> Result<(), KvError> {
             let list_input = KvKeysListInput {
                 account_id: "my_account_id".to_string(),
                 namespace_id: "12345".to_string(),
@@ -1389,8 +1389,8 @@ mod test {
         }
 
         #[tokio::test]
-        async fn should_respond_with_namespace_not_found_error_if_a_namespace_not_exist(
-        ) -> Result<(), KvError> {
+        async fn should_respond_with_namespace_not_found_error_if_a_namespace_not_exist()
+        -> Result<(), KvError> {
             let get_input = KvPairGetInput {
                 account_id: "my_account_id".to_string(),
                 namespace_id: "my_namespace".to_string(),
@@ -1502,7 +1502,7 @@ mod test {
         use crate::cloudflare::common::{ApiError, ApiErrorResponse, ApiResponse};
         use crate::cloudflare::kv::kv_client::test::create_kv_client;
         use crate::cloudflare::kv::{KvError, KvPairMetadata, KvPairMetadataGetInput};
-        use serde_json::{json, Value};
+        use serde_json::{Value, json};
         use wiremock::matchers::{method, path};
         use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -2105,8 +2105,8 @@ mod test {
         use chrono::{DateTime, Utc};
         use serde_json::Value;
         use wiremock::{
-            matchers::{method, path, query_param},
             Mock, MockServer, ResponseTemplate,
+            matchers::{method, path, query_param},
         };
 
         #[tokio::test]
@@ -2141,8 +2141,8 @@ mod test {
         }
 
         #[tokio::test]
-        async fn should_respond_with_namespace_not_found_error_if_a_namespace_not_exist(
-        ) -> Result<(), KvError> {
+        async fn should_respond_with_namespace_not_found_error_if_a_namespace_not_exist()
+        -> Result<(), KvError> {
             let write_input = KvPairWriteInput {
                 account_id: "my_account_id".to_string(),
                 namespace_id: "my_namespace".to_string(),
@@ -2173,8 +2173,8 @@ mod test {
         }
 
         #[tokio::test]
-        async fn should_respond_with_invalid_metadata_error_if_a_metadata_is_invalid(
-        ) -> Result<(), KvError> {
+        async fn should_respond_with_invalid_metadata_error_if_a_metadata_is_invalid()
+        -> Result<(), KvError> {
             let write_input = KvPairWriteInput {
                 account_id: "my_account_id".to_string(),
                 namespace_id: "my_namespace".to_string(),
@@ -2205,8 +2205,8 @@ mod test {
         }
 
         #[tokio::test]
-        async fn should_respond_with_invalid_expiration_error_if_a_expiration_is_invalid(
-        ) -> Result<(), KvError> {
+        async fn should_respond_with_invalid_expiration_error_if_a_expiration_is_invalid()
+        -> Result<(), KvError> {
             let write_input = KvPairWriteInput {
                 account_id: "my_account_id".to_string(),
                 namespace_id: "my_namespace".to_string(),
@@ -2303,7 +2303,7 @@ mod test {
                         expiration: None,
                         expiration_ttl: None,
                         metadata: None,
-                        base64: None,
+                        base64: Some(false),
                     },
                     KvPairBulkWriteInput {
                         key: "key2".to_string(),
@@ -2311,7 +2311,7 @@ mod test {
                         expiration: None,
                         expiration_ttl: None,
                         metadata: None,
-                        base64: None,
+                        base64: Some(false),
                     },
                 ],
             };
@@ -2333,9 +2333,9 @@ mod test {
                 .pairs
                 .into_iter()
                 .map(|pair| {
-                    let text_value = match pair.value {
+                    let text_value = match pair.clone().into_text_value().value {
                         KvPairValue::Text(text) => text,
-                        KvPairValue::Binary(binary) => String::from_utf8(binary).unwrap(),
+                        KvPairValue::Binary(_) => String::new(),
                     };
 
                     KvPairBulkWriteInput {
@@ -2402,8 +2402,8 @@ mod test {
         }
 
         #[tokio::test]
-        async fn should_respond_with_unsuccessful_deleted_keys_if_it_is_not_possible_to_delete_some(
-        ) -> Result<(), KvError> {
+        async fn should_respond_with_unsuccessful_deleted_keys_if_it_is_not_possible_to_delete_some()
+        -> Result<(), KvError> {
             let delete_input = KvPairsDeleteInput {
                 account_id: "account_id".to_string(),
                 namespace_id: "my_namespace".to_string(),
@@ -2425,8 +2425,8 @@ mod test {
         }
 
         #[tokio::test]
-        async fn should_respond_with_namespace_not_found_error_if_a_namespace_not_exist(
-        ) -> Result<(), KvError> {
+        async fn should_respond_with_namespace_not_found_error_if_a_namespace_not_exist()
+        -> Result<(), KvError> {
             let delete_input = KvPairsDeleteInput {
                 account_id: "account_id".to_string(),
                 namespace_id: "my_namespace".to_string(),
