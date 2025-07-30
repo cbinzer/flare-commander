@@ -3,7 +3,7 @@ name = "flare-commander"
 version = "0.2.0"
 description = "A simple GUI tool to manage Cloudflare KV namespaces and keys."
 authors = ["Christian Binzer"]
-edition = "2021"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
