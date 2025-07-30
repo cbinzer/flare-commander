@@ -2,7 +2,7 @@
   "name": "flare-commander",
   "description": "A simple GUI tool to manage Cloudflare KV namespaces and keys.",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -50,7 +50,7 @@
     "@types/node": "22.16.5",
     "@types/react": "19.1.8",
     "@types/react-dom": "19.1.6",
-    "@vitejs/plugin-react": "4.4.1",
+    "@vitejs/plugin-react": "4.7.0",
     "prettier": "3.6.2",
     "sharp": "0.34.3",
     "sharp-ico": "0.1.5",
