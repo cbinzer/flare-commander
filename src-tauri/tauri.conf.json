@@ -13,10 +13,10 @@
     "windows": [
       {
         "title": "FlareCommander",
-        "width": 1200,
+        "width": 1440,
         "minWidth": 900,
-        "height": 800,
-        "minHeight": 710
+        "height": 900,
+        "minHeight": 600
       }
     ],
     "security": {
