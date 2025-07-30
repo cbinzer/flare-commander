@@ -39,7 +39,7 @@ const KvNamespaceCreateSheet: FunctionComponent<KvNamespaceCreateSheetProps> = (
 
   const [isOpen, setIsOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  const [title, setTitle] = useState<string | undefined>(undefined);
+  const [title, setTitle] = useState<string>('');
   const [errors, setErrors] = useState<{ title?: Error }>({});
 
   const isSaveButtonDisabled = isCreating || !title || !!errors.title;
@@ -83,7 +83,7 @@ const KvNamespaceCreateSheet: FunctionComponent<KvNamespaceCreateSheetProps> = (
   }, [namespace]);
 
   useEffect(() => {
-    setTitle(undefined);
+    setTitle('');
     setErrors({});
   }, [isOpen]);
 

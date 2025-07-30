@@ -40,7 +40,7 @@ const KvNamespaceUpdateSheet: FunctionComponent<KvNamespaceUpdateSheetProps> = (
 
   const [isSaving, setIsSaving] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [title, setTitle] = useState(namespace?.title);
+  const [title, setTitle] = useState(namespace?.title ?? '');
   const [errors, setErrors] = useState<{ title?: Error }>({});
 
   const isSaveButtonDisabled = isLoadingOne || isSaving || !title || title === namespace?.title || !!errors.title;
@@ -102,7 +102,7 @@ const KvNamespaceUpdateSheet: FunctionComponent<KvNamespaceUpdateSheetProps> = (
   };
 
   useEffect(() => {
-    setTitle(namespace?.title);
+    setTitle(namespace?.title ?? '');
   }, [namespace]);
 
   useEffect(() => loadKvNamespaceOnOpenChange(open), [open]);

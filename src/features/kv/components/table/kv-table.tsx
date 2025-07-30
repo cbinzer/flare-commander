@@ -486,8 +486,8 @@ const LoadingTableBody: FunctionComponent<LoadingTableBodyProps> = ({ pageSize =
         .fill(null)
         .map((_, i) => (
           <TableRow key={i} className={'h-[54px]'} selectable={false}>
-            {columns.map(() => (
-              <TableCell>
+            {columns.map((col) => (
+              <TableCell key={col.id}>
                 <Skeleton className="h-5" />
               </TableCell>
             ))}

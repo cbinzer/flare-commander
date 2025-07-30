@@ -52,7 +52,7 @@ const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
 
   const [sheetContainer, setSheetContainer] = useState<HTMLElement | null>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [key, setKey] = useState(kvPair?.key);
+  const [key, setKey] = useState(kvPair?.key ?? '');
   const [value, setValue] = useState(kvPair?.value);
   const [metadata, setMetadata] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
@@ -150,7 +150,7 @@ const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
   }, [sheetContainer]);
 
   useEffect(() => {
-    setKey(kvPair?.key);
+    setKey(kvPair?.key ?? '');
     setValue(kvPair?.value);
     setExpiration(kvPair?.expiration);
     setMetadata(stringifyMetadataJSON(kvPair?.metadata ?? null));

@@ -41,7 +41,7 @@ const KvPairCreateSheet: FunctionComponent<KvPairCreateSheetProps> = ({
 
   const [isOpen, setIsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [key, setKey] = useState<string | undefined>(undefined);
+  const [key, setKey] = useState<string>('');
   const [value, setValue] = useState<Uint8Array | undefined>(undefined);
   const [metadata, setMetadata] = useState('');
   const [expiration, setExpiration] = useState<Date | undefined>(undefined);
@@ -131,7 +131,7 @@ const KvPairCreateSheet: FunctionComponent<KvPairCreateSheetProps> = ({
   }, [kvPair]);
 
   useEffect(() => {
-    setKey(undefined);
+    setKey('');
     setValue(undefined);
     setMetadata('');
     setExpiration(undefined);
