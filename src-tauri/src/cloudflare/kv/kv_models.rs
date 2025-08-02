@@ -3,8 +3,8 @@ use crate::cloudflare::common::{
     TokenError,
 };
 
-use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
+use base64::prelude::BASE64_STANDARD;
 use chrono::serde::ts_seconds_option;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -340,6 +340,9 @@ pub struct KvPairsWriteInput {
 pub struct KvPairBulkWriteInput {
     pub key: String,
     pub value: KvPairValue,
+
+    #[serde(default)]
+    #[serde(with = "ts_seconds_option")]
     pub expiration: Option<DateTime<Utc>>,
     pub expiration_ttl: Option<u32>,
     pub metadata: KvPairMetadata,

@@ -75,7 +75,7 @@ export const kvPairsImportParser = zod.array(
   zod.object({
     key: zod.string(),
     value: zod.optional(zod.array(zod.uint32())),
-    expiration: zod.optional(zod.iso.datetime()),
+    expiration: zod.optional(zod.number().nonnegative()),
     metadata: zod.optional(zod.json()),
   }),
 );
@@ -114,7 +114,7 @@ export interface KvPairWriteInput {
   namespace_id: string;
   key: string;
   value?: Uint8Array;
-  expiration?: Date;
+  expiration?: number;
   expiration_ttl?: number;
   metadata?: KvMetadata;
 }

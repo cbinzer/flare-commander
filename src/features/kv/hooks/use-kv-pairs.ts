@@ -24,17 +24,16 @@ export function useKvPairs() {
       },
       account?.credentials as Credentials,
     );
-    const kvPairsJSON = JSON.stringify(kvPairs, (_, value) => {
-      if (value instanceof Uint8Array) {
-        return Array.from(value);
-      }
 
-      return value;
-    });
+    const kvPairsForExport = kvPairs.map((kvPair) => ({
+      ...kvPair,
+      value: kvPair.value ? Array.from(kvPair.value) : [],
+      expiration: kvPair.expiration ? Math.floor(kvPair.expiration.getTime() / 1000) : undefined,
+    }));
+    const kvPairsJSON = JSON.stringify(kvPairsForExport);
     const encoder = new TextEncoder();
-    const kvPairsExport = encoder.encode(kvPairsJSON);
 
-    return kvPairsExport;
+    return encoder.encode(kvPairsJSON);
   };
 
   const writeKvPairs = async (namespaceId: string, pairs: KvPairsWriteInputPair[]): Promise<KvPairsWriteResult> => {
