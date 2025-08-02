@@ -108,7 +108,7 @@ const KvPairUpdateSheet: FunctionComponent<KvPairUpdateSheetProps> = ({
         namespace_id: namespaceId,
         key: key ?? '',
         value,
-        expiration,
+        expiration: expiration ? Math.floor(expiration.getTime() / 1000) : undefined,
         expiration_ttl: Number(expirationTTL),
         metadata: parsedMetadata,
       };
