@@ -46,7 +46,7 @@ import { readTextFile, writeFile } from '@tauri-apps/plugin-fs';
 import { useKvPairs } from '@/features/kv/hooks/use-kv-pairs.ts';
 import { toast } from 'sonner';
 import { useKvPair } from '@/features/kv/hooks/use-kv-pair.ts';
-import { useError } from '@/hooks/use-error.ts';
+import { useError } from '@/hooks/use-error.tsx';
 
 interface KvTableProps {
   namespace: KvNamespace;

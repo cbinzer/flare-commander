@@ -18,7 +18,7 @@ import { KvPair, KvPairCreateInput } from '../kv-models.ts';
 import { parseMetadataJSON, validateExpirationTTL, validateMetadata } from '@/features/kv/lib/kv-utils.ts';
 import { cn } from '@/lib/utils.ts';
 import { Loader2Icon, PlusIcon } from 'lucide-react';
-import { useError } from '@/hooks/use-error.ts';
+import { useError } from '@/hooks/use-error.tsx';
 import TextFileInput from '@/components/ui/text-file-input.tsx';
 import { ScrollArea } from '@/components/ui/scroll-area.tsx';
 

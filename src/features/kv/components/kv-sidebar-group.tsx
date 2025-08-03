@@ -45,7 +45,7 @@ import {
 } from '@/components/ui/dialog.tsx';
 import { Button } from '@/components/ui/button.tsx';
 import { useKvNamespaces } from '@/features/kv/hooks/use-kv-namespaces.ts';
-import { useError } from '@/hooks/use-error.ts';
+import { useError } from '@/hooks/use-error.tsx';
 
 export function KvSidebarGroup() {
   const [activeNamespaceId, setActiveNamespaceId] = useState<string | undefined>();

@@ -16,7 +16,7 @@ import { KvError, KvNamespace, KvNamespaceUpdateInput } from '../kv-models.ts';
 import { Loader2Icon, Save } from 'lucide-react';
 import { cn } from '@/lib/utils.ts';
 import { useKvNamespaces } from '@/features/kv/hooks/use-kv-namespaces.ts';
-import { useError } from '@/hooks/use-error.ts';
+import { useError } from '@/hooks/use-error.tsx';
 import { ScrollArea } from '@/components/ui/scroll-area.tsx';
 
 export interface KvNamespaceUpdateSheetProps {

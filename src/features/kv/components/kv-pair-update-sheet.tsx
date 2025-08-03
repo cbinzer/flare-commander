@@ -24,7 +24,7 @@ import {
 } from '@/features/kv/lib/kv-utils.ts';
 import { Loader2Icon, Save } from 'lucide-react';
 import { cn } from '@/lib/utils.ts';
-import { useError } from '@/hooks/use-error.ts';
+import { useError } from '@/hooks/use-error.tsx';
 import TextFileInput from '@/components/ui/text-file-input.tsx';
 import { ScrollArea } from '@/components/ui/scroll-area.tsx';
 

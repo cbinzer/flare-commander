@@ -13,7 +13,7 @@ export function useError() {
 
     toast.error(title, {
       position: 'top-center',
-      description: error.message,
+      description: () => <div className="text-gray-500">{error.message}</div>,
     });
   };
 
