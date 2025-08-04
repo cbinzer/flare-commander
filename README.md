@@ -27,6 +27,16 @@ dependencies. The project is build with [Tauri](https://tauri.app/). You can run
 npm run tauri dev
 ```
 
+## Remove Apple Quarantine Attribute
+
+This application is not signed at the moment. If you see an error or warning about your application being “damaged” or
+“cannot be opened,” the FlareCommander app may have been marked with an Apple quarantine attribute. You can remove this
+attribute by running the following command in your terminal:
+
+```bash
+xattr -r -d com.apple.quarantine /path/to/FlareCommander.app
+```
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
