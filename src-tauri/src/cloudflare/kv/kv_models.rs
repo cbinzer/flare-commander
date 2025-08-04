@@ -324,6 +324,9 @@ pub struct KvPairWriteInput {
     pub namespace_id: String,
     pub key: String,
     pub value: Option<Vec<u8>>,
+
+    #[serde(default)]
+    #[serde(with = "ts_seconds_option")]
     pub expiration: Option<DateTime<Utc>>,
     pub expiration_ttl: Option<u32>,
     pub metadata: KvPairMetadata,
