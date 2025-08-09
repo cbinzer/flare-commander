@@ -89,6 +89,12 @@ jobs:
           echo "CERT_ID=$CERT_ID" >> $GITHUB_ENV
           echo "Certificate imported."
 
+      - name: Write Apple API key to file
+        run: echo "${{ secrets.APPLE_API_PRIVATE_KEY }}" > private_key.p8
+
+      - name: Set environment variable for notarization
+        run: echo "APPLE_API_KEY_PATH=$(pwd)/private_key.p8" >> $GITHUB_ENV
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
