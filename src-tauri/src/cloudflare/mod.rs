@@ -1,6 +1,7 @@
 use crate::cloudflare::account::AccountClient;
-use crate::cloudflare::common::{Credentials, API_URL};
+use crate::cloudflare::common::{API_URL, Credentials};
 use crate::cloudflare::kv::KvClient;
+use crate::cloudflare::r2::R2Client;
 use crate::cloudflare::user::UserClient;
 use std::sync::Arc;
 
@@ -8,13 +9,14 @@ pub(crate) mod kv;
 
 pub(crate) mod account;
 pub(crate) mod common;
-
+pub(crate) mod r2;
 pub(crate) mod user;
 
 pub struct Cloudflare {
     pub accounts: AccountClient,
     pub kv: KvClient,
     pub user: UserClient,
+    pub r2: R2Client,
 }
 
 impl Cloudflare {
@@ -34,7 +36,12 @@ impl Cloudflare {
                 Some(api_url.clone()),
                 Some(http_client.clone()),
             ),
-            user: UserClient::new(credentials, Some(api_url), Some(http_client)),
+            user: UserClient::new(
+                credentials.clone(),
+                Some(api_url.clone()),
+                Some(http_client.clone()),
+            ),
+            r2: R2Client::new(credentials, Some(api_url), Some(http_client)),
         }
     }
 }
