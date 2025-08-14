@@ -56,7 +56,7 @@ pub enum OrderDirection {
 }
 
 impl Display for OrderDirection {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let str = match self {
             OrderDirection::Asc => "asc".to_string(),
             OrderDirection::Desc => "desc".to_string(),
