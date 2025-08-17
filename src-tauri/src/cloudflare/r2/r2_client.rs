@@ -81,9 +81,8 @@ impl R2Client {
 
         let error = &errors[0];
         match error.code {
-            10000 => R2Error::Token(TokenError::Invalid),
-            10001 => R2Error::Token(TokenError::Invalid),
-            10023 => R2Error::Bucket(BucketError::InvalidCursor),
+            10000 | 10001 => R2Error::Token(TokenError::Invalid),
+            10023 | 10029 => R2Error::Bucket(BucketError::Validation(error.message.clone())),
             _ => R2Error::Unknown(error.message.clone()),
         }
     }
@@ -155,14 +154,15 @@ mod test {
         }
 
         #[tokio::test]
-        async fn should_handle_a_invalid_cursor_error() -> Result<(), R2Error> {
+        async fn should_handle_invalid_cursor_input_parameter() -> Result<(), R2Error> {
             let input = BucketsListInput {
                 account_id: "account_id".to_string(),
                 ..BucketsListInput::default()
             };
+            let error_message = "continuation token is not valid".to_string();
             let api_error = ApiError {
                 code: 10023,
-                message: "Continuation token is not valid.".to_string(),
+                message: error_message.clone(),
             };
 
             let mock_server = create_failing_mock_server(&input.account_id, api_error).await;
@@ -171,7 +171,36 @@ mod test {
             assert!(result.is_err());
 
             let error = result.err().unwrap();
-            assert!(matches!(error, R2Error::Bucket(BucketError::InvalidCursor)));
+            assert!(matches!(
+                error,
+                R2Error::Bucket(BucketError::Validation(msg)) if msg == error_message
+            ));
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_handle_invalid_per_page_input_parameter() -> Result<(), R2Error> {
+            let input = BucketsListInput {
+                account_id: "account_id".to_string(),
+                ..BucketsListInput::default()
+            };
+            let error_message = "per_page must be between 1 and 1000000".to_string();
+            let api_error = ApiError {
+                code: 10029,
+                message: error_message.clone(),
+            };
+
+            let mock_server = create_failing_mock_server(&input.account_id, api_error).await;
+            let r2_client = create_r2_client(mock_server.uri());
+            let result = r2_client.list_buckets(input).await;
+            assert!(result.is_err());
+
+            let error = result.err().unwrap();
+            assert!(matches!(
+                error,
+                R2Error::Bucket(BucketError::Validation(msg)) if msg == error_message
+            ));
 
             Ok(())
         }

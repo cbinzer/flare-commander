@@ -165,6 +165,7 @@ impl From<reqwest::Error> for R2Error {
 #[derive(Debug)]
 pub enum BucketError {
     InvalidCursor,
+    Validation(String),
 }
 
 impl Error for BucketError {}
