@@ -1316,10 +1316,11 @@ mod test {
             let response_template = ResponseTemplate::new(200).set_body_json(
                 ApiCursorPaginatedResponse::<Vec<KvKey>> {
                     result: keys.keys,
-                    result_info: CursorPageInfo {
+                    result_info: Some(CursorPageInfo {
                         cursor: keys.cursor,
-                        count: keys.count,
-                    },
+                        count: Some(keys.count),
+                        per_page: None,
+                    }),
                 },
             );
             mock_builder

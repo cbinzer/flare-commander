@@ -128,10 +128,12 @@ pub struct KvKeys {
 
 impl From<ApiCursorPaginatedResponse<Vec<KvKey>>> for KvKeys {
     fn from(value: ApiCursorPaginatedResponse<Vec<KvKey>>) -> Self {
+        let result_info = value.result_info.unwrap_or_default();
+
         Self {
             keys: value.result,
-            count: value.result_info.count,
-            cursor: value.result_info.cursor,
+            count: result_info.count.unwrap_or(0),
+            cursor: result_info.cursor,
         }
     }
 }

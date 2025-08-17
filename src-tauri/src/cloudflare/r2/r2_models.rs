@@ -1,4 +1,6 @@
-use crate::cloudflare::common::{ApiPaginatedResponse, OrderDirection, PageInfo, TokenError};
+use crate::cloudflare::common::{
+    ApiCursorPaginatedResponse, CursorPageInfo, OrderDirection, TokenError,
+};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -9,11 +11,11 @@ use std::fmt::{Display, Formatter};
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Buckets {
     pub items: Vec<Bucket>,
-    pub page_info: PageInfo,
+    pub page_info: Option<CursorPageInfo>,
 }
 
-impl From<ApiPaginatedResponse<BucketsListResponse>> for Buckets {
-    fn from(value: ApiPaginatedResponse<BucketsListResponse>) -> Self {
+impl From<ApiCursorPaginatedResponse<BucketsListResponse>> for Buckets {
+    fn from(value: ApiCursorPaginatedResponse<BucketsListResponse>) -> Self {
         Self {
             items: value.result.buckets,
             page_info: value.result_info,
@@ -69,7 +71,7 @@ pub enum BucketStorageClass {
     InfrequentAccess,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BucketsListInput {
     pub account_id: String,
     pub cursor: Option<String>,
@@ -161,7 +163,9 @@ impl From<reqwest::Error> for R2Error {
 }
 
 #[derive(Debug)]
-pub enum BucketError {}
+pub enum BucketError {
+    InvalidCursor,
+}
 
 impl Error for BucketError {}
 

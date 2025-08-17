@@ -1,7 +1,7 @@
 use crate::cloudflare::common::{
-    API_URL, ApiError, ApiErrorResponse, ApiPaginatedResponse, Credentials, TokenError,
+    API_URL, ApiCursorPaginatedResponse, ApiError, ApiErrorResponse, Credentials, TokenError,
 };
-use crate::cloudflare::r2::{Buckets, BucketsListInput, BucketsListResponse, R2Error};
+use crate::cloudflare::r2::{BucketError, Buckets, BucketsListInput, BucketsListResponse, R2Error};
 use reqwest::header::HeaderValue;
 use reqwest::{Response, StatusCode};
 use serde::Deserialize;
@@ -47,8 +47,10 @@ impl R2Client {
             .send()
             .await?;
 
-        self.handle_api_response::<ApiPaginatedResponse<BucketsListResponse>, Buckets>(response)
-            .await
+        self.handle_api_response::<ApiCursorPaginatedResponse<BucketsListResponse>, Buckets>(
+            response,
+        )
+        .await
     }
 
     async fn handle_api_response<T: for<'a> Deserialize<'a>, R: From<T>>(
@@ -81,6 +83,7 @@ impl R2Client {
         match error.code {
             10000 => R2Error::Token(TokenError::Invalid),
             10001 => R2Error::Token(TokenError::Invalid),
+            10023 => R2Error::Bucket(BucketError::InvalidCursor),
             _ => R2Error::Unknown(error.message.clone()),
         }
     }
@@ -93,11 +96,13 @@ mod test {
     use std::sync::Arc;
 
     mod list_buckets {
-        use crate::cloudflare::common::{ApiPaginatedResponse, OrderDirection, PageInfo};
+        use crate::cloudflare::common::{
+            ApiCursorPaginatedResponse, ApiError, ApiErrorResponse, CursorPageInfo, OrderDirection,
+        };
         use crate::cloudflare::r2::r2_client::test::create_r2_client;
         use crate::cloudflare::r2::{
-            Bucket, BucketJurisdiction, BucketLocation, BucketOrder, BucketStorageClass, Buckets,
-            BucketsListInput, BucketsListResponse, R2Error,
+            Bucket, BucketError, BucketJurisdiction, BucketLocation, BucketOrder,
+            BucketStorageClass, Buckets, BucketsListInput, BucketsListResponse, R2Error,
         };
         use wiremock::matchers::{header, method, path, query_param};
         use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -121,12 +126,11 @@ mod test {
                         storage_class: Some(BucketStorageClass::Standard),
                     },
                 ],
-                page_info: PageInfo {
-                    count: 2,
-                    page: 1,
-                    per_page: 20,
-                    total_count: 2,
-                },
+                page_info: Some(CursorPageInfo {
+                    cursor: Some("my_cursor".to_string()),
+                    count: None,
+                    per_page: Some(2),
+                }),
             };
             let buckets_list_input = BucketsListInput {
                 account_id: "test_account".to_string(),
@@ -150,6 +154,28 @@ mod test {
             Ok(())
         }
 
+        #[tokio::test]
+        async fn should_handle_a_invalid_cursor_error() -> Result<(), R2Error> {
+            let input = BucketsListInput {
+                account_id: "account_id".to_string(),
+                ..BucketsListInput::default()
+            };
+            let api_error = ApiError {
+                code: 10023,
+                message: "Continuation token is not valid.".to_string(),
+            };
+
+            let mock_server = create_failing_mock_server(&input.account_id, api_error).await;
+            let r2_client = create_r2_client(mock_server.uri());
+            let result = r2_client.list_buckets(input).await;
+            assert!(result.is_err());
+
+            let error = result.err().unwrap();
+            assert!(matches!(error, R2Error::Bucket(BucketError::InvalidCursor)));
+
+            Ok(())
+        }
+
         async fn create_succeeding_mock_server(
             input: BucketsListInput,
             buckets: Buckets,
@@ -157,7 +183,7 @@ mod test {
             let mock_server = MockServer::start().await;
 
             let response_template =
-                ResponseTemplate::new(200).set_body_json(ApiPaginatedResponse::<
+                ResponseTemplate::new(200).set_body_json(ApiCursorPaginatedResponse::<
                     BucketsListResponse,
                 > {
                     result: BucketsListResponse {
@@ -190,6 +216,21 @@ mod test {
                     "cf-r2-jurisdiction",
                     input.jurisdiction.unwrap().to_string(),
                 ))
+                .respond_with(response_template)
+                .mount(&mock_server)
+                .await;
+
+            mock_server
+        }
+
+        pub async fn create_failing_mock_server(account_id: &str, error: ApiError) -> MockServer {
+            let mock_server = MockServer::start().await;
+            let response_template = ResponseTemplate::new(400).set_body_json(ApiErrorResponse {
+                errors: vec![error],
+            });
+
+            Mock::given(method("GET"))
+                .and(path(format!("/client/v4/accounts/{account_id}/r2/buckets")))
                 .respond_with(response_template)
                 .mount(&mock_server)
                 .await;
