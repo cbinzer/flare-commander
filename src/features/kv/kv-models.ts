@@ -1,4 +1,5 @@
 import * as zod from 'zod';
+import { OrderDirection } from '@/lib/common-models.ts';
 
 export interface KvNamespaces {
   items: KvNamespace[];
@@ -16,11 +17,6 @@ export interface KvNamespacesListInput {
 export enum KvNamespacesOrderBy {
   ID = 'id',
   TITLE = 'title',
-}
-
-export enum OrderDirection {
-  ASC = 'asc',
-  DESC = 'desc',
 }
 
 export interface KvNamespace {

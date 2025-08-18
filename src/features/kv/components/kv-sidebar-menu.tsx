@@ -12,8 +12,6 @@ import {
   TrashIcon,
 } from 'lucide-react';
 import {
-  SidebarGroup,
-  SidebarGroupContent,
   SidebarMenu,
   SidebarMenuAction,
   SidebarMenuButton,
@@ -50,7 +48,7 @@ import { useKvNamespaces } from '@/features/kv/hooks/use-kv-namespaces.ts';
 import { useError } from '@/hooks/use-error.tsx';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
-export function KvSidebarGroup() {
+export function KvSidebarMenu() {
   const [activeNamespaceId, setActiveNamespaceId] = useState<string | undefined>();
   const [isReloading, setIsReloading] = useState(false);
   const [isCreateSheetOpen, setIsCreateSheetOpen] = useState(false);
@@ -103,92 +101,88 @@ export function KvSidebarGroup() {
 
   return (
     <>
-      <SidebarGroup>
-        <SidebarGroupContent>
-          <SidebarMenu>
-            <Collapsible
-              key="KV"
-              asChild
-              defaultOpen={false}
-              className="group/collapsible"
-              onOpenChange={loadNamespacesOnOpen}
+      <SidebarMenu>
+        <Collapsible
+          key="KV"
+          asChild
+          defaultOpen={false}
+          className="group/collapsible"
+          onOpenChange={loadNamespacesOnOpen}
+        >
+          <SidebarMenuItem>
+            <SidebarMenuButton>
+              <FolderKey />
+              <span>KV</span>
+            </SidebarMenuButton>
+
+            <CollapsibleTrigger asChild>
+              <SidebarMenuAction
+                className="bg-sidebar-accent text-sidebar-accent-foreground left-2 data-[state=open]:rotate-90"
+                showOnHover
+              >
+                <ChevronRight />
+              </SidebarMenuAction>
+            </CollapsibleTrigger>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuAction showOnHover={!isReloading} disabled={isLoading}>
+                  {isReloading ? <RefreshCcwIcon className="animate-spin" /> : <MoreHorizontal />}
+                  <span className="sr-only">More</span>
+                </SidebarMenuAction>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                className="w-48 rounded-lg"
+                side={isMobile ? 'bottom' : 'right'}
+                align={isMobile ? 'end' : 'start'}
+              >
+                <DropdownMenuItem onClick={reloadNamespaces} disabled={!isOpen}>
+                  <RefreshCcwIcon />
+                  <span>Reload</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsCreateSheetOpen(true)}>
+                  <PlusIcon />
+                  <span>Add Namespace</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <CollapsibleContent>
+              {isLoading || !namespaces ? (
+                <KvSidebarMenuSkeleton />
+              ) : (
+                <KvSidebarMenuSub
+                  namespaces={namespaces}
+                  activeNamespaceId={activeNamespaceId}
+                  onSelectNamespace={(namespace) => setActiveNamespaceId(namespace.id)}
+                  onNamespaceChanged={relistNamespaces}
+                />
+              )}
+            </CollapsibleContent>
+          </SidebarMenuItem>
+        </Collapsible>
+
+        {isLoadMoreVisible && (
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              className="text-sidebar-foreground/70"
+              onClick={loadNextNamespaces}
+              disabled={isLoadingNext}
             >
-              <SidebarMenuItem>
-                <SidebarMenuButton>
-                  <FolderKey />
-                  <span>KV</span>
-                </SidebarMenuButton>
-
-                <CollapsibleTrigger asChild>
-                  <SidebarMenuAction
-                    className="bg-sidebar-accent text-sidebar-accent-foreground left-2 data-[state=open]:rotate-90"
-                    showOnHover
-                  >
-                    <ChevronRight />
-                  </SidebarMenuAction>
-                </CollapsibleTrigger>
-
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <SidebarMenuAction showOnHover={!isReloading} disabled={isLoading}>
-                      {isReloading ? <RefreshCcwIcon className="animate-spin" /> : <MoreHorizontal />}
-                      <span className="sr-only">More</span>
-                    </SidebarMenuAction>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    className="w-48 rounded-lg"
-                    side={isMobile ? 'bottom' : 'right'}
-                    align={isMobile ? 'end' : 'start'}
-                  >
-                    <DropdownMenuItem onClick={reloadNamespaces} disabled={!isOpen}>
-                      <RefreshCcwIcon />
-                      <span>Reload</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setIsCreateSheetOpen(true)}>
-                      <PlusIcon />
-                      <span>Add Namespace</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                <CollapsibleContent>
-                  {isLoading || !namespaces ? (
-                    <KvSidebarMenuSkeleton />
-                  ) : (
-                    <KvSidebarMenu
-                      namespaces={namespaces}
-                      activeNamespaceId={activeNamespaceId}
-                      onSelectNamespace={(namespace) => setActiveNamespaceId(namespace.id)}
-                      onNamespaceChanged={relistNamespaces}
-                    />
-                  )}
-                </CollapsibleContent>
-              </SidebarMenuItem>
-            </Collapsible>
-
-            {isLoadMoreVisible && (
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  className="text-sidebar-foreground/70"
-                  onClick={loadNextNamespaces}
-                  disabled={isLoadingNext}
-                >
-                  {isLoadingNext ? (
-                    <>
-                      <Loader2Icon className="animate-spin" /> Loading...
-                    </>
-                  ) : (
-                    <>
-                      <ArrowDown />
-                      <span>Load more</span>
-                    </>
-                  )}
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            )}
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
+              {isLoadingNext ? (
+                <>
+                  <Loader2Icon className="animate-spin" /> Loading...
+                </>
+              ) : (
+                <>
+                  <ArrowDown />
+                  <span>Load more</span>
+                </>
+              )}
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        )}
+      </SidebarMenu>
       <KvNamespaceCreateSheet
         open={isCreateSheetOpen}
         onOpenChange={setIsCreateSheetOpen}
@@ -198,14 +192,14 @@ export function KvSidebarGroup() {
   );
 }
 
-interface KvSidebarMenuProps {
+interface KvSidebarMenuSubProps {
   namespaces: KvNamespace[];
   activeNamespaceId?: String;
   onSelectNamespace?: (namespace: KvNamespace) => void;
   onNamespaceChanged?: (namespace: KvNamespace) => Promise<void>;
 }
 
-const KvSidebarMenu: FunctionComponent<KvSidebarMenuProps> = ({
+const KvSidebarMenuSub: FunctionComponent<KvSidebarMenuSubProps> = ({
   namespaces,
   activeNamespaceId,
   onSelectNamespace = () => {},

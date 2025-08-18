@@ -2,6 +2,8 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
@@ -9,10 +11,11 @@ import {
   SidebarMenuItem,
   SidebarProvider,
 } from '@/components/ui/sidebar.tsx';
-import { KvSidebarGroup } from '@/features/kv/components/kv-sidebar-group.tsx';
+import { KvSidebarMenu } from '@/features/kv/components/kv-sidebar-menu.tsx';
 import { Outlet } from 'react-router';
 import { AccountSidebarMenu } from '@/features/account/components/account-sidebar-menu.tsx';
 import logoUrl from '../assets/logo.svg';
+import { R2SidebarMenu } from '@/features/r2/r2-sidebar-menu.tsx';
 
 export default function MainPage() {
   return (
@@ -36,7 +39,12 @@ export default function MainPage() {
           </SidebarMenu>
         </SidebarHeader>
         <SidebarContent>
-          <KvSidebarGroup />
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <KvSidebarMenu />
+              <R2SidebarMenu />
+            </SidebarGroupContent>
+          </SidebarGroup>
         </SidebarContent>
         <SidebarFooter>
           <AccountSidebarMenu />
