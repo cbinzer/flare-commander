@@ -3,10 +3,12 @@ use crate::kv::kv_commands::{
     create_kv_pair, create_namespace, delete_kv_pairs, delete_namespace, get_kv_pair, get_kv_pairs,
     get_namespace, list_kv_keys, list_namespaces, update_namespace, write_kv_pair, write_kv_pairs,
 };
+use crate::r2::r2_commands::list_buckets;
 
 mod authentication;
 mod cloudflare;
 mod kv;
+mod r2;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -29,6 +31,7 @@ pub fn run() {
             write_kv_pair,
             write_kv_pairs,
             delete_kv_pairs,
+            list_buckets
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
