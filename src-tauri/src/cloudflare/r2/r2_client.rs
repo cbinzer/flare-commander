@@ -82,6 +82,7 @@ impl R2Client {
         let error = &errors[0];
         match error.code {
             10000 | 10001 => R2Error::Token(TokenError::Invalid),
+            10003 => R2Error::Bucket(BucketError::AccessDenied),
             10023 | 10029 => R2Error::Bucket(BucketError::Validation(error.message.clone())),
             _ => R2Error::Unknown(error.message.clone()),
         }
@@ -182,6 +183,30 @@ mod test {
                 error,
                 R2Error::Bucket(BucketError::Validation(msg)) if msg == message
             ));
+
+            Ok(())
+        }
+
+        #[tokio::test]
+        async fn should_handle_access_denied_error() -> Result<(), R2Error> {
+            let buckets_list_input = BucketsListInput {
+                account_id: "account_id".to_string(),
+                ..BucketsListInput::default()
+            };
+            let api_error = ApiError {
+                code: 10003,
+                message: "Access Denied".to_string(),
+            };
+
+            let mock_server =
+                create_failing_mock_server(&buckets_list_input.account_id, api_error).await;
+            let r2_client = create_r2_client(mock_server.uri());
+
+            let result = r2_client.list_buckets(buckets_list_input).await;
+            assert!(result.is_err());
+
+            let error = result.err().unwrap();
+            assert!(matches!(error, R2Error::Bucket(BucketError::AccessDenied)));
 
             Ok(())
         }

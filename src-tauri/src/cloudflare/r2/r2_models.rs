@@ -164,6 +164,7 @@ impl From<reqwest::Error> for R2Error {
 
 #[derive(Debug)]
 pub enum BucketError {
+    AccessDenied,
     Validation(String),
 }
 
