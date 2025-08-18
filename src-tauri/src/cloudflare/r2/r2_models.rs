@@ -57,11 +57,22 @@ impl Display for BucketJurisdiction {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BucketLocation {
+    #[serde(rename = "apac")]
     Apac,
+
+    #[serde(rename = "eeur")]
     EEur,
+
+    #[serde(rename = "enam")]
     ENam,
+
+    #[serde(rename = "weur")]
     WEur,
+
+    #[serde(rename = "wnam")]
     WNam,
+
+    #[serde(rename = "oc")]
     Oc,
 }
 
