@@ -103,6 +103,7 @@ mod test {
             Bucket, BucketError, BucketJurisdiction, BucketLocation, BucketOrder,
             BucketStorageClass, Buckets, BucketsListInput, BucketsListResponse, R2Error,
         };
+        use rstest::*;
         use wiremock::matchers::{header, method, path, query_param};
         use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -148,21 +149,27 @@ mod test {
             let r2_client = create_r2_client(mock_server.uri());
 
             let buckets = r2_client.list_buckets(buckets_list_input).await?;
+
             assert_eq!(buckets, expected_buckets);
-
             Ok(())
         }
 
         #[tokio::test]
-        async fn should_handle_invalid_cursor_input_parameter() -> Result<(), R2Error> {
+        #[rstest]
+        #[case(10023, "continuation token is not valid".to_string())]
+        #[case(10029, "per_page must be between 1 and 1000000".to_string())]
+        async fn should_handle_validation_errors(
+            #[case] code: u16,
+            #[case] message: String,
+        ) -> Result<(), R2Error> {
             let input = BucketsListInput {
                 account_id: "account_id".to_string(),
                 ..BucketsListInput::default()
             };
-            let error_message = "continuation token is not valid".to_string();
+
             let api_error = ApiError {
-                code: 10023,
-                message: error_message.clone(),
+                code,
+                message: message.clone(),
             };
 
             let mock_server = create_failing_mock_server(&input.account_id, api_error).await;
@@ -173,33 +180,7 @@ mod test {
             let error = result.err().unwrap();
             assert!(matches!(
                 error,
-                R2Error::Bucket(BucketError::Validation(msg)) if msg == error_message
-            ));
-
-            Ok(())
-        }
-
-        #[tokio::test]
-        async fn should_handle_invalid_per_page_input_parameter() -> Result<(), R2Error> {
-            let input = BucketsListInput {
-                account_id: "account_id".to_string(),
-                ..BucketsListInput::default()
-            };
-            let error_message = "per_page must be between 1 and 1000000".to_string();
-            let api_error = ApiError {
-                code: 10029,
-                message: error_message.clone(),
-            };
-
-            let mock_server = create_failing_mock_server(&input.account_id, api_error).await;
-            let r2_client = create_r2_client(mock_server.uri());
-            let result = r2_client.list_buckets(input).await;
-            assert!(result.is_err());
-
-            let error = result.err().unwrap();
-            assert!(matches!(
-                error,
-                R2Error::Bucket(BucketError::Validation(msg)) if msg == error_message
+                R2Error::Bucket(BucketError::Validation(msg)) if msg == message
             ));
 
             Ok(())
