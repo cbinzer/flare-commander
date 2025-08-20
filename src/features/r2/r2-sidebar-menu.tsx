@@ -7,6 +7,7 @@ import {
   HardDrive,
   Loader2Icon,
   MoreHorizontal,
+  PlusIcon,
   RefreshCcwIcon,
   TrashIcon,
 } from 'lucide-react';
@@ -21,7 +22,6 @@ import {
   SidebarMenuSubItem,
 } from '@/components/ui/sidebar.tsx';
 import { FunctionComponent, MouseEvent, useState } from 'react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip.tsx';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,13 +37,12 @@ import SidebarMenuSkeleton from '@/components/ui/sidebar-menu-skeleton.tsx';
 
 export function R2SidebarMenu() {
   // const [activeNamespaceId, setActiveNamespaceId] = useState<string | undefined>();
-  const [isReloading, setIsReloading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const { buckets, loadBuckets, loading } = useBuckets();
+  const { buckets, loading, reloading, loadBuckets, reloadBuckets } = useBuckets();
   const { handleError } = useError();
   const isMobile = useIsMobile();
 
-  const isLoading = loading || isReloading;
+  const isLoading = loading;
   const isLoadMoreVisible = false;
 
   const loadBucketsOnOpen = async (open: boolean) => {
@@ -76,8 +75,8 @@ export function R2SidebarMenu() {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <SidebarMenuAction showOnHover={!isReloading} disabled={isLoading}>
-                {isReloading ? <RefreshCcwIcon className="animate-spin" /> : <MoreHorizontal />}
+              <SidebarMenuAction showOnHover={!reloading} disabled={loading}>
+                {reloading ? <RefreshCcwIcon className="animate-spin" /> : <MoreHorizontal />}
                 <span className="sr-only">More</span>
               </SidebarMenuAction>
             </DropdownMenuTrigger>
@@ -86,14 +85,14 @@ export function R2SidebarMenu() {
               side={isMobile ? 'bottom' : 'right'}
               align={isMobile ? 'end' : 'start'}
             >
-              {/*<DropdownMenuItem onClick={reloadNamespaces} disabled={!isOpen}>*/}
-              {/*  <RefreshCcwIcon />*/}
-              {/*  <span>Reload</span>*/}
-              {/*</DropdownMenuItem>*/}
-              {/*<DropdownMenuItem onClick={() => setIsCreateSheetOpen(true)}>*/}
-              {/*  <PlusIcon />*/}
-              {/*  <span>Add Namespace</span>*/}
-              {/*</DropdownMenuItem>*/}
+              <DropdownMenuItem disabled={!isOpen} onClick={reloadBuckets}>
+                <RefreshCcwIcon />
+                <span>Reload</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={true}>
+                <PlusIcon />
+                <span>Add Bucket</span>
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -146,43 +145,34 @@ const R2SidebarMenuSub: FunctionComponent<R2SidebarMenuProps> = ({ buckets }) =>
   return (
     <SidebarMenuSub>
       {buckets.map((bucket) => (
-        <TooltipProvider delayDuration={1000} key={bucket.name}>
-          <Tooltip delayDuration={2000}>
-            <TooltipTrigger asChild>
-              <SidebarMenuSubItem>
-                <SidebarMenuSubButton asChild isActive={activeBucket?.name === bucket.name}>
-                  <a href="#" onClick={(event) => openR2Section(event, bucket)}>
-                    <span>{bucket.name}</span>
-                  </a>
-                </SidebarMenuSubButton>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <SidebarMenuSubAction showOnHover>
-                      <MoreHorizontal />
-                    </SidebarMenuSubAction>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    className="w-48 rounded-lg"
-                    side={isMobile ? 'bottom' : 'right'}
-                    align={isMobile ? 'end' : 'start'}
-                  >
-                    <DropdownMenuItem>
-                      <EditIcon />
-                      <span>Edit</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <TrashIcon />
-                      <span>Delete</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </SidebarMenuSubItem>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{bucket.name}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <SidebarMenuSubItem>
+          <SidebarMenuSubButton asChild isActive={activeBucket?.name === bucket.name}>
+            <a href="#" onClick={(event) => openR2Section(event, bucket)}>
+              <span>{bucket.name}</span>
+            </a>
+          </SidebarMenuSubButton>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild hidden={true} disabled={true}>
+              <SidebarMenuSubAction showOnHover>
+                <MoreHorizontal />
+              </SidebarMenuSubAction>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              className="w-48 rounded-lg"
+              side={isMobile ? 'bottom' : 'right'}
+              align={isMobile ? 'end' : 'start'}
+            >
+              <DropdownMenuItem>
+                <EditIcon />
+                <span>Edit</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <TrashIcon />
+                <span>Delete</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </SidebarMenuSubItem>
       ))}
     </SidebarMenuSub>
   );

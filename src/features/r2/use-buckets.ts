@@ -7,6 +7,7 @@ import { invoke } from '@tauri-apps/api/core';
 export function useBuckets(): BucketsHook {
   const auth = useAuth();
   const [loading, setLoading] = useState<boolean>(false);
+  const [reloading, setReloading] = useState<boolean>(false);
   const [buckets, setBuckets] = useState<Bucket[]>([]);
 
   const loadBuckets = useCallback(async () => {
@@ -29,17 +30,47 @@ export function useBuckets(): BucketsHook {
     }
   }, [auth]);
 
+  const reloadBuckets = useCallback(async () => {
+    setLoading(true);
+    setReloading(true);
+
+    const credentials = auth.account?.credentials;
+    if (!credentials) {
+      setLoading(false);
+      setReloading(false);
+      auth.resetCredentials();
+      return;
+    }
+
+    try {
+      const bucketsResponse = await invokeListBuckets(credentials, {
+        account_id: auth.account?.id ?? '',
+        per_page: buckets.length,
+      });
+      setBuckets(bucketsResponse.items.map((bucket) => ({ ...bucket, creation_date: new Date(bucket.creation_date) })));
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+      setReloading(false);
+    }
+  }, [auth]);
+
   return {
     loading,
+    reloading,
     buckets,
     loadBuckets,
+    reloadBuckets,
   };
 }
 
 export interface BucketsHook {
   loading: boolean;
+  reloading: boolean;
   buckets: Bucket[];
   loadBuckets: () => Promise<void>;
+  reloadBuckets: () => Promise<void>;
 }
 
 async function invokeListBuckets(credentials: Credentials, input: BucketsListInput): Promise<BucketsDTO> {
