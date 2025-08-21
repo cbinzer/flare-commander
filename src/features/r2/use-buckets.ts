@@ -4,6 +4,8 @@ import { useAuth } from '@/features/authentication/hooks/use-auth.ts';
 import { Credentials } from '@/features/authentication/auth-models.ts';
 import { invoke } from '@tauri-apps/api/core';
 
+const PER_PAGE = 100;
+
 export function useBuckets(): BucketsHook {
   const auth = useAuth();
   const [loading, setLoading] = useState<boolean>(false);
@@ -26,7 +28,7 @@ export function useBuckets(): BucketsHook {
     try {
       const bucketsResponse = await invokeListBuckets(credentials, {
         account_id: auth.account?.id ?? '',
-        per_page: 100,
+        per_page: PER_PAGE,
       });
       setHasNext(!!bucketsResponse.page_info?.cursor);
       setCursor(bucketsResponse.page_info?.cursor);
@@ -83,7 +85,7 @@ export function useBuckets(): BucketsHook {
       const bucketsResponse = await invokeListBuckets(credentials, {
         account_id: auth.account?.id ?? '',
         cursor,
-        per_page: 100,
+        per_page: PER_PAGE,
       });
       setHasNext(!!bucketsResponse.page_info?.cursor);
       setCursor(bucketsResponse.page_info?.cursor);

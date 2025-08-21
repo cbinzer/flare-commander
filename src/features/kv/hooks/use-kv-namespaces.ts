@@ -16,6 +16,8 @@ import { CredentialsType, UserAuthTokenCredentials } from '@/features/authentica
 import { invoke } from '@tauri-apps/api/core';
 import { convertPlainToKvErrorClass } from '@/features/kv/lib/kv-utils.ts';
 
+const PER_PAGE = 100;
+
 export function useKvNamespaces() {
   const { account } = useAuth();
   const [isListing, setIsListing] = useState(false);
@@ -42,6 +44,7 @@ export function useKvNamespaces() {
       const namespaces = await invokeListNamespaces(credentials, {
         account_id: account?.id ?? '',
         order_by: KvNamespacesOrderBy.TITLE,
+        per_page: PER_PAGE,
       });
 
       setPage(namespaces.page_info.page);
@@ -66,6 +69,7 @@ export function useKvNamespaces() {
         account_id: account?.id ?? '',
         order_by: KvNamespacesOrderBy.TITLE,
         page: page + 1,
+        per_page: PER_PAGE,
       });
       const allNamespaceIds = new Set(
         [...(namespaces ?? []), ...nextNamespaces.items].map((namespace) => namespace.id),
@@ -102,14 +106,13 @@ export function useKvNamespaces() {
         type: CredentialsType.UserAuthToken,
         token: (account?.credentials as UserAuthTokenCredentials).token,
       };
-      const per_page = namespaces && namespaces.length > 20 ? namespaces.length : 20;
+      const per_page = namespaces && namespaces.length > PER_PAGE ? namespaces.length : PER_PAGE;
       const reloadedNamespaces = await invokeListNamespaces(credentials, {
         account_id: account?.id ?? '',
         order_by: KvNamespacesOrderBy.TITLE,
         per_page,
       });
 
-      setPage(reloadedNamespaces.page_info.page);
       setTotalCount(reloadedNamespaces.page_info.total_count);
       setNamespaces(reloadedNamespaces.items);
     } catch (e) {

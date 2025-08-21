@@ -91,7 +91,7 @@ export function KvSidebarMenu() {
     setIsReloading(true);
 
     try {
-      await listNamespaces();
+      await relistNamespaces();
     } catch (error) {
       handleError(error as Error);
     } finally {
@@ -154,6 +154,9 @@ export function KvSidebarMenu() {
                 <KvSidebarMenuSub
                   namespaces={namespaces}
                   activeNamespaceId={activeNamespaceId}
+                  isLoadMoreVisible={isLoadMoreVisible}
+                  isLoadingNext={isLoadingNext}
+                  loadNextNamespaces={loadNextNamespaces}
                   onSelectNamespace={(namespace) => setActiveNamespaceId(namespace.id)}
                   onNamespaceChanged={relistNamespaces}
                 />
@@ -161,27 +164,6 @@ export function KvSidebarMenu() {
             </CollapsibleContent>
           </SidebarMenuItem>
         </Collapsible>
-
-        {isLoadMoreVisible && (
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              className="text-sidebar-foreground/70"
-              onClick={loadNextNamespaces}
-              disabled={isLoadingNext}
-            >
-              {isLoadingNext ? (
-                <>
-                  <Loader2Icon className="animate-spin" /> Loading...
-                </>
-              ) : (
-                <>
-                  <ArrowDown />
-                  <span>Load more</span>
-                </>
-              )}
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        )}
       </SidebarMenu>
       <KvNamespaceCreateSheet
         open={isCreateSheetOpen}
@@ -195,6 +177,9 @@ export function KvSidebarMenu() {
 interface KvSidebarMenuSubProps {
   namespaces: KvNamespace[];
   activeNamespaceId?: String;
+  isLoadMoreVisible: boolean;
+  isLoadingNext: boolean;
+  loadNextNamespaces: () => Promise<void>;
   onSelectNamespace?: (namespace: KvNamespace) => void;
   onNamespaceChanged?: (namespace: KvNamespace) => Promise<void>;
 }
@@ -202,6 +187,9 @@ interface KvSidebarMenuSubProps {
 const KvSidebarMenuSub: FunctionComponent<KvSidebarMenuSubProps> = ({
   namespaces,
   activeNamespaceId,
+  isLoadMoreVisible,
+  isLoadingNext,
+  loadNextNamespaces,
   onSelectNamespace = () => {},
   onNamespaceChanged = () => Promise.resolve(),
 }) => {
@@ -276,6 +264,28 @@ const KvSidebarMenuSub: FunctionComponent<KvSidebarMenuSubProps> = ({
           </Tooltip>
         </TooltipProvider>
       ))}
+
+      {isLoadMoreVisible && (
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            className="text-sidebar-foreground/55 cursor-pointer"
+            onClick={loadNextNamespaces}
+            disabled={isLoadingNext}
+          >
+            {isLoadingNext ? (
+              <>
+                <Loader2Icon className="animate-spin" /> Loading...
+              </>
+            ) : (
+              <>
+                <ArrowDown />
+                <span>Load more</span>
+              </>
+            )}
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      )}
+
       <KvNamespaceUpdateSheet
         namespaceId={namespaceIdToUpdate ?? ''}
         open={isUpdateSheetOpen}
