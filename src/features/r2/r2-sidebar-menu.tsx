@@ -7,7 +7,6 @@ import {
   HardDrive,
   Loader2Icon,
   MoreHorizontal,
-  PlusIcon,
   RefreshCcwIcon,
   TrashIcon,
 } from 'lucide-react';
@@ -29,21 +28,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu.tsx';
 import { useIsMobile } from '@/hooks/use-mobile.ts';
-import { useError } from '@/hooks/use-error.tsx';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useBuckets } from '@/features/r2/use-buckets.ts';
 import { Bucket } from '@/features/r2/r2-models.ts';
 import SidebarMenuSkeleton from '@/components/ui/sidebar-menu-skeleton.tsx';
 
 export function R2SidebarMenu() {
-  // const [activeNamespaceId, setActiveNamespaceId] = useState<string | undefined>();
   const [isOpen, setIsOpen] = useState(false);
-  const { buckets, loading, reloading, loadBuckets, reloadBuckets } = useBuckets();
-  const { handleError } = useError();
+  const { buckets, loading, reloading, loadingNext, hasNext, loadBuckets, reloadBuckets, loadNextBuckets } =
+    useBuckets();
+  // const { handleError } = useError();
   const isMobile = useIsMobile();
-
-  const isLoading = loading;
-  const isLoadMoreVisible = false;
 
   const loadBucketsOnOpen = async (open: boolean) => {
     setIsOpen(open);
@@ -89,56 +84,51 @@ export function R2SidebarMenu() {
                 <RefreshCcwIcon />
                 <span>Reload</span>
               </DropdownMenuItem>
-              <DropdownMenuItem disabled={true}>
-                <PlusIcon />
-                <span>Add Bucket</span>
-              </DropdownMenuItem>
+              {/*<DropdownMenuItem disabled={true}>*/}
+              {/*  <PlusIcon />*/}
+              {/*  <span>Add Bucket</span>*/}
+              {/*</DropdownMenuItem>*/}
             </DropdownMenuContent>
           </DropdownMenu>
 
           <CollapsibleContent>
-            {isLoading ? <SidebarMenuSkeleton /> : <R2SidebarMenuSub buckets={buckets} />}
+            {loading && !loadingNext ? (
+              <SidebarMenuSkeleton />
+            ) : (
+              <R2SidebarMenuSub
+                buckets={buckets}
+                hasNext={hasNext}
+                loadingNext={loadingNext}
+                loadNextBuckets={loadNextBuckets}
+              />
+            )}
           </CollapsibleContent>
         </SidebarMenuItem>
       </Collapsible>
-
-      {isLoadMoreVisible && (
-        <SidebarMenuItem>
-          <SidebarMenuButton
-            className="text-sidebar-foreground/70"
-            // onClick={loadNextNamespaces}
-            disabled={false}
-          >
-            {false ? (
-              <>
-                <Loader2Icon className="animate-spin" /> Loading...
-              </>
-            ) : (
-              <>
-                <ArrowDown />
-                <span>Load more</span>
-              </>
-            )}
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      )}
     </SidebarMenu>
   );
 }
 
 interface R2SidebarMenuProps {
   buckets: Bucket[];
+  hasNext: boolean;
+  loadingNext: boolean;
+  loadNextBuckets: () => Promise<void>;
 }
 
-const R2SidebarMenuSub: FunctionComponent<R2SidebarMenuProps> = ({ buckets }) => {
+const R2SidebarMenuSub: FunctionComponent<R2SidebarMenuProps> = ({
+  buckets,
+  hasNext,
+  loadingNext,
+  loadNextBuckets,
+}) => {
+  const [activeBucket, setActiveBucket] = useState<Bucket | undefined>();
   // const navigate = useNavigate();
   const isMobile = useIsMobile();
 
-  const [activeBucket, setActiveBucket] = useState<Bucket | undefined>();
-
   const openR2Section = (event: MouseEvent<HTMLAnchorElement>, bucket: Bucket) => {
     event.preventDefault();
-    console.log(bucket);
+    setActiveBucket(bucket);
     // navigate(`namespaces/${namespace.id}`, { state: namespace });
   };
 
@@ -174,6 +164,26 @@ const R2SidebarMenuSub: FunctionComponent<R2SidebarMenuProps> = ({ buckets }) =>
           </DropdownMenu>
         </SidebarMenuSubItem>
       ))}
+      {hasNext && (
+        <SidebarMenuSubItem>
+          <SidebarMenuButton
+            className="text-sidebar-foreground/55 cursor-pointer"
+            disabled={loadingNext}
+            onClick={loadNextBuckets}
+          >
+            {loadingNext ? (
+              <>
+                <Loader2Icon className="animate-spin" /> Loading...
+              </>
+            ) : (
+              <>
+                <ArrowDown />
+                <span>Load More</span>
+              </>
+            )}
+          </SidebarMenuButton>
+        </SidebarMenuSubItem>
+      )}
     </SidebarMenuSub>
   );
 };

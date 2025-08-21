@@ -8,7 +8,10 @@ export function useBuckets(): BucketsHook {
   const auth = useAuth();
   const [loading, setLoading] = useState<boolean>(false);
   const [reloading, setReloading] = useState<boolean>(false);
+  const [loadingNext, setLoadingNext] = useState<boolean>(false);
+  const [hasNext, setHasNext] = useState<boolean>(false);
   const [buckets, setBuckets] = useState<Bucket[]>([]);
+  const [cursor, setCursor] = useState<string | undefined>();
 
   const loadBuckets = useCallback(async () => {
     setLoading(true);
@@ -21,7 +24,12 @@ export function useBuckets(): BucketsHook {
     }
 
     try {
-      const bucketsResponse = await invokeListBuckets(credentials, { account_id: auth.account?.id ?? '' });
+      const bucketsResponse = await invokeListBuckets(credentials, {
+        account_id: auth.account?.id ?? '',
+        per_page: 100,
+      });
+      setHasNext(!!bucketsResponse.page_info?.cursor);
+      setCursor(bucketsResponse.page_info?.cursor);
       setBuckets(bucketsResponse.items.map((bucket) => ({ ...bucket, creation_date: new Date(bucket.creation_date) })));
     } catch (error) {
       console.error(error);
@@ -47,6 +55,9 @@ export function useBuckets(): BucketsHook {
         account_id: auth.account?.id ?? '',
         per_page: buckets.length,
       });
+
+      setHasNext(!!bucketsResponse.page_info?.cursor);
+      setCursor(bucketsResponse.page_info?.cursor);
       setBuckets(bucketsResponse.items.map((bucket) => ({ ...bucket, creation_date: new Date(bucket.creation_date) })));
     } catch (error) {
       console.error(error);
@@ -54,23 +65,61 @@ export function useBuckets(): BucketsHook {
       setLoading(false);
       setReloading(false);
     }
-  }, [auth]);
+  }, [auth, buckets]);
+
+  const loadNextBuckets = useCallback(async () => {
+    setLoading(true);
+    setLoadingNext(true);
+
+    const credentials = auth.account?.credentials;
+    if (!credentials) {
+      setLoading(false);
+      setLoadingNext(false);
+      auth.resetCredentials();
+      return;
+    }
+
+    try {
+      const bucketsResponse = await invokeListBuckets(credentials, {
+        account_id: auth.account?.id ?? '',
+        cursor,
+        per_page: 100,
+      });
+      setHasNext(!!bucketsResponse.page_info?.cursor);
+      setCursor(bucketsResponse.page_info?.cursor);
+      setBuckets((previousBuckets) => [
+        ...previousBuckets,
+        ...bucketsResponse.items.map((bucket) => ({ ...bucket, creation_date: new Date(bucket.creation_date) })),
+      ]);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+      setLoadingNext(false);
+    }
+  }, [auth, cursor]);
 
   return {
     loading,
     reloading,
+    loadingNext,
+    hasNext,
     buckets,
     loadBuckets,
     reloadBuckets,
+    loadNextBuckets,
   };
 }
 
 export interface BucketsHook {
   loading: boolean;
   reloading: boolean;
+  loadingNext: boolean;
+  hasNext: boolean;
   buckets: Bucket[];
   loadBuckets: () => Promise<void>;
   reloadBuckets: () => Promise<void>;
+  loadNextBuckets: () => Promise<void>;
 }
 
 async function invokeListBuckets(credentials: Credentials, input: BucketsListInput): Promise<BucketsDTO> {
